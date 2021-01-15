@@ -3,6 +3,8 @@ package keeper
 import (
 	"context"
 
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -68,9 +70,9 @@ type MsgServerParallel interface {
 
 func (m parallelMsgServerImpl) Send(ctx PrepareContext, request *types.MsgSend, setResponse func(*types.MsgSendResponse)) error {
 	// NOTE: can read last block's state synchronously
-	//if err := k.SendEnabledCoins(ctx, msg.Amount...); err != nil {
-	//	return nil, err
-	//}
+	if err := k.SendEnabledCoins(ctx, msg.Amount...); err != nil {
+		return nil, err
+	}
 
 	from, err := sdk.AccAddressFromBech32(msg.FromAddress)
 	if err != nil {
@@ -82,15 +84,18 @@ func (m parallelMsgServerImpl) Send(ctx PrepareContext, request *types.MsgSend, 
 	}
 
 	// NOTE: can read last block's state synchronously
-	//if k.BlockedAddr(to) {
-	//	return nil, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive funds", msg.ToAddress)
-	//}
+	if k.BlockedAddr(to) {
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive funds", msg.ToAddress)
+	}
 
-	for _, coin := range msg.Amount {
+	for _, coin := range request.Amount {
 		fromBalance := ctx.GetRef(AccountBalanceKey(from, coin.Denom))
 		toBalance := ctx.GetRef(AccountBalanceKey(to, coin.Denom))
 		ctx.Exec(func(ctx ExecContext) error {
 			// actually read and write balances here
+			from := fromBalance.Value(ctx)
+			newFrom := Subtract(from, coin.Amount)
+			fromBalance.SetValue(ctx, newFrom)
 		})
 	}
 
