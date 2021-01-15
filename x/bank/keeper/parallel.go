@@ -21,8 +21,16 @@ type BaseContext interface {
 type PrepareContext interface {
 	BaseContext
 
+	// GetRef returns a reference to a KV-pair that can be read and written in
+	// a callback registered with Exec
 	GetRef(key []byte) KVRef
+
+	// GetRef returns an iterator that can be read and written in
+	// a callback registered with Exec
 	GetIteratorRef(key []byte) IteratorRef
+
+	// Exec queues a function to be executed later when state access is safely isolated
+	// between transactions running in parallel
 	Exec(func(ExecContext) error)
 }
 
@@ -82,6 +90,7 @@ func (m parallelMsgServerImpl) Send(ctx PrepareContext, request *types.MsgSend, 
 		fromBalance := ctx.GetRef(AccountBalanceKey(from, coin.Denom))
 		toBalance := ctx.GetRef(AccountBalanceKey(to, coin.Denom))
 		ctx.Exec(func(ctx ExecContext) error {
+			// actually read and write balances here
 		})
 	}
 
