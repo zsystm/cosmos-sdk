@@ -24,15 +24,16 @@ type PrepareContext interface {
 	BaseContext
 
 	// GetRef returns a reference to a KV-pair that can be read and written in
-	// a callback registered with Exec
+	// a callback registered with Exec.
 	GetRef(key []byte) KVRef
 
 	// GetRef returns an iterator that can be read and written in
-	// a callback registered with Exec
+	// a callback registered with Exec.
 	GetIteratorRef(key []byte) IteratorRef
 
 	// Exec queues a function to be executed later when state access is safely isolated
-	// between transactions running in parallel
+	// between transactions running in parallel. Repeated calls to Exec will queue functions
+	// to be run sequentially in the order than Exec was called during the prepare phase.
 	Exec(func(ExecContext) error)
 }
 
