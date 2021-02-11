@@ -74,23 +74,24 @@ type Config struct {
 	LegacyAmino       *codec.LegacyAmino // TODO: Remove!
 	InterfaceRegistry codectypes.InterfaceRegistry
 
-	TxConfig         client.TxConfig
-	AccountRetriever client.AccountRetriever
-	AppConstructor   AppConstructor             // the ABCI application constructor
-	GenesisState     map[string]json.RawMessage // custom gensis state to provide
-	TimeoutCommit    time.Duration              // the consensus commitment timeout
-	ChainID          string                     // the network chain-id
-	NumValidators    int                        // the total number of validators to create and bond
-	BondDenom        string                     // the staking bond denomination
-	MinGasPrices     string                     // the minimum gas prices each validator will accept
-	AccountTokens    sdk.Int                    // the amount of unique validator tokens (e.g. 1000node0)
-	StakingTokens    sdk.Int                    // the amount of tokens each validator has available to stake
-	BondedTokens     sdk.Int                    // the amount of tokens each validator stakes
-	PruningStrategy  string                     // the pruning strategy each validator will have
-	EnableLogging    bool                       // enable Tendermint logging to STDOUT
-	CleanupDir       bool                       // remove base temporary directory during cleanup
-	SigningAlgo      string                     // signing algorithm for keys
-	KeyringOptions   []keyring.Option
+	TxConfig          client.TxConfig
+	AccountRetriever  client.AccountRetriever
+	AppConstructor    AppConstructor             // the ABCI application constructor
+	GenesisState      map[string]json.RawMessage // custom gensis state to provide
+	TimeoutCommit     time.Duration              // the consensus commitment timeout
+	ChainID           string                     // the network chain-id
+	NumValidators     int                        // the total number of validators to create and bond
+	ReplaceValidators bool
+	BondDenom         string  // the staking bond denomination
+	MinGasPrices      string  // the minimum gas prices each validator will accept
+	AccountTokens     sdk.Int // the amount of unique validator tokens (e.g. 1000node0)
+	StakingTokens     sdk.Int // the amount of tokens each validator has available to stake
+	BondedTokens      sdk.Int // the amount of tokens each validator stakes
+	PruningStrategy   string  // the pruning strategy each validator will have
+	EnableLogging     bool    // enable Tendermint logging to STDOUT
+	CleanupDir        bool    // remove base temporary directory during cleanup
+	SigningAlgo       string  // signing algorithm for keys
+	KeyringOptions    []keyring.Option
 }
 
 // DefaultConfig returns a sane default configuration suitable for nearly all
@@ -297,46 +298,81 @@ func New(t *testing.T, cfg Config) *Network {
 		)
 
 		genFiles = append(genFiles, tmCfg.GenesisFile())
-		genBalances = append(genBalances, banktypes.Balance{Address: addr.String(), Coins: balances.Sort()})
-		genAccounts = append(genAccounts, authtypes.NewBaseAccount(addr, nil, 0, 0))
+		if !cfg.ReplaceValidators {
 
-		commission, err := sdk.NewDecFromStr("0.5")
-		require.NoError(t, err)
+			genBalances = append(genBalances, banktypes.Balance{Address: addr.String(), Coins: balances.Sort()})
+			genAccounts = append(genAccounts, authtypes.NewBaseAccount(addr, nil, 0, 0))
 
-		createValMsg, err := stakingtypes.NewMsgCreateValidator(
-			sdk.ValAddress(addr),
-			valPubKeys[i],
-			sdk.NewCoin(cfg.BondDenom, cfg.BondedTokens),
-			stakingtypes.NewDescription(nodeDirName, "", "", "", ""),
-			stakingtypes.NewCommissionRates(commission, sdk.OneDec(), sdk.OneDec()),
-			sdk.OneInt(),
-		)
-		require.NoError(t, err)
+			commission, err := sdk.NewDecFromStr("0.5")
+			require.NoError(t, err)
 
-		p2pURL, err := url.Parse(p2pAddr)
-		require.NoError(t, err)
+			createValMsg, err := stakingtypes.NewMsgCreateValidator(
+				sdk.ValAddress(addr),
+				valPubKeys[i],
+				sdk.NewCoin(cfg.BondDenom, cfg.BondedTokens),
+				stakingtypes.NewDescription(nodeDirName, "", "", "", ""),
+				stakingtypes.NewCommissionRates(commission, sdk.OneDec(), sdk.OneDec()),
+				sdk.OneInt(),
+			)
+			require.NoError(t, err)
 
-		memo := fmt.Sprintf("%s@%s:%s", nodeIDs[i], p2pURL.Hostname(), p2pURL.Port())
-		fee := sdk.NewCoins(sdk.NewCoin(fmt.Sprintf("%stoken", nodeDirName), sdk.NewInt(0)))
-		txBuilder := cfg.TxConfig.NewTxBuilder()
-		require.NoError(t, txBuilder.SetMsgs(createValMsg))
-		txBuilder.SetFeeAmount(fee)    // Arbitrary fee
-		txBuilder.SetGasLimit(1000000) // Need at least 100386
-		txBuilder.SetMemo(memo)
+			p2pURL, err := url.Parse(p2pAddr)
+			require.NoError(t, err)
 
-		txFactory := tx.Factory{}
-		txFactory = txFactory.
-			WithChainID(cfg.ChainID).
-			WithMemo(memo).
-			WithKeybase(kb).
-			WithTxConfig(cfg.TxConfig)
+			memo := fmt.Sprintf("%s@%s:%s", nodeIDs[i], p2pURL.Hostname(), p2pURL.Port())
+			fee := sdk.NewCoins(sdk.NewCoin(fmt.Sprintf("%stoken", nodeDirName), sdk.NewInt(0)))
+			txBuilder := cfg.TxConfig.NewTxBuilder()
+			require.NoError(t, txBuilder.SetMsgs(createValMsg))
+			txBuilder.SetFeeAmount(fee)    // Arbitrary fee
+			txBuilder.SetGasLimit(1000000) // Need at least 100386
+			txBuilder.SetMemo(memo)
 
-		err = tx.Sign(txFactory, nodeDirName, txBuilder, true)
-		require.NoError(t, err)
+			txFactory := tx.Factory{}
+			txFactory = txFactory.
+				WithChainID(cfg.ChainID).
+				WithMemo(memo).
+				WithKeybase(kb).
+				WithTxConfig(cfg.TxConfig)
 
-		txBz, err := cfg.TxConfig.TxJSONEncoder()(txBuilder.GetTx())
-		require.NoError(t, err)
-		require.NoError(t, writeFile(fmt.Sprintf("%v.json", nodeDirName), gentxsDir, txBz))
+			err = tx.Sign(txFactory, nodeDirName, txBuilder, true)
+			require.NoError(t, err)
+
+			txBz, err := cfg.TxConfig.TxJSONEncoder()(txBuilder.GetTx())
+			require.NoError(t, err)
+			require.NoError(t, writeFile(fmt.Sprintf("%v.json", nodeDirName), gentxsDir, txBz))
+		} else {
+			//cfg.GenesisState["staking"]
+			var stakingGenesis stakingtypes.GenesisState
+			//stakingGenesis
+			// sort validators by power
+			// get the i'th validator
+			// replace validator.ConsensusPubKey with pubKey
+
+			// search for validator addr in authgenesis.Accounts
+			authGenJson := cfg.GenesisState[authtypes.ModuleName]
+			var authGenesis authtypes.GenesisState
+			err := cfg.Codec.UnmarshalJSON(authGenJson, &authGenesis)
+			if err != nil {
+				panic(err)
+			}
+			for i, accAny := range authGenesis.Accounts {
+				acc := accAny.GetCachedValue().(authtypes.AccountI)
+				info, err := kb.Key(nodeDirName)
+				if err != nil {
+					panic(err)
+				}
+				err = acc.SetPubKey(info.GetPubKey())
+				if err != nil {
+					panic(err)
+				}
+				accAny, err = codectypes.NewAnyWithValue(acc)
+				if err != nil {
+					panic(err)
+				}
+				authGenesis.Accounts[i] = accAny
+			}
+			// replace with pubkey corresponding to keyName = nodeDirName from keyring
+		}
 
 		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), appCfg)
 
