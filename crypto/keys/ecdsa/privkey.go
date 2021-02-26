@@ -21,6 +21,12 @@ func GenSecp256r1() (cryptotypes.PrivKey, error) {
 	return &ecdsaSK{*key}, err
 }
 
+// GenSecp256k1 generates a new secp256k1 private key. It uses operating system randomness.
+func GenSecp256k1() (cryptotypes.PrivKey, error) {
+	key, err := ecdsa.GenerateKey(secp256k1, rand.Reader)
+	return &ecdsaSK{*key}, err
+}
+
 // PubKey implements Cosmos-SDK PrivKey interface.
 func (sk *ecdsaSK) PubKey() cryptotypes.PubKey {
 	return &ecdsaPK{sk.PublicKey, nil}
