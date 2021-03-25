@@ -15,4 +15,5 @@ type Context interface {
 	ChainID() string
 	TxBytes() []byte
 	KVStore(key types.StoreKey) types.KVStore
+	// etc...
 }
