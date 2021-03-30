@@ -1,5 +1,3 @@
-// +build norace
-
 package rest_test
 
 import (
@@ -527,6 +525,56 @@ func (s *IntegrationTestSuite) TestLegacyMultisig() {
 	s.Require().Equal(uint32(0), txRes.Code)
 
 	s.testQueryTx(txRes.Height, txRes.TxHash, recipient.String())
+}
+
+func (s *IntegrationTestSuite) TestBroadcast() {
+	val := s.network.Validators[0]
+
+	input := `{
+    "mode": "block",
+    "tx": {
+        "fee": {
+            "amount": [
+                {
+                    "amount": "2500",
+                    "denom": "uatom"
+                }
+            ],
+            "gas": "100000"
+        },
+        "memo": "kevin",
+        "msg": [
+            {
+                "type": "cosmos-sdk/MsgSend",
+                "value": {
+                    "amount": [
+                        {
+                            "amount": "100",
+                            "denom": "uatom"
+                        }
+                    ],
+                    "from_address": "cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r",
+                    "to_address": "cosmos1ht8vzyx8t2yxh0jlwmk7atu0p8en6w4qnylxvx"
+                }
+            }
+        ],
+        "signatures": [
+            {
+                "pub_key": {
+                    "type": "tendermint/PubKeySecp256k1",
+                    "value": "A7djL/Y4wDXuTCHrt2edUhrEPskGNlejI4yb12A0XkQU"
+                },
+                "signature": "nPPAd2cWhwvUJZejomZoLBxuN35XZ24Tmp39C+iJQZJzlUM+Xt2FaPe1fWkGLvf0DgEDs8TPxGTlQ0DHxNrBgw=="
+            }
+        ]
+    }
+}`
+
+	resBz, err := rest.PostRequest(fmt.Sprintf("%s/txs", val.APIAddress), "application/json", []byte(input))
+	fmt.Println(string(resBz))
+	s.Require().NoError(err)
+
+	s.Require().True(false)
 }
 
 func TestIntegrationTestSuite(t *testing.T) {
