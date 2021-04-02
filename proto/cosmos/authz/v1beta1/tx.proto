@@ -34,7 +34,7 @@ message MsgGrantAuthorizationRequest {
   google.protobuf.Timestamp expiration    = 4 [(gogoproto.nullable) = false, (gogoproto.stdtime) = true];
 }
 
-// MsgExecAuthorizedResponse defines the Msg/MsgExecAuthorizedResponse response type.
+// MsgExecAuthorizedResponse defines the Msg/ExecAuthorized response type.
 message MsgExecAuthorizedResponse {
   cosmos.base.abci.v1beta1.Result result = 1;
 }
@@ -47,7 +47,7 @@ message MsgExecAuthorizedRequest {
   repeated google.protobuf.Any msgs = 2;
 }
 
-// MsgGrantAuthorizationResponse defines the Msg/MsgGrantAuthorization response type.
+// MsgGrantAuthorizationResponse defines the Msg/GrantAuthorization response type.
 message MsgGrantAuthorizationResponse {}
 
 // MsgRevokeAuthorizationRequest revokes any authorization with the provided sdk.Msg type on the
@@ -58,5 +58,5 @@ message MsgRevokeAuthorizationRequest {
   string method_name = 3;
 }
 
-// MsgRevokeAuthorizationResponse defines the Msg/MsgRevokeAuthorizationResponse response type.
+// MsgRevokeAuthorizationResponse defines the Msg/RevokeAuthorization response type.
 message MsgRevokeAuthorizationResponse {}
