@@ -7,6 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
+	abci "github.com/tendermint/tendermint/abci/types"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
@@ -14,6 +16,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
@@ -27,6 +30,7 @@ import (
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	authtest "github.com/cosmos/cosmos-sdk/x/auth/client/testutil"
 	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	bankcli "github.com/cosmos/cosmos-sdk/x/bank/client/testutil"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
 )
@@ -46,6 +50,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 
 	cfg := network.DefaultConfig()
 	cfg.NumValidators = 2
+	cfg.MinGasPrices = "0uatom"
 
 	s.cfg = cfg
 	s.network = network.New(s.T(), cfg)
@@ -141,11 +146,12 @@ func (s *IntegrationTestSuite) TestQueryAccountWithColon() {
 	s.Require().Contains(string(res), "decoding bech32 failed")
 }
 
-func (s *IntegrationTestSuite) TestBroadcastTxRequest() {
+func (s *IntegrationTestSuite) TestBroadcastStdTxRequest() {
 	stdTx := mkStdTx()
 
 	// we just test with async mode because this tx will fail - all we care about is that it got encoded and broadcast correctly
-	res, err := s.broadcastReq(stdTx, "async")
+	res, err := s.broadcastReq(stdTx, "block")
+	fmt.Println("res=", string(res))
 	s.Require().NoError(err)
 	var txRes sdk.TxResponse
 	// NOTE: this uses amino explicitly, don't migrate it!
@@ -528,52 +534,62 @@ func (s *IntegrationTestSuite) TestLegacyMultisig() {
 }
 
 func (s *IntegrationTestSuite) TestBroadcast() {
-	val := s.network.Validators[0]
+	// Set up the exact situation from the issue.
+	// TxHash is D75609C37331868FD83895B6247C3E8CD8D7AB6F3977602C30EF6AD243D0235F
+	app := simapp.Setup(false)
+	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 
-	input := `{
-    "mode": "block",
-    "tx": {
-        "fee": {
-            "amount": [
-                {
-                    "amount": "2500",
-                    "denom": "uatom"
-                }
-            ],
-            "gas": "100000"
-        },
-        "memo": "kevin",
-        "msg": [
-            {
-                "type": "cosmos-sdk/MsgSend",
-                "value": {
-                    "amount": [
-                        {
-                            "amount": "100",
-                            "denom": "uatom"
-                        }
-                    ],
-                    "from_address": "cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r",
-                    "to_address": "cosmos1ht8vzyx8t2yxh0jlwmk7atu0p8en6w4qnylxvx"
-                }
-            }
-        ],
-        "signatures": [
-            {
-                "pub_key": {
-                    "type": "tendermint/PubKeySecp256k1",
-                    "value": "A7djL/Y4wDXuTCHrt2edUhrEPskGNlejI4yb12A0XkQU"
-                },
-                "signature": "nPPAd2cWhwvUJZejomZoLBxuN35XZ24Tmp39C+iJQZJzlUM+Xt2FaPe1fWkGLvf0DgEDs8TPxGTlQ0DHxNrBgw=="
-            }
-        ]
-    }
-}`
-
-	resBz, err := rest.PostRequest(fmt.Sprintf("%s/txs", val.APIAddress), "application/json", []byte(input))
-	fmt.Println(string(resBz))
+	app.InitChain(abci.RequestInitChain{
+		ChainId: "",
+	})
+	addr, err := sdk.AccAddressFromBech32("cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r")
+	s.Require().NoError(err)
+	app.AccountKeeper.SetAccount(ctx, authtypes.NewBaseAccount(addr, nil, 200176, 0))
 	s.Require().NoError(err)
 
+	// 	input := `{
+	//     "mode": "block",
+	//     "tx": {
+	//         "fee": {
+	//             "amount": [
+	//                 {
+	//                     "amount": "2500",
+	//                     "denom": "uatom"
+	//                 }
+	//             ],
+	//             "gas": "100000"
+	//         },
+	//         "memo": "kevin",
+	//         "msg": [
+	//             {
+	//                 "type": "cosmos-sdk/MsgSend",
+	//                 "value": {
+	//                     "amount": [
+	//                         {
+	//                             "amount": "100",
+	//                             "denom": "uatom"
+	//                         }
+	//                     ],
+	//                     "from_address": "cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r",
+	//                     "to_address": "cosmos1ht8vzyx8t2yxh0jlwmk7atu0p8en6w4qnylxvx"
+	//                 }
+	//             }
+	//         ],
+	//         "signatures": [
+	//             {
+	//                 "pub_key": {
+	//                     "type": "tendermint/PubKeySecp256k1",
+	//                     "value": "A7djL/Y4wDXuTCHrt2edUhrEPskGNlejI4yb12A0XkQU"
+	//                 },
+	//                 "signature": "nPPAd2cWhwvUJZejomZoLBxuN35XZ24Tmp39C+iJQZJzlUM+Xt2FaPe1fWkGLvf0DgEDs8TPxGTlQ0DHxNrBgw=="
+	//             }
+	//         ]
+	//     }
+	// }`
+
+	// resBz, err := rest.PostRequest(fmt.Sprintf("%s/txs", val.APIAddress), "application/json", []byte(input))
+	// fmt.Println(string(resBz))
+	// s.Require().NoError(err)
 	s.Require().True(false)
 }
 
