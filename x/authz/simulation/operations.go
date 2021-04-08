@@ -218,7 +218,7 @@ func SimulateMsgExecuteAuthorized(ak types.AccountKeeper, bk types.BankKeeper, k
 			return simtypes.NoOpMsg(types.ModuleName, TypeMsgExecDelegated, "Not found"), nil, nil
 		}
 
-		grantee, _ := simtypes.FindAccount(accs, granteeAddr)
+		granteePrivKey, _ := simtypes.FindAccount(accs, granteeAddr).PrivKey
 		granterAccount := ak.GetAccount(ctx, granterAddr)
 		granteeAccount := ak.GetAccount(ctx, granteeAddr)
 
@@ -247,7 +247,7 @@ func SimulateMsgExecuteAuthorized(ak types.AccountKeeper, bk types.BankKeeper, k
 			),
 		}
 
-		msg := types.NewMsgExecAuthorized(grantee.Address, []sdk.ServiceMsg{execMsg})
+		msg := types.NewMsgExecAuthorized(granteeAddr, []sdk.ServiceMsg{execMsg})
 		sendGrant := targetGrant.Authorization.GetCachedValue().(*banktype.SendAuthorization)
 		_, _, err = sendGrant.Accept(execMsg, ctx.BlockHeader())
 		if err != nil {

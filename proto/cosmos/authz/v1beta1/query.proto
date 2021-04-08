@@ -44,7 +44,7 @@ message QueryAuthorizationsRequest {
 
 // QueryAuthorizationsResponse is the response type for the Query/Authorizations RPC method.
 message QueryAuthorizationsResponse {
-  // authorizations is a list of grants granted for grantee by granter.
+  // authorizations are a list of grants granted to the grantee by granter.
   repeated cosmos.authz.v1beta1.AuthorizationGrant authorizations = 1;
   // pagination defines an pagination for the response.
   cosmos.base.query.v1beta1.PageResponse pagination = 2;
