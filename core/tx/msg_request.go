@@ -1,6 +1,6 @@
-package base
+package tx
 
-type MsgRequest interface {
+type Msg interface {
 	GetSigners() []string
 	ValidateBasic() error
 }
