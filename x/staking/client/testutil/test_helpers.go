@@ -26,7 +26,6 @@ func MsgRedelegateExec(clientCtx client.Context, from, src, dst, amount fmt.Stri
 		dst.String(),
 		amount.String(),
 		fmt.Sprintf("--%s=%s", flags.FlagFrom, from.String()),
-		fmt.Sprintf("--%s=%d", flags.FlagGas, 300000),
 	}
 	args = append(args, extraArgs...)
 

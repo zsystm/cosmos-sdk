@@ -7,7 +7,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/testutil/network"
 	"github.com/cosmos/cosmos-sdk/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
@@ -24,7 +23,7 @@ func (s *IntegrationTestSuite) TestCoinSend() {
 
 	sendReq := generateSendReq(
 		account,
-		types.Coins{types.NewCoin(s.cfg.BondDenom, types.TokensFromConsensusPower(1, sdk.DefaultPowerReduction))},
+		types.Coins{types.NewCoin(s.cfg.BondDenom, types.TokensFromConsensusPower(1))},
 	)
 
 	stdTx, err := submitSendReq(val, sendReq)

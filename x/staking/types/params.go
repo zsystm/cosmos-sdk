@@ -38,7 +38,6 @@ var (
 	KeyMaxEntries        = []byte("MaxEntries")
 	KeyBondDenom         = []byte("BondDenom")
 	KeyHistoricalEntries = []byte("HistoricalEntries")
-	KeyPowerReduction    = []byte("PowerReduction")
 )
 
 var _ paramtypes.ParamSet = (*Params)(nil)
@@ -49,14 +48,13 @@ func ParamKeyTable() paramtypes.KeyTable {
 }
 
 // NewParams creates a new Params instance
-func NewParams(unbondingTime time.Duration, maxValidators, maxEntries, historicalEntries uint32, bondDenom string, powerReduction sdk.Int) Params {
+func NewParams(unbondingTime time.Duration, maxValidators, maxEntries, historicalEntries uint32, bondDenom string) Params {
 	return Params{
 		UnbondingTime:     unbondingTime,
 		MaxValidators:     maxValidators,
 		MaxEntries:        maxEntries,
 		HistoricalEntries: historicalEntries,
 		BondDenom:         bondDenom,
-		PowerReduction:    powerReduction,
 	}
 }
 
@@ -68,7 +66,6 @@ func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 		paramtypes.NewParamSetPair(KeyMaxEntries, &p.MaxEntries, validateMaxEntries),
 		paramtypes.NewParamSetPair(KeyHistoricalEntries, &p.HistoricalEntries, validateHistoricalEntries),
 		paramtypes.NewParamSetPair(KeyBondDenom, &p.BondDenom, validateBondDenom),
-		paramtypes.NewParamSetPair(KeyPowerReduction, &p.PowerReduction, ValidatePowerReduction),
 	}
 }
 
@@ -80,7 +77,6 @@ func DefaultParams() Params {
 		DefaultMaxEntries,
 		DefaultHistoricalEntries,
 		sdk.DefaultBondDenom,
-		sdk.DefaultPowerReduction,
 	)
 }
 
@@ -191,19 +187,6 @@ func validateBondDenom(i interface{}) error {
 
 	if err := sdk.ValidateDenom(v); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func ValidatePowerReduction(i interface{}) error {
-	v, ok := i.(sdk.Int)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
-	if v.LT(sdk.NewInt(1)) {
-		return fmt.Errorf("power reduction cannot be lower than 1")
 	}
 
 	return nil

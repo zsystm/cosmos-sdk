@@ -40,8 +40,7 @@ var (
 	multiPermAcc  = authtypes.NewEmptyModuleAccount(multiPerm, authtypes.Burner, authtypes.Minter, authtypes.Staking)
 	randomPermAcc = authtypes.NewEmptyModuleAccount(randomPerm, "random")
 
-	// The default power validators are initialized to have within tests
-	initTokens = sdk.TokensFromConsensusPower(initialPower, sdk.DefaultPowerReduction)
+	initTokens = sdk.TokensFromConsensusPower(initialPower)
 	initCoins  = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens))
 )
 
@@ -92,7 +91,7 @@ func (suite *IntegrationTestSuite) TestSupply() {
 	app, ctx := suite.app, suite.ctx
 
 	initialPower := int64(100)
-	initTokens := suite.app.StakingKeeper.TokensFromConsensusPower(suite.ctx, initialPower)
+	initTokens := sdk.TokensFromConsensusPower(initialPower)
 
 	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens))
 	suite.NoError(app.BankKeeper.MintCoins(ctx, minttypes.ModuleName, totalSupply))
