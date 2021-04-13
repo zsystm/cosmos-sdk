@@ -43,7 +43,7 @@ func NewTestTx(ctx sdk.Context, msgs []sdk.Msg, privs []cryptotypes.PrivKey, acc
 	// if invalid we set this to an empty list of msgs
 	legacyMsgs, err := MsgToLegacyMsg(msgs)
 	if err != nil {
-		legacyMsgs = []sdk.LegacyMsg{}
+		panic(err)
 	}
 	for i, priv := range privs {
 		signBytes := StdSignBytes(ctx.ChainID(), accNums[i], seqs[i], timeout, fee, legacyMsgs, "")

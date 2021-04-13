@@ -89,9 +89,15 @@ func NewOperationMsg(msg sdk.Msg, ok bool, comment string, cdc *codec.ProtoCodec
 
 		return NewOperationMsgBasic(srvMsg.MethodName, srvMsg.MethodName, comment, ok, bz)
 	}
+	// whatever is happening here is kinda hacky... cdc is nil for legacy messages so we're forced to cast it back
+	// to legacy msg and get its sign bytes
+	legacyMsg, ok := msg.(sdk.LegacyMsg)
+	if !ok {
+		panic(fmt.Errorf("simulation message needs to be either sdk.Msg or sdk.LegacyMsg, got %T", msg))
+	}
 	route := fmt.Sprintf("/%s", proto.MessageName(msg))
 	typ := fmt.Sprintf("%s", proto.MessageName(msg))
-	return NewOperationMsgBasic(route, typ, comment, ok, cdc.MustMarshalJSON(msg))
+	return NewOperationMsgBasic(route, typ, comment, ok, legacyMsg.GetSignBytes())
 }
 
 // NoOpMsg - create a no-operation message
