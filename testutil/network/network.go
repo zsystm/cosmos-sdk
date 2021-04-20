@@ -292,6 +292,7 @@ func New(t *testing.T, cfg Config) *Network {
 		require.NoError(t, writeFile(fmt.Sprintf("%v.json", "key_seed"), clientDir, infoBz))
 
 		balances := sdk.NewCoins(
+			sdk.NewCoin("uatom", sdk.NewInt(1000000)),
 			sdk.NewCoin(fmt.Sprintf("%stoken", nodeDirName), cfg.AccountTokens),
 			sdk.NewCoin(cfg.BondDenom, cfg.StakingTokens),
 		)
