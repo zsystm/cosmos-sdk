@@ -32,7 +32,7 @@ func TestDecodeStore(t *testing.T) {
 	tests := []struct {
 		name        string
 		expectedLog string
-		expectErr	bool
+		expectErr   bool
 	}{
 		{"Grant", fmt.Sprintf("%v\n%v", grant, grant), false},
 		{"other", "", true},

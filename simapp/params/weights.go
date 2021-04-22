@@ -25,4 +25,9 @@ const (
 	// feegrant
 	DefaultWeightGrantFeeAllowance  int = 100
 	DefaultWeightRevokeFeeAllowance int = 100
+
+	// authz
+	DefaultWeightGrantAuthorization  int = 100
+	DefaultWeightRevokeAuthorization int = 100
+	DefaultWeightExecAuthorized      int = 100
 )
