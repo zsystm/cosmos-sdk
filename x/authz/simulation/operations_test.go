@@ -178,7 +178,7 @@ func (suite *SimTestSuite) TestSimulateExecAuthorization() {
 	suite.Require().NoError(err)
 
 	// execute operation
-	op := simulation.SimulateMsgExecuteAuthorized(suite.app.AccountKeeper, suite.app.BankKeeper, suite.app.AuthzKeeper, suite.app.AppCodec(), suite.protoCdc)
+	op := simulation.SimulateMsgExecAuthorized(suite.app.AccountKeeper, suite.app.BankKeeper, suite.app.AuthzKeeper, suite.app.AppCodec(), suite.protoCdc)
 	operationMsg, futureOperations, err := op(r, suite.app.BaseApp, suite.ctx, accounts, "")
 	suite.Require().NoError(err)
 

@@ -72,7 +72,7 @@ func WeightedOperations(
 		),
 		simulation.NewWeightedOperation(
 			weightExecAuthorized,
-			SimulateMsgExecuteAuthorized(ak, bk, k, appCdc, protoCdc),
+			SimulateMsgExecAuthorized(ak, bk, k, appCdc, protoCdc),
 		),
 	}
 }
@@ -195,9 +195,9 @@ func SimulateMsgRevokeAuthorization(ak types.AccountKeeper, bk types.BankKeeper,
 	}
 }
 
-// SimulateMsgExecuteAuthorized generates a MsgExecuteAuthorized with random values.
+// SimulateMsgExecAuthorized generates a MsgExecuteAuthorized with random values.
 // nolint: funlen
-func SimulateMsgExecuteAuthorized(ak types.AccountKeeper, bk types.BankKeeper, k keeper.Keeper, cdc cdctypes.AnyUnpacker, protoCdc *codec.ProtoCodec) simtypes.Operation {
+func SimulateMsgExecAuthorized(ak types.AccountKeeper, bk types.BankKeeper, k keeper.Keeper, cdc cdctypes.AnyUnpacker, protoCdc *codec.ProtoCodec) simtypes.Operation {
 	return func(
 		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
@@ -218,7 +218,7 @@ func SimulateMsgExecuteAuthorized(ak types.AccountKeeper, bk types.BankKeeper, k
 			return simtypes.NoOpMsg(types.ModuleName, TypeMsgExecDelegated, "Not found"), nil, nil
 		}
 
-		granteePrivKey, _ := simtypes.FindAccount(accs, granteeAddr).PrivKey
+		grantee, _ := simtypes.FindAccount(accs, granteeAddr)
 		granterAccount := ak.GetAccount(ctx, granterAddr)
 		granteeAccount := ak.GetAccount(ctx, granteeAddr)
 
