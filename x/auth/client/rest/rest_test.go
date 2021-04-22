@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -150,8 +151,7 @@ func (s *IntegrationTestSuite) TestBroadcastStdTxRequest() {
 	stdTx := mkStdTx()
 
 	// we just test with async mode because this tx will fail - all we care about is that it got encoded and broadcast correctly
-	res, err := s.broadcastReq(stdTx, "block")
-	fmt.Println("res=", string(res))
+	res, err := s.broadcastReq(stdTx, "async")
 	s.Require().NoError(err)
 	var txRes sdk.TxResponse
 	// NOTE: this uses amino explicitly, don't migrate it!
@@ -533,21 +533,25 @@ func (s *IntegrationTestSuite) TestLegacyMultisig() {
 	s.testQueryTx(txRes.Height, txRes.TxHash, recipient.String())
 }
 
-func (s *IntegrationTestSuite) TestBroadcast() {
+func TestBroadcast(t *testing.T) {
+	// val := s.network.Validators[0]
 	// Set up the exact situation from the issue.
 	// TxHash is D75609C37331868FD83895B6247C3E8CD8D7AB6F3977602C30EF6AD243D0235F
 	app := simapp.Setup(false)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 
 	app.InitChain(abci.RequestInitChain{
-		ChainId: "",
+		ChainId:       "test-chain",
+		AppStateBytes: []byte("{}"),
 	})
 	addr, err := sdk.AccAddressFromBech32("cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r")
-	s.Require().NoError(err)
+	require.NoError(t, err)
 	app.AccountKeeper.SetAccount(ctx, authtypes.NewBaseAccount(addr, nil, 200176, 0))
-	s.Require().NoError(err)
+	require.NoError(t, err)
+	acccc := app.AccountKeeper.GetAccount(ctx, addr)
+	fmt.Println(acccc)
 
-	// 	input := `{
+	// input := `{
 	//     "mode": "block",
 	//     "tx": {
 	//         "fee": {
@@ -587,10 +591,10 @@ func (s *IntegrationTestSuite) TestBroadcast() {
 	//     }
 	// }`
 
-	// resBz, err := rest.PostRequest(fmt.Sprintf("%s/txs", val.APIAddress), "application/json", []byte(input))
+	// resBz, err := rest.PostRequest(fmt.Sprintf("%s/txs", network1.Validators[0].APIAddress), "application/json", []byte(input))
 	// fmt.Println(string(resBz))
-	// s.Require().NoError(err)
-	s.Require().True(false)
+	// require.NoError(t, err)
+	require.True(t, false)
 }
 
 func TestIntegrationTestSuite(t *testing.T) {
