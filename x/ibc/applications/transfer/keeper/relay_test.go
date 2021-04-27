@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"fmt"
+	"unicode/utf8"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
@@ -111,6 +112,8 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 
 				pd := packet.GetData()
 				eventStr := string(pd)
+				fmt.Println(eventStr)
+				fmt.Println(utf8.ValidString(eventStr))
 				var recovered types.FungibleTokenPacketData
 				err = recovered.Unmarshal([]byte(eventStr))
 				suite.Require().NoError(err)
