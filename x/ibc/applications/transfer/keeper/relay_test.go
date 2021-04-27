@@ -109,6 +109,13 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 				fungibleTokenPacket := types.NewFungibleTokenPacketData(coinFromBToA.Denom, coinFromBToA.Amount.Uint64(), suite.chainB.SenderAccount.GetAddress().String(), suite.chainA.SenderAccount.GetAddress().String())
 				packet := channeltypes.NewPacket(fungibleTokenPacket.GetBytes(), 1, channelB.PortID, channelB.ID, channelA.PortID, channelA.ID, clienttypes.NewHeight(0, 110), 0)
 
+				pd := packet.GetData()
+				eventStr := string(pd)
+				var recovered types.FungibleTokenPacketData
+				err = recovered.Unmarshal([]byte(eventStr))
+				suite.Require().NoError(err)
+				suite.Require().Equal(fungibleTokenPacket, recovered)
+
 				// get proof of packet commitment from chainB
 				packetKey := host.PacketCommitmentKey(packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
 				proof, proofHeight := suite.chainB.QueryProof(packetKey)
