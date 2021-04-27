@@ -110,6 +110,11 @@ func (k Keeper) SendPacket(
 	}
 
 	commitment := types.CommitPacket(k.cdc, packet)
+	fmt.Printf("packet data: %X\n", packet.GetData())
+	fmt.Printf("packet commitment: %X\n", commitment)
+	fmt.Printf("packet: %#v\n", packet)
+	fmt.Println("sequence", packet.GetSequence())
+	fmt.Println("packet event data", string(packet.GetData()))
 
 	nextSequenceSend++
 	k.SetNextSequenceSend(ctx, packet.GetSourcePort(), packet.GetSourceChannel(), nextSequenceSend)
@@ -222,6 +227,10 @@ func (k Keeper) RecvPacket(
 	}
 
 	commitment := types.CommitPacket(k.cdc, packet)
+	fmt.Printf("packet data: %X\n", packet.GetData())
+	fmt.Printf("packet commitment: %X\n", commitment)
+	fmt.Printf("packet: %#v\n", packet)
+	fmt.Println("sequence", packet.GetSequence())
 
 	// verify that the counterparty did commit to sending this packet
 	if err := k.connectionKeeper.VerifyPacketCommitment(
