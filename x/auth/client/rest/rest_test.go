@@ -6,10 +6,7 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
@@ -17,7 +14,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
@@ -31,7 +27,6 @@ import (
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	authtest "github.com/cosmos/cosmos-sdk/x/auth/client/testutil"
 	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	bankcli "github.com/cosmos/cosmos-sdk/x/bank/client/testutil"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
 )
@@ -50,8 +45,9 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.T().Log("setting up integration test suite")
 
 	cfg := network.DefaultConfig()
-	cfg.NumValidators = 2
+	cfg.NumValidators = 1
 	cfg.MinGasPrices = "0uatom"
+	cfg.ChainID = "cosmoshub-4"
 
 	s.cfg = cfg
 	s.network = network.New(s.T(), cfg)
@@ -533,68 +529,91 @@ func (s *IntegrationTestSuite) TestLegacyMultisig() {
 	s.testQueryTx(txRes.Height, txRes.TxHash, recipient.String())
 }
 
-func TestBroadcast(t *testing.T) {
-	// val := s.network.Validators[0]
+func (s *IntegrationTestSuite) TestBroadcast() {
+	val := s.network.Validators[0]
 	// Set up the exact situation from the issue.
 	// TxHash is D75609C37331868FD83895B6247C3E8CD8D7AB6F3977602C30EF6AD243D0235F
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	// app := simapp.Setup(false)
+	// ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 
-	app.InitChain(abci.RequestInitChain{
-		ChainId:       "test-chain",
-		AppStateBytes: []byte("{}"),
-	})
+	// app.InitChain(abci.RequestInitChain{
+	// 	ChainId:       "cosmoshub-4",
+	// 	AppStateBytes: []byte("{}"),
+	// })
 	addr, err := sdk.AccAddressFromBech32("cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r")
-	require.NoError(t, err)
-	app.AccountKeeper.SetAccount(ctx, authtypes.NewBaseAccount(addr, nil, 200176, 0))
-	require.NoError(t, err)
-	acccc := app.AccountKeeper.GetAccount(ctx, addr)
-	fmt.Println(acccc)
+	s.NoError(err)
+	// app.AccountKeeper.SetAccount(ctx, authtypes.NewBaseAccount(addr, nil, 200176, 0))
+	// s.NoError(err)
+	// acccc := app.AccountKeeper.GetAccount(ctx, addr)
+	// fmt.Println(acccc)
 
-	// input := `{
-	//     "mode": "block",
-	//     "tx": {
-	//         "fee": {
-	//             "amount": [
-	//                 {
-	//                     "amount": "2500",
-	//                     "denom": "uatom"
-	//                 }
-	//             ],
-	//             "gas": "100000"
-	//         },
-	//         "memo": "kevin",
-	//         "msg": [
-	//             {
-	//                 "type": "cosmos-sdk/MsgSend",
-	//                 "value": {
-	//                     "amount": [
-	//                         {
-	//                             "amount": "100",
-	//                             "denom": "uatom"
-	//                         }
-	//                     ],
-	//                     "from_address": "cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r",
-	//                     "to_address": "cosmos1ht8vzyx8t2yxh0jlwmk7atu0p8en6w4qnylxvx"
-	//                 }
-	//             }
-	//         ],
-	//         "signatures": [
-	//             {
-	//                 "pub_key": {
-	//                     "type": "tendermint/PubKeySecp256k1",
-	//                     "value": "A7djL/Y4wDXuTCHrt2edUhrEPskGNlejI4yb12A0XkQU"
-	//                 },
-	//                 "signature": "nPPAd2cWhwvUJZejomZoLBxuN35XZ24Tmp39C+iJQZJzlUM+Xt2FaPe1fWkGLvf0DgEDs8TPxGTlQ0DHxNrBgw=="
-	//             }
-	//         ]
-	//     }
-	// }`
+	sendTokens := sdk.NewInt64Coin("uatom", 10000)
+	res, err := bankcli.MsgSendExec(
+		val.ClientCtx,
+		val.Address,
+		addr,
+		sdk.NewCoins(sendTokens),
+		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin("uatom", sdk.NewInt(10))).String()),
+		fmt.Sprintf("--gas=%d", flags.DefaultGasLimit),
+	)
+	fmt.Println(res.String())
+	s.Require().NoError(err)
+	s.Require().NoError(s.network.WaitForNextBlock())
 
-	// resBz, err := rest.PostRequest(fmt.Sprintf("%s/txs", network1.Validators[0].APIAddress), "application/json", []byte(input))
-	// fmt.Println(string(resBz))
-	// require.NoError(t, err)
-	require.True(t, false)
+	input := `{
+	    "mode": "block",
+	    "tx": {
+	        "fee": {
+	            "amount": [
+	                {
+	                    "amount": "2500",
+	                    "denom": "uatom"
+	                }
+	            ],
+	            "gas": "100000"
+	        },
+	        "memo": "kevin",
+	        "msg": [
+	            {
+	                "type": "cosmos-sdk/MsgSend",
+	                "value": {
+	                    "amount": [
+	                        {
+	                            "amount": "100",
+	                            "denom": "uatom"
+	                        }
+	                    ],
+	                    "from_address": "cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r",
+	                    "to_address": "cosmos1ht8vzyx8t2yxh0jlwmk7atu0p8en6w4qnylxvx"
+	                }
+	            }
+	        ],
+	        "signatures": [
+	            {
+	                "pub_key": {
+	                    "type": "tendermint/PubKeySecp256k1",
+	                    "value": "A7djL/Y4wDXuTCHrt2edUhrEPskGNlejI4yb12A0XkQU"
+	                },
+	                "signature": "nPPAd2cWhwvUJZejomZoLBxuN35XZ24Tmp39C+iJQZJzlUM+Xt2FaPe1fWkGLvf0DgEDs8TPxGTlQ0DHxNrBgw=="
+	            }
+	        ]
+	    }
+	}`
+
+	resBz, err := rest.GetRequest(fmt.Sprintf("%s/auth/accounts/%s", val.APIAddress, addr.String()))
+	fmt.Println(string(resBz))
+	// This one prints {"height":"10","result":{"type":"cosmos-sdk/BaseAccount","value":{"address":"cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r","account_number":"200176"}}}
+
+	s.NoError(err)
+
+	resBz, err = rest.PostRequest(fmt.Sprintf("%s/txs", val.APIAddress), "application/json", []byte(input))
+	fmt.Println(string(resBz))
+	// This one prints
+	// {"height":"11","txhash":"283CC4D6FAAE32900043317A63A14F6DB83360B1C02D950A452EC58D45BECA93","data":"0A060A0473656E64","raw_log":"[{\"events\":[{\"type\":\"coin_received\",\"attributes\":[{\"key\":\"receiver\",\"value\":\"cosmos1ht8vzyx8t2yxh0jlwmk7atu0p8en6w4qnylxvx\"},{\"key\":\"amount\",\"value\":\"100uatom\"}]},{\"type\":\"coin_spent\",\"attributes\":[{\"key\":\"spender\",\"value\":\"cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r\"},{\"key\":\"amount\",\"value\":\"100uatom\"}]},{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"send\"},{\"key\":\"sender\",\"value\":\"cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r\"},{\"key\":\"module\",\"value\":\"bank\"}]},{\"type\":\"transfer\",\"attributes\":[{\"key\":\"recipient\",\"value\":\"cosmos1ht8vzyx8t2yxh0jlwmk7atu0p8en6w4qnylxvx\"},{\"key\":\"sender\",\"value\":\"cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r\"},{\"key\":\"amount\",\"value\":\"100uatom\"}]}]}]","logs":[{"events":[{"type":"coin_received","attributes":[{"key":"receiver","value":"cosmos1ht8vzyx8t2yxh0jlwmk7atu0p8en6w4qnylxvx"},{"key":"amount","value":"100uatom"}]},{"type":"coin_spent","attributes":[{"key":"spender","value":"cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r"},{"key":"amount","value":"100uatom"}]},{"type":"message","attributes":[{"key":"action","value":"send"},{"key":"sender","value":"cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r"},{"key":"module","value":"bank"}]},{"type":"transfer","attributes":[{"key":"recipient","value":"cosmos1ht8vzyx8t2yxh0jlwmk7atu0p8en6w4qnylxvx"},{"key":"sender","value":"cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r"},{"key":"amount","value":"100uatom"}]}]}],"gas_wanted":"100000","gas_used":"74830"}
+	s.NoError(err)
+	s.True(false)
 }
 
 func TestIntegrationTestSuite(t *testing.T) {

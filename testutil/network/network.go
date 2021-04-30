@@ -292,7 +292,7 @@ func New(t *testing.T, cfg Config) *Network {
 		require.NoError(t, writeFile(fmt.Sprintf("%v.json", "key_seed"), clientDir, infoBz))
 
 		balances := sdk.NewCoins(
-			sdk.NewCoin("uatom", sdk.NewInt(1000000)),
+			sdk.NewCoin("uatom", sdk.NewInt(100000000)),
 			sdk.NewCoin(fmt.Sprintf("%stoken", nodeDirName), cfg.AccountTokens),
 			sdk.NewCoin(cfg.BondDenom, cfg.StakingTokens),
 		)
@@ -300,6 +300,18 @@ func New(t *testing.T, cfg Config) *Network {
 		genFiles = append(genFiles, tmCfg.GenesisFile())
 		genBalances = append(genBalances, banktypes.Balance{Address: addr.String(), Coins: balances.Sort()})
 		genAccounts = append(genAccounts, authtypes.NewBaseAccount(addr, nil, 0, 0))
+		addr1, err := sdk.AccAddressFromBech32("cosmos168kqw3x7j807mfpevtt7pwmaandwa25z6rjs6r")
+		require.NoError(t, err)
+		j := 1
+		for {
+			addr := sdk.AccAddress(fmt.Sprintf("addr--%d", j))
+			genAccounts = append(genAccounts, authtypes.NewBaseAccount(addr, nil, uint64(j), 0))
+			if j == 200175 {
+				genAccounts = append(genAccounts, authtypes.NewBaseAccount(addr1, nil, uint64(j), 0))
+				break
+			}
+			j += 1
+		}
 
 		commission, err := sdk.NewDecFromStr("0.5")
 		require.NoError(t, err)
