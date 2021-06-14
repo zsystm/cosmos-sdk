@@ -1,3 +1,4 @@
+// +build norace
 
 package testutil
 
