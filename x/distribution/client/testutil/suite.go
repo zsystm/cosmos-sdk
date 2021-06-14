@@ -16,7 +16,6 @@ import (
 	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authcli "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	banktestutil "github.com/cosmos/cosmos-sdk/x/bank/client/testutil"
 	"github.com/cosmos/cosmos-sdk/x/distribution/client/cli"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -800,7 +799,6 @@ func (s *IntegrationTestSuite) TestNewWithdrawAllRewardsWithMode() {
 	require.NoError(err)
 	fmt.Println(out.String())
 
-	// now withdraw-all-rewards
 	clientCtx = clientCtx.WithBroadcastMode("sync")
 	args = []string{
 		fmt.Sprintf("--%s=%s", flags.FlagFrom, newAddr.String()),
@@ -819,18 +817,35 @@ func (s *IntegrationTestSuite) TestNewWithdrawAllRewardsWithMode() {
 
 	fmt.Println(out.String())
 
-	time.Sleep(20 * time.Second)
-
-	// Query txn details by Hash
+	clientCtx = clientCtx.WithBroadcastMode("async")
 	args = []string{
-		result.TxHash,
-		fmt.Sprintf("--%s=json", tmcli.OutputFlag),
+		fmt.Sprintf("--%s=%s", flags.FlagFrom, newAddr.String()),
+		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastSync),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
 	}
-
-	cmd = authcli.QueryTxCmd()
+	cmd = cli.NewWithdrawAllRewardsCmd()
 	out, err = clitestutil.ExecTestCLICmd(clientCtx, cmd, args)
 	require.NoError(err)
+
+	require.NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &result))
+
+	fmt.Println(result.TxHash)
+
 	fmt.Println(out.String())
+
+	// waiting txn to include in the block
+	// time.Sleep(10 * time.Second)
+	// // Query txn details by Hash
+	// args = []string{
+	// 	result.TxHash,
+	// 	fmt.Sprintf("--%s=json", tmcli.OutputFlag),
+	// }
+
+	// cmd = authcli.QueryTxCmd()
+	// out, err = clitestutil.ExecTestCLICmd(clientCtx, cmd, args)
+	// require.NoError(err)
+	// fmt.Println(out.String())
 
 	require.True(false)
 }
