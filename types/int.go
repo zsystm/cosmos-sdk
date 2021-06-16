@@ -9,7 +9,7 @@ import (
 	"math/big"
 )
 
-const maxBitLen = 255
+const maxBitLen = 256
 
 func newIntegerFromString(s string) (*big.Int, bool) {
 	return new(big.Int).SetString(s, 0)
@@ -67,9 +67,9 @@ func unmarshalText(i *big.Int, text string) error {
 
 var _ CustomProtobufType = (*Int)(nil)
 
-// Int wraps integer with 256 bit range bound
+// Int wraps big.Int with a 257 bit range bound
 // Checks overflow, underflow and division by zero
-// Exists in range from -(2^maxBitLen-1) to 2^maxBitLen-1
+// Exists in range from -(2^256 - 1) to 2^256 - 1
 type Int struct {
 	i *big.Int
 }
