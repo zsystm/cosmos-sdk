@@ -26,6 +26,7 @@ type Keeper interface {
 
 	GetSupply(ctx sdk.Context) exported.SupplyI
 	SetSupply(ctx sdk.Context, supply exported.SupplyI)
+	GetSupplyForDenom(ctx sdk.Context, denom string) sdk.Int
 
 	GetDenomMetaData(ctx sdk.Context, denom string) types.Metadata
 	SetDenomMetaData(ctx sdk.Context, denomMetaData types.Metadata)
@@ -43,7 +44,6 @@ type Keeper interface {
 	UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegatorAddr sdk.AccAddress, amt sdk.Coins) error
 	MarshalSupply(supplyI exported.SupplyI) ([]byte, error)
 	UnmarshalSupply(bz []byte) (exported.SupplyI, error)
-	GetSupplyForDenom(ctx sdk.Context, denom string) sdk.Int
 
 	types.QueryServer
 }
