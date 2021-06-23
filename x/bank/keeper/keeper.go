@@ -43,6 +43,7 @@ type Keeper interface {
 	UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegatorAddr sdk.AccAddress, amt sdk.Coins) error
 	MarshalSupply(supplyI exported.SupplyI) ([]byte, error)
 	UnmarshalSupply(bz []byte) (exported.SupplyI, error)
+	GetSupplyForDenom(ctx sdk.Context, denom string) sdk.Int
 
 	types.QueryServer
 }
@@ -150,6 +151,24 @@ func (k BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegatorAdd
 	}
 
 	return nil
+}
+
+// GetSupplyForDenom
+func (k BaseKeeper) GetSupplyForDenom(ctx sdk.Context, denom string) sdk.Int {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.SupplyKey)
+	if bz == nil {
+		panic("stored supply should not have been nil")
+	}
+
+	supply, err := k.UnmarshalSupply(bz)
+	if err != nil {
+		panic(err)
+	}
+
+	total := supply.GetTotal()
+
+	return total.AmountOf(denom)
 }
 
 // GetSupply retrieves the Supply from store
