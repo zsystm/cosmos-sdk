@@ -147,6 +147,27 @@ func (k Keeper) SaveGrant(ctx sdk.Context, grantee, granter sdk.AccAddress, auth
 	})
 }
 
+// SaveGrant method grants the provided authorization to the grantee on the granter's account
+// with the provided expiration time. If there is an existing authorization grant for the
+// same `sdk.Msg` type, this grant overwrites that.
+func (k Keeper) SaveGrant2(ctx sdk.Context, grantee, granter sdk.AccAddress, authorization authz.Authorization, expiration time.Time) error {
+	store := ctx.KVStore(k.storeKey)
+	grant, err := authz.NewGrant(authorization, expiration)
+	if err != nil {
+		return err
+	}
+
+	skey := grantStoreKey(grantee, granter, authorization.MsgTypeURL())
+	if err = store.Save(skey, &grant); err != nil {
+		return err
+	}
+	return ctx.EventManager().EmitTypedEvent(&authz.EventGrant{
+		MsgTypeUrl: authorization.MsgTypeURL(),
+		Granter:    granter.String(),
+		Grantee:    grantee.String(),
+	})
+}
+
 // DeleteGrant revokes any authorization for the provided message type granted to the grantee
 // by the granter.
 func (k Keeper) DeleteGrant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType string) error {
