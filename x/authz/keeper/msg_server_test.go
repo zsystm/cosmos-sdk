@@ -79,6 +79,7 @@ func (s *TestSuite) TestCollectAllExecResponses() {
 	})
 	require.NoError(err)
 	fmt.Println(execResult.Results)
+	// `execResult.Results` always returning [[][]] 
 	require.Equal(len(execResult.Results), 2)
 	require.True(false)
 }
