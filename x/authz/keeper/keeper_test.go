@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -21,29 +22,34 @@ type TestSuite struct {
 	suite.Suite
 
 	app         *simapp.SimApp
-	ctx         sdk.Context
+	sdkCtx      sdk.Context
+	ctx         context.Context
 	addrs       []sdk.AccAddress
 	queryClient authz.QueryClient
+	msgSrvr     authz.MsgServer
 }
 
 func (s *TestSuite) SetupTest() {
 	app := simapp.Setup(false)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	
+	s.ctx = sdk.WrapSDKContext(ctx)
 	now := tmtime.Now()
 	ctx = ctx.WithBlockHeader(tmproto.Header{Time: now})
 	queryHelper := baseapp.NewQueryServerTestHelper(ctx, app.InterfaceRegistry())
 	authz.RegisterQueryServer(queryHelper, app.AuthzKeeper)
 	queryClient := authz.NewQueryClient(queryHelper)
 	s.queryClient = queryClient
+	s.msgSrvr = app.AuthzKeeper
 
 	s.app = app
-	s.ctx = ctx
+	s.sdkCtx = ctx
 	s.queryClient = queryClient
 	s.addrs = simapp.AddTestAddrsIncremental(app, ctx, 3, sdk.NewInt(30000000))
 }
 
 func (s *TestSuite) TestKeeper() {
-	app, ctx, addrs := s.app, s.ctx, s.addrs
+	app, ctx, addrs := s.app, s.sdkCtx, s.addrs
 
 	granterAddr := addrs[0]
 	granteeAddr := addrs[1]
@@ -53,7 +59,7 @@ func (s *TestSuite) TestKeeper() {
 	authorization, expiration := app.AuthzKeeper.GetCleanAuthorization(ctx, granteeAddr, granterAddr, bankSendAuthMsgType)
 	s.Require().Nil(authorization)
 	s.Require().Equal(expiration, time.Time{})
-	now := s.ctx.BlockHeader().Time
+	now := ctx.BlockHeader().Time
 	s.Require().NotNil(now)
 
 	newCoins := sdk.NewCoins(sdk.NewInt64Coin("steak", 100))
@@ -95,7 +101,7 @@ func (s *TestSuite) TestKeeper() {
 }
 
 func (s *TestSuite) TestKeeperIter() {
-	app, ctx, addrs := s.app, s.ctx, s.addrs
+	app, ctx, addrs := s.app, s.sdkCtx, s.addrs
 
 	granterAddr := addrs[0]
 	granteeAddr := addrs[1]
@@ -104,7 +110,7 @@ func (s *TestSuite) TestKeeperIter() {
 	authorization, expiration := app.AuthzKeeper.GetCleanAuthorization(ctx, granteeAddr, granterAddr, "Abcd")
 	s.Require().Nil(authorization)
 	s.Require().Equal(time.Time{}, expiration)
-	now := s.ctx.BlockHeader().Time
+	now := ctx.BlockHeader().Time
 	s.Require().NotNil(now)
 
 	newCoins := sdk.NewCoins(sdk.NewInt64Coin("steak", 100))
@@ -129,8 +135,8 @@ func (s *TestSuite) TestKeeperFees() {
 	granterAddr := addrs[0]
 	granteeAddr := addrs[1]
 	recipientAddr := addrs[2]
-	s.Require().NoError(simapp.FundAccount(app.BankKeeper, s.ctx, granterAddr, sdk.NewCoins(sdk.NewInt64Coin("steak", 10000))))
-	now := s.ctx.BlockHeader().Time
+	s.Require().NoError(simapp.FundAccount(app.BankKeeper, s.sdkCtx, granterAddr, sdk.NewCoins(sdk.NewInt64Coin("steak", 10000))))
+	now := s.sdkCtx.BlockHeader().Time
 	s.Require().NotNil(now)
 
 	smallCoin := sdk.NewCoins(sdk.NewInt64Coin("steak", 20))
@@ -149,16 +155,16 @@ func (s *TestSuite) TestKeeperFees() {
 	s.T().Log("verify dispatch fails with invalid authorization")
 	executeMsgs, err := msgs.GetMessages()
 	s.Require().NoError(err)
-	result, err := app.AuthzKeeper.DispatchActions(s.ctx, granteeAddr, executeMsgs)
+	result, err := app.AuthzKeeper.DispatchActions(s.sdkCtx, granteeAddr, executeMsgs)
 
 	s.Require().Nil(result)
 	s.Require().NotNil(err)
 
 	s.T().Log("verify dispatch executes with correct information")
 	// grant authorization
-	err = app.AuthzKeeper.SaveGrant(s.ctx, granteeAddr, granterAddr, &banktypes.SendAuthorization{SpendLimit: smallCoin}, now)
+	err = app.AuthzKeeper.SaveGrant(s.sdkCtx, granteeAddr, granterAddr, &banktypes.SendAuthorization{SpendLimit: smallCoin}, now)
 	s.Require().NoError(err)
-	authorization, _ := app.AuthzKeeper.GetCleanAuthorization(s.ctx, granteeAddr, granterAddr, bankSendAuthMsgType)
+	authorization, _ := app.AuthzKeeper.GetCleanAuthorization(s.sdkCtx, granteeAddr, granterAddr, bankSendAuthMsgType)
 	s.Require().NotNil(authorization)
 
 	s.Require().Equal(authorization.MsgTypeURL(), bankSendAuthMsgType)
@@ -166,11 +172,11 @@ func (s *TestSuite) TestKeeperFees() {
 	executeMsgs, err = msgs.GetMessages()
 	s.Require().NoError(err)
 
-	result, err = app.AuthzKeeper.DispatchActions(s.ctx, granteeAddr, executeMsgs)
+	result, err = app.AuthzKeeper.DispatchActions(s.sdkCtx, granteeAddr, executeMsgs)
 	s.Require().NoError(err)
 	s.Require().NotNil(result)
 
-	authorization, _ = app.AuthzKeeper.GetCleanAuthorization(s.ctx, granteeAddr, granterAddr, bankSendAuthMsgType)
+	authorization, _ = app.AuthzKeeper.GetCleanAuthorization(s.sdkCtx, granteeAddr, granterAddr, bankSendAuthMsgType)
 	s.Require().NotNil(authorization)
 
 	s.T().Log("verify dispatch fails with overlimit")
@@ -188,11 +194,11 @@ func (s *TestSuite) TestKeeperFees() {
 	executeMsgs, err = msgs.GetMessages()
 	s.Require().NoError(err)
 
-	result, err = app.AuthzKeeper.DispatchActions(s.ctx, granteeAddr, executeMsgs)
+	result, err = app.AuthzKeeper.DispatchActions(s.sdkCtx, granteeAddr, executeMsgs)
 	s.Require().Nil(result)
 	s.Require().NotNil(err)
 
-	authorization, _ = app.AuthzKeeper.GetCleanAuthorization(s.ctx, granteeAddr, granterAddr, bankSendAuthMsgType)
+	authorization, _ = app.AuthzKeeper.GetCleanAuthorization(s.sdkCtx, granteeAddr, granterAddr, bankSendAuthMsgType)
 	s.Require().NotNil(authorization)
 }
 
@@ -204,8 +210,8 @@ func (s *TestSuite) TestDispatchedEvents() {
 	granterAddr := addrs[0]
 	granteeAddr := addrs[1]
 	recipientAddr := addrs[2]
-	require.NoError(simapp.FundAccount(app.BankKeeper, s.ctx, granterAddr, sdk.NewCoins(sdk.NewInt64Coin("steak", 10000))))
-	now := s.ctx.BlockHeader().Time
+	require.NoError(simapp.FundAccount(app.BankKeeper, s.sdkCtx, granterAddr, sdk.NewCoins(sdk.NewInt64Coin("steak", 10000))))
+	now := s.sdkCtx.BlockHeader().Time
 	require.NotNil(now)
 
 	smallCoin := sdk.NewCoins(sdk.NewInt64Coin("steak", 20))
@@ -218,19 +224,19 @@ func (s *TestSuite) TestDispatchedEvents() {
 	})
 
 	// grant authorization
-	err := app.AuthzKeeper.SaveGrant(s.ctx, granteeAddr, granterAddr, &banktypes.SendAuthorization{SpendLimit: smallCoin}, now)
+	err := app.AuthzKeeper.SaveGrant(s.sdkCtx, granteeAddr, granterAddr, &banktypes.SendAuthorization{SpendLimit: smallCoin}, now)
 	require.NoError(err)
-	authorization, _ := app.AuthzKeeper.GetCleanAuthorization(s.ctx, granteeAddr, granterAddr, bankSendAuthMsgType)
+	authorization, _ := app.AuthzKeeper.GetCleanAuthorization(s.sdkCtx, granteeAddr, granterAddr, bankSendAuthMsgType)
 	require.NotNil(authorization)
 	require.Equal(authorization.MsgTypeURL(), bankSendAuthMsgType)
 
 	executeMsgs, err := msgs.GetMessages()
 	require.NoError(err)
 
-	result, err := app.AuthzKeeper.DispatchActions(s.ctx, granteeAddr, executeMsgs)
+	result, err := app.AuthzKeeper.DispatchActions(s.sdkCtx, granteeAddr, executeMsgs)
 	require.NoError(err)
 	require.NotNil(result)
-	events := s.ctx.EventManager().Events()
+	events := s.sdkCtx.EventManager().Events()
 	// get last 5 events (events that occur *after* the grant)
 	events = events[len(events)-5:]
 	requiredEvents := map[string]bool{

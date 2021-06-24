@@ -13,7 +13,7 @@ import (
 )
 
 func (suite *TestSuite) TestGRPCQueryAuthorization() {
-	app, ctx, queryClient, addrs := suite.app, suite.ctx, suite.queryClient, suite.addrs
+	app, ctx, queryClient, addrs := suite.app, suite.sdkCtx, suite.queryClient, suite.addrs
 	var (
 		req              *authz.QueryGrantsRequest
 		expAuthorization authz.Authorization
@@ -96,7 +96,7 @@ func (suite *TestSuite) TestGRPCQueryAuthorization() {
 }
 
 func (suite *TestSuite) TestGRPCQueryAuthorizations() {
-	app, ctx, queryClient, addrs := suite.app, suite.ctx, suite.queryClient, suite.addrs
+	app, ctx, queryClient, addrs := suite.app, suite.sdkCtx, suite.queryClient, suite.addrs
 	var (
 		req              *authz.QueryGrantsRequest
 		expAuthorization authz.Authorization
