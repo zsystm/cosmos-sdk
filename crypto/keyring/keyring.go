@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/99designs/keyring"
-	bip39 "github.com/cosmos/go-bip39"
 	"github.com/pkg/errors"
 	"github.com/tendermint/crypto/bcrypt"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
@@ -25,6 +24,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	bip39 "github.com/cosmos/go-bip39"
 )
 
 // Backend options for Keyring
@@ -63,6 +63,9 @@ type Keyring interface {
 	// Delete and DeleteByAddress remove keys from the keyring.
 	Delete(uid string) error
 	DeleteByAddress(address sdk.Address) error
+
+	//Rename renames the old key name to new key name.
+	Rename(oldUid string, newUid string) error
 
 	// NewMnemonic generates a new mnemonic, derives a hierarchical deterministic key from it, and
 	// persists the key to storage. Returns the generated mnemonic and the key Info.
@@ -442,6 +445,18 @@ func (ks keystore) Delete(uid string) error {
 		return err
 	}
 
+	return nil
+}
+
+func (ks keystore) Rename(oldName string, newName string) error {
+	info, err := ks.Key(oldName)
+	if err != nil {
+		return err
+	}
+	err = info.SetName(newName)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

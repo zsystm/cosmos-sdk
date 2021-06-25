@@ -15,6 +15,8 @@ import (
 type Info interface {
 	// Human-readable type for key listing
 	GetType() KeyType
+
+	SetName(uid string) error
 	// Name of the key
 	GetName() string
 	// Public key
@@ -60,6 +62,15 @@ func (i localInfo) GetType() KeyType {
 // GetType implements Info interface
 func (i localInfo) GetName() string {
 	return i.Name
+}
+
+// SetName implements Info interface
+func (i localInfo) SetName(newName string) error {
+	i.Name = newName
+	if i.Name != newName {
+		return fmt.Errorf("unable to rename")
+	}
+	return nil
 }
 
 // GetType implements Info interface
@@ -110,6 +121,15 @@ func (i ledgerInfo) GetName() string {
 	return i.Name
 }
 
+// SetName implements Info interface
+func (i ledgerInfo) SetName(newName string) error {
+	i.Name = newName
+	if i.Name != newName {
+		return fmt.Errorf("unable to rename")
+	}
+	return nil
+}
+
 // GetPubKey implements Info interface
 func (i ledgerInfo) GetPubKey() cryptotypes.PubKey {
 	return i.PubKey
@@ -150,6 +170,15 @@ func newOfflineInfo(name string, pub cryptotypes.PubKey, algo hd.PubKeyType) Inf
 // GetType implements Info interface
 func (i offlineInfo) GetType() KeyType {
 	return TypeOffline
+}
+
+// SetName implements Info interface
+func (i offlineInfo) SetName(newName string) error {
+	i.Name = newName
+	if i.Name != newName {
+		return fmt.Errorf("unable to rename")
+	}
+	return nil
 }
 
 // GetName implements Info interface
@@ -213,6 +242,15 @@ func (i multiInfo) GetType() KeyType {
 // GetName implements Info interface
 func (i multiInfo) GetName() string {
 	return i.Name
+}
+
+// SetName implements Info interface
+func (i multiInfo) SetName(newName string) error {
+	i.Name = newName
+	if i.Name != newName {
+		return fmt.Errorf("unable to rename")
+	}
+	return nil
 }
 
 // GetPubKey implements Info interface
