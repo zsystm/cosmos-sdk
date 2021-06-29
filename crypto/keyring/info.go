@@ -66,10 +66,20 @@ func (i localInfo) GetName() string {
 
 // SetName implements Info interface
 func (i localInfo) SetName(newName string) error {
+	fmt.Println("==========================")
+	fmt.Println(i.Name)
+	fmt.Println("==========================")
 	i.Name = newName
 	if i.Name != newName {
+		fmt.Println("..............")
+		fmt.Println(i.Name)
+		fmt.Println("..............")
 		return fmt.Errorf("unable to rename")
 	}
+	fmt.Println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
+	fmt.Println(i.Name)
+	fmt.Println(newName)
+	fmt.Println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
 	return nil
 }
 

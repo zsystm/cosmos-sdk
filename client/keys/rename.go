@@ -31,7 +31,7 @@ func RenameKeyCommand() *cobra.Command {
 
 			// confirm rename key, unless -y is passed
 			if skip, _ := cmd.Flags().GetBool(flagYes); !skip {
-				if yes, err := input.GetConfirmation("existing key name will be renamed. Continue?", buf, cmd.ErrOrStderr()); err != nil {
+				if yes, err := input.GetConfirmation("key name will be renamed. Continue?", buf, cmd.ErrOrStderr()); err != nil {
 					return err
 				} else if !yes {
 					return errors.New("aborted")
