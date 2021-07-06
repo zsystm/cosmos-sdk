@@ -47,6 +47,41 @@ func TestNewKeyring(t *testing.T) {
 	require.Equal(t, "foo", info.GetName())
 }
 
+func TestMultiInfo(t *testing.T) {
+	dir := t.TempDir()
+	mockIn := strings.NewReader("")
+
+	kr, err := New("cosmos", BackendMemory, dir, mockIn)
+	require.NoError(t, err)
+
+	account1, _, err := kr.NewMnemonic("newAccount1", English, sdk.FullFundraiserPath, DefaultBIP39Passphrase, hd.Secp256k1)
+	require.NoError(t, err)
+
+	account2, _, err := kr.NewMnemonic("newAccount2", English, sdk.FullFundraiserPath, DefaultBIP39Passphrase, hd.Secp256k1)
+	require.NoError(t, err)
+
+	accounts := []Info{account1, account2}
+
+	multi := multisig.NewLegacyAminoPubKey(2, []types.PubKey{account1.GetPubKey(), account2.GetPubKey()})
+	_, err = kr.SaveMultisig("multi", multi)
+	require.NoError(t, err)
+
+	require.NoError(t, err)
+
+	msiginfo, err := kr.Key("multi")
+	require.NoError(t, err)
+
+	msigpk := msiginfo.GetPubKey()
+	v, ok := msigpk.(*multisig.LegacyAminoPubKey)
+	require.True(t, ok)
+
+	for i, pk := range v.PubKeys {
+		key, ok := pk.GetCachedValue().(types.PubKey)
+		require.True(t, ok)
+		require.True(t, key.Equals(accounts[i].GetPubKey()))
+	}
+}
+
 func TestKeyManagementKeyRing(t *testing.T) {
 	kb, err := New("keybasename", "test", t.TempDir(), nil)
 	require.NoError(t, err)
