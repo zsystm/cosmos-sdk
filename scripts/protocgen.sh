@@ -19,6 +19,12 @@ for dir in $proto_dirs; do
     -I "proto" \
     -I "third_party/proto" \
     --gocosmos_out=plugins=interfacetype+grpc,\
+Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/field_mask.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/wrappers.proto=github.com/gogo/protobuf/types,\
 Mgoogle/protobuf/any.proto=github.com/cosmos/cosmos-sdk/codec/types:. \
     --grpc-gateway_out=logtostderr=true,allow_colon_final_segments=true:. \
   $(find "${dir}" -maxdepth 1 -name '*.proto')

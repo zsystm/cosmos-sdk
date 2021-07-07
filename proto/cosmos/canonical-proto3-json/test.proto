@@ -1,0 +1,61 @@
+syntax = "proto3";
+package cosmos.main;
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+option go_package = "github.com/cosmos/cosmos-sdk/canonical-proto3-json";
+
+enum EnumTest {
+    TEST_1 = 0;
+    TEST_2 = 1;
+    TEST_3 = 2;
+}
+
+message TimeTest {
+    google.protobuf.Timestamp test_timestamp = 1 [(gogoproto.stdtime) = true];
+}
+
+message CompleteTest {
+    NumericalTest numerical_test = 1;
+    EnumTest test_enum = 2;
+    map<int32, int64> test_map = 3;
+    map<int32, google.protobuf.Duration> test_time_map = 4;
+    repeated fixed32 test_repeated_fixed32 = 5;
+    bool test_bool = 6;
+    string test_string = 7;
+    bytes test_bytes = 8;
+    google.protobuf.Any       test_any = 9;
+    google.protobuf.Timestamp test_timestamp = 10;
+    google.protobuf.Timestamp test_std_timestamp = 11 [(gogoproto.stdtime) = true];
+    google.protobuf.Duration  test_duration = 12;
+    google.protobuf.Struct    test_struct = 13;
+    google.protobuf.BoolValue test_bool_value = 14;
+    google.protobuf.BytesValue test_bytes_value = 15;
+    google.protobuf.DoubleValue test_double_value = 16;
+    google.protobuf.FloatValue test_float_value = 17;
+    google.protobuf.Int32Value test_int32_value = 18;
+    google.protobuf.Int64Value test_int64_value = 19;
+    google.protobuf.StringValue test_string_value = 20;
+    google.protobuf.UInt32Value test_uint32_value = 21;
+    google.protobuf.UInt64Value test_uint64_value = 22;
+    google.protobuf.FieldMask test_field_mask = 23;
+    google.protobuf.Empty     test_empty = 24;
+
+    message NumericalTest {
+        int32 test_int32 = 1;
+        fixed32 test_fixed32 = 2;
+        uint32 test_uint32 = 3;
+        int64 test_int64 = 4;
+        fixed64 test_fixed64 = 5;
+        uint64 test_uint64 = 6;
+        float test_float = 7;
+        double test_double = 8;
+    }
+}

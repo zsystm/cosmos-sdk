@@ -195,6 +195,15 @@
   
     - [Service](#cosmos.base.tendermint.v1beta1.Service)
   
+- [cosmos/canonical-proto3-json/test.proto](#cosmos/canonical-proto3-json/test.proto)
+    - [CompleteTest](#cosmos.main.CompleteTest)
+    - [CompleteTest.NumericalTest](#cosmos.main.CompleteTest.NumericalTest)
+    - [CompleteTest.TestMapEntry](#cosmos.main.CompleteTest.TestMapEntry)
+    - [CompleteTest.TestTimeMapEntry](#cosmos.main.CompleteTest.TestTimeMapEntry)
+    - [TimeTest](#cosmos.main.TimeTest)
+  
+    - [EnumTest](#cosmos.main.EnumTest)
+  
 - [cosmos/capability/v1beta1/capability.proto](#cosmos/capability/v1beta1/capability.proto)
     - [Capability](#cosmos.capability.v1beta1.Capability)
     - [CapabilityOwners](#cosmos.capability.v1beta1.CapabilityOwners)
@@ -3170,6 +3179,142 @@ Service defines the gRPC querier service for tendermint queries.
 | `GetBlockByHeight` | [GetBlockByHeightRequest](#cosmos.base.tendermint.v1beta1.GetBlockByHeightRequest) | [GetBlockByHeightResponse](#cosmos.base.tendermint.v1beta1.GetBlockByHeightResponse) | GetBlockByHeight queries block for given height. | GET|/cosmos/base/tendermint/v1beta1/blocks/{height}|
 | `GetLatestValidatorSet` | [GetLatestValidatorSetRequest](#cosmos.base.tendermint.v1beta1.GetLatestValidatorSetRequest) | [GetLatestValidatorSetResponse](#cosmos.base.tendermint.v1beta1.GetLatestValidatorSetResponse) | GetLatestValidatorSet queries latest validator-set. | GET|/cosmos/base/tendermint/v1beta1/validatorsets/latest|
 | `GetValidatorSetByHeight` | [GetValidatorSetByHeightRequest](#cosmos.base.tendermint.v1beta1.GetValidatorSetByHeightRequest) | [GetValidatorSetByHeightResponse](#cosmos.base.tendermint.v1beta1.GetValidatorSetByHeightResponse) | GetValidatorSetByHeight queries validator-set at a given height. | GET|/cosmos/base/tendermint/v1beta1/validatorsets/{height}|
+
+ <!-- end services -->
+
+
+
+<a name="cosmos/canonical-proto3-json/test.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cosmos/canonical-proto3-json/test.proto
+
+
+
+<a name="cosmos.main.CompleteTest"></a>
+
+### CompleteTest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `numerical_test` | [CompleteTest.NumericalTest](#cosmos.main.CompleteTest.NumericalTest) |  |  |
+| `test_enum` | [EnumTest](#cosmos.main.EnumTest) |  |  |
+| `test_map` | [CompleteTest.TestMapEntry](#cosmos.main.CompleteTest.TestMapEntry) | repeated |  |
+| `test_time_map` | [CompleteTest.TestTimeMapEntry](#cosmos.main.CompleteTest.TestTimeMapEntry) | repeated |  |
+| `test_repeated_fixed32` | [fixed32](#fixed32) | repeated |  |
+| `test_bool` | [bool](#bool) |  |  |
+| `test_string` | [string](#string) |  |  |
+| `test_bytes` | [bytes](#bytes) |  |  |
+| `test_any` | [google.protobuf.Any](#google.protobuf.Any) |  |  |
+| `test_timestamp` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
+| `test_std_timestamp` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
+| `test_duration` | [google.protobuf.Duration](#google.protobuf.Duration) |  |  |
+| `test_struct` | [google.protobuf.Struct](#google.protobuf.Struct) |  |  |
+| `test_bool_value` | [google.protobuf.BoolValue](#google.protobuf.BoolValue) |  |  |
+| `test_bytes_value` | [google.protobuf.BytesValue](#google.protobuf.BytesValue) |  |  |
+| `test_double_value` | [google.protobuf.DoubleValue](#google.protobuf.DoubleValue) |  |  |
+| `test_float_value` | [google.protobuf.FloatValue](#google.protobuf.FloatValue) |  |  |
+| `test_int32_value` | [google.protobuf.Int32Value](#google.protobuf.Int32Value) |  |  |
+| `test_int64_value` | [google.protobuf.Int64Value](#google.protobuf.Int64Value) |  |  |
+| `test_string_value` | [google.protobuf.StringValue](#google.protobuf.StringValue) |  |  |
+| `test_uint32_value` | [google.protobuf.UInt32Value](#google.protobuf.UInt32Value) |  |  |
+| `test_uint64_value` | [google.protobuf.UInt64Value](#google.protobuf.UInt64Value) |  |  |
+| `test_field_mask` | [google.protobuf.FieldMask](#google.protobuf.FieldMask) |  |  |
+| `test_empty` | [google.protobuf.Empty](#google.protobuf.Empty) |  |  |
+
+
+
+
+
+
+<a name="cosmos.main.CompleteTest.NumericalTest"></a>
+
+### CompleteTest.NumericalTest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `test_int32` | [int32](#int32) |  |  |
+| `test_fixed32` | [fixed32](#fixed32) |  |  |
+| `test_uint32` | [uint32](#uint32) |  |  |
+| `test_int64` | [int64](#int64) |  |  |
+| `test_fixed64` | [fixed64](#fixed64) |  |  |
+| `test_uint64` | [uint64](#uint64) |  |  |
+| `test_float` | [float](#float) |  |  |
+| `test_double` | [double](#double) |  |  |
+
+
+
+
+
+
+<a name="cosmos.main.CompleteTest.TestMapEntry"></a>
+
+### CompleteTest.TestMapEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `key` | [int32](#int32) |  |  |
+| `value` | [int64](#int64) |  |  |
+
+
+
+
+
+
+<a name="cosmos.main.CompleteTest.TestTimeMapEntry"></a>
+
+### CompleteTest.TestTimeMapEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `key` | [int32](#int32) |  |  |
+| `value` | [google.protobuf.Duration](#google.protobuf.Duration) |  |  |
+
+
+
+
+
+
+<a name="cosmos.main.TimeTest"></a>
+
+### TimeTest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `test_timestamp` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
+
+
+
+
+
+ <!-- end messages -->
+
+
+<a name="cosmos.main.EnumTest"></a>
+
+### EnumTest
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TEST_1 | 0 |  |
+| TEST_2 | 1 |  |
+| TEST_3 | 2 |  |
+
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
 
  <!-- end services -->
 

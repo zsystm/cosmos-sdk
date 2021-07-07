@@ -8,6 +8,7 @@ require (
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/coinbase/rosetta-sdk-go v0.6.10
 	github.com/confio/ics23/go v0.6.6
 	github.com/cosmos/go-bip39 v1.0.0
@@ -15,6 +16,7 @@ require (
 	github.com/cosmos/ledger-cosmos-go v0.11.1
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25
+	github.com/gibson042/canonicaljson-go v1.0.3
 	github.com/gogo/gateway v1.1.0
 	github.com/gogo/protobuf v1.3.3
 	github.com/golang/mock v1.6.0
@@ -52,6 +54,7 @@ require (
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
 	nhooyr.io/websocket v1.8.6 // indirect
+	pgregory.net/rapid v0.4.7 // indirect
 )
 
 replace google.golang.org/grpc => google.golang.org/grpc v1.33.2

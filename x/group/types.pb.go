@@ -6,13 +6,12 @@ package group
 import (
 	bytes "bytes"
 	fmt "fmt"
-	types "github.com/cosmos/cosmos-sdk/codec/types"
+	types1 "github.com/cosmos/cosmos-sdk/codec/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	_ "github.com/gogo/protobuf/types"
 	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
 	_ "github.com/regen-network/cosmos-proto"
-	_ "google.golang.org/protobuf/types/known/durationpb"
-	_ "google.golang.org/protobuf/types/known/timestamppb"
 	io "io"
 	math "math"
 	math_bits "math/bits"
@@ -500,7 +499,7 @@ type GroupAccountInfo struct {
 	// would create a different result on a running proposal.
 	Version uint64 `protobuf:"varint,5,opt,name=version,proto3" json:"version,omitempty"`
 	// decision_policy specifies the group account's decision policy.
-	DecisionPolicy *types.Any `protobuf:"bytes,6,opt,name=decision_policy,json=decisionPolicy,proto3" json:"decision_policy,omitempty"`
+	DecisionPolicy *types1.Any `protobuf:"bytes,6,opt,name=decision_policy,json=decisionPolicy,proto3" json:"decision_policy,omitempty"`
 	// derivation_key is the "derivation" key of the group account,
 	// which is needed to derive the group root module key and execute proposals.
 	DerivationKey []byte `protobuf:"bytes,7,opt,name=derivation_key,json=derivationKey,proto3" json:"derivation_key,omitempty"`
@@ -574,7 +573,7 @@ type Proposal struct {
 	// executor_result is the final result based on the votes and election rule. Initial value is NotRun.
 	ExecutorResult Proposal_ExecutorResult `protobuf:"varint,12,opt,name=executor_result,json=executorResult,proto3,enum=cosmos.group.v1beta1.Proposal_ExecutorResult" json:"executor_result,omitempty"`
 	// msgs is a list of Msgs that will be executed if the proposal passes.
-	Msgs []*types.Any `protobuf:"bytes,13,rep,name=msgs,proto3" json:"msgs,omitempty"`
+	Msgs []*types1.Any `protobuf:"bytes,13,rep,name=msgs,proto3" json:"msgs,omitempty"`
 }
 
 func (m *Proposal) Reset()         { *m = Proposal{} }
@@ -2472,7 +2471,7 @@ func (m *GroupAccountInfo) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.DecisionPolicy == nil {
-				m.DecisionPolicy = &types.Any{}
+				m.DecisionPolicy = &types1.Any{}
 			}
 			if err := m.DecisionPolicy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2902,7 +2901,7 @@ func (m *Proposal) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Msgs = append(m.Msgs, &types.Any{})
+			m.Msgs = append(m.Msgs, &types1.Any{})
 			if err := m.Msgs[len(m.Msgs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
