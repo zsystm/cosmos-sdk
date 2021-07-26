@@ -6,9 +6,7 @@ import (
 	"strings"
 
 	proto "github.com/gogo/protobuf/proto"
-	"go.uber.org/dig"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/container"
 )
@@ -27,7 +25,7 @@ func addProtoModule(name string, config *codectypes.Any) container.Option {
 var moduleKeyType = reflect.TypeOf((*ModuleKey)(nil)).Elem()
 
 type codecClosureOutput struct {
-	container.Out
+	container.StructArgs
 
 	CodecClosure codecClosure `group:"codec"`
 }
@@ -110,16 +108,6 @@ func addModule(name string, mod interface{}) container.Option {
 	return container.Options(opts...)
 }
 
-type registrar struct {
-	ctr *dig.Container
-}
-
-var _ container.Registrar = registrar{}
-
-func (s registrar) Provide(fn interface{}) error {
-	return s.ctr.Provide(fn)
-}
-
 func ComposeModules(modules map[string]*codectypes.Any) container.Option {
 	var opts []container.Option
 	for name, mod := range modules {
@@ -127,29 +115,3 @@ func ComposeModules(modules map[string]*codectypes.Any) container.Option {
 	}
 	return container.Options(opts...)
 }
-
-type codecInputs struct {
-	container.In
-
-	CodecClosures []codecClosure `group:"codec"`
-}
-
-type codecClosure func(codectypes.TypeRegistry)
-
-var CodecProvider = container.Provide(func(inputs codecInputs) (
-	codectypes.TypeRegistry,
-	codec.Codec,
-	codec.ProtoCodecMarshaler,
-	codec.BinaryCodec,
-	codec.JSONCodec,
-	*codec.LegacyAmino,
-) {
-
-	typeRegistry := codectypes.NewInterfaceRegistry()
-	for _, closure := range inputs.CodecClosures {
-		closure(typeRegistry)
-	}
-	cdc := codec.NewProtoCodec(typeRegistry)
-	amino := codec.NewLegacyAmino()
-	return typeRegistry, cdc, cdc, cdc, cdc, amino
-})

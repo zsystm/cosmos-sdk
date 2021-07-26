@@ -15,11 +15,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 )
 
-func AppModuleHandler(id app.ModuleID, module module.AppModule) app.Handler {
+func AppModuleHandler(module module.AppModule) app.Handler {
 	cfg := &configurator{}
 	module.RegisterServices(cfg)
 	return app.Handler{
-		ID: id,
 		InitGenesis: func(ctx context.Context, jsonCodec codec.JSONCodec, message json.RawMessage) []abci.ValidatorUpdate {
 			return module.InitGenesis(types.UnwrapSDKContext(ctx), jsonCodec, message)
 		},

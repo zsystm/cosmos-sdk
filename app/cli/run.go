@@ -1,14 +1,7 @@
 package cli
 
 import (
-	"fmt"
 	"os"
-
-	"github.com/cosmos/cosmos-sdk/app/internal"
-
-	"github.com/cosmos/cosmos-sdk/app/query"
-
-	"github.com/cosmos/cosmos-sdk/container"
 
 	tmcli "github.com/tendermint/tendermint/libs/cli"
 
@@ -27,8 +20,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/app"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/config"
-	"github.com/cosmos/cosmos-sdk/server"
-	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 )
 
@@ -41,31 +32,32 @@ type Options struct {
 }
 
 func Run(options Options) {
-	err := container.Compose(
-		func(in inputs) {
-			rootCmd := makeRootCmd(in, options)
-			if err := svrcmd.Execute(rootCmd, string(in.DefaultHome)); err != nil {
-				switch e := err.(type) {
-				case server.ErrorCode:
-					os.Exit(e.Code)
-
-				default:
-					os.Exit(1)
-				}
-			}
-		},
-
-		// Provide default home
-		container.Provide(func() client.DefaultHome { return client.DefaultHome(options.DefaultHome) }),
-		// Provide codec
-		app.CodecProvider,
-		query.Module,
-		internal.AppConfigProvider(options.DefaultAppConfig),
-	)
-	if err != nil {
-		fmt.Printf("ERROR: %v\n", err)
-		os.Exit(-1)
-	}
+	//err := container.Compose(
+	//	func(in inputs) {
+	//		rootCmd := makeRootCmd(in, options)
+	//		if err := svrcmd.Execute(rootCmd, string(in.DefaultHome)); err != nil {
+	//			switch e := err.(type) {
+	//			case server.ErrorCode:
+	//				os.Exit(e.Code)
+	//
+	//			default:
+	//				os.Exit(1)
+	//			}
+	//		}
+	//	},
+	//
+	//	// Provide default home
+	//	container.Provide(func() client.DefaultHome { return client.DefaultHome(options.DefaultHome) }),
+	//	// Provide codec
+	//	app.CodecProvider,
+	//	query.Module,
+	//	internal.AppConfigProvider(options.DefaultAppConfig),
+	//)
+	//if err != nil {
+	//	fmt.Printf("ERROR: %v\n", err)
+	//	os.Exit(-1)
+	//}
+	panic("TODO")
 }
 
 type inputs struct {
@@ -73,7 +65,7 @@ type inputs struct {
 
 	DefaultHome       client.DefaultHome
 	RootCommands      []*cobra.Command             `group:"root"`
-	Codec             codec.JSONCodec              `optional:"true"`
+	Codec             codec.Codec                  `optional:"true"`
 	InterfaceRegistry codectypes.InterfaceRegistry `optional:"true"`
 	Amino             *codec.LegacyAmino           `optional:"true"`
 	TxConfig          client.TxConfig              `optional:"true"`
@@ -86,7 +78,7 @@ func makeRootCmd(in inputs, options Options) *cobra.Command {
 		WithHomeDir(options.DefaultHome).
 		WithViper(options.EnvPrefix)
 	if in.Codec != nil {
-		initClientCtx = initClientCtx.WithJSONCodec(in.Codec)
+		initClientCtx = initClientCtx.WithCodec(in.Codec)
 	}
 	if in.InterfaceRegistry != nil {
 		initClientCtx = initClientCtx.WithInterfaceRegistry(in.InterfaceRegistry)
@@ -120,7 +112,8 @@ func makeRootCmd(in inputs, options Options) *cobra.Command {
 				return err
 			}
 
-			return server.InterceptConfigsPreRunHandler(cmd)
+			panic("TODO")
+			//return server.InterceptConfigsPreRunHandler(cmd)
 		},
 	}
 

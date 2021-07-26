@@ -1,22 +1,22 @@
 package module
 
 import (
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
-	"go.uber.org/dig"
-
-	"github.com/cosmos/cosmos-sdk/app/compat"
-	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 
 	"github.com/cosmos/cosmos-sdk/app"
+	"github.com/cosmos/cosmos-sdk/app/compat"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/container"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/simulation"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-	types2 "github.com/cosmos/cosmos-sdk/x/params/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 var (
@@ -24,23 +24,23 @@ var (
 )
 
 type inputs struct {
-	dig.In
+	container.StructArgs
 
-	Codec            codec.Codec
-	KeyProvider      app.KVStoreKeyProvider
-	SubspaceProvider types2.SubspaceProvider
+	Codec    codec.Codec
+	Key      *sdk.KVStoreKey
+	Subspace paramtypes.Subspace
 }
 
 type outputs struct {
-	dig.Out
+	container.StructArgs
 
 	Handler    app.Handler `group:"app"`
 	ViewKeeper types.ViewKeeper
-	Keeper     types.Keeper `security-role:"admin"`
+	Keeper     types.Keeper
 }
 
 type cliCommands struct {
-	dig.Out
+	container.StructArgs
 
 	TxCmd    *cobra.Command   `group:"tx"`
 	QueryCmd []*cobra.Command `group:"query,flatten"`
@@ -50,11 +50,11 @@ func (m Module) RegisterTypes(registry codectypes.InterfaceRegistry) {
 	types.RegisterInterfaces(registry)
 }
 
-func (Module) ProvideAccountRetriever() client.AccountRetriever {
+func (Module) provideAccountRetriever() client.AccountRetriever {
 	return types.AccountRetriever{}
 }
 
-func (Module) ProvideCLICommands() cliCommands {
+func (Module) provideCLICommands() cliCommands {
 	am := auth.AppModuleBasic{}
 	return cliCommands{
 		TxCmd: am.GetTxCmd(),
@@ -65,7 +65,7 @@ func (Module) ProvideCLICommands() cliCommands {
 	}
 }
 
-func (m Module) ProvideAppHandler(key app.ModuleKey, inputs inputs) (outputs, error) {
+func (m Module) provideAppHandler(inputs inputs) (outputs, error) {
 	var accCtr types.AccountConstructor
 	if m.AccountConstructor != nil {
 		err := inputs.Codec.UnpackAny(m.AccountConstructor, &accCtr)
@@ -93,8 +93,8 @@ func (m Module) ProvideAppHandler(key app.ModuleKey, inputs inputs) (outputs, er
 
 	keeper := authkeeper.NewAccountKeeper(
 		inputs.Codec,
-		inputs.KeyProvider(key),
-		inputs.SubspaceProvider(key),
+		inputs.Key,
+		inputs.Subspace,
 		func() types.AccountI {
 			return accCtr.NewAccount()
 		},
@@ -107,7 +107,7 @@ func (m Module) ProvideAppHandler(key app.ModuleKey, inputs inputs) (outputs, er
 	return outputs{
 		ViewKeeper: viewOnlyKeeper{keeper},
 		Keeper:     keeper,
-		Handler:    compat.AppModuleHandler(key.ID(), appMod),
+		Handler:    compat.AppModuleHandler(appMod),
 	}, nil
 }
 
