@@ -29,7 +29,7 @@ func ValidateGenesisCmd(validateGenesis func(
 			serverCtx := server.GetServerContextFromCmd(cmd)
 			clientCtx := client.GetClientContextFromCmd(cmd)
 
-			cdc := clientCtx.JSONCodec
+			cdc := clientCtx.Codec
 
 			// Load default if passed no args, otherwise load passed file
 			var genesis string
