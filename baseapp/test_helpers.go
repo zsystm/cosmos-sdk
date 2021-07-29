@@ -1,7 +1,13 @@
 package baseapp
 
 import (
+	"context"
+	"fmt"
+
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"google.golang.org/grpc"
+
+	"github.com/cosmos/cosmos-sdk/container"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -44,3 +50,46 @@ func (app *BaseApp) NewContext(isCheckTx bool, header tmproto.Header) sdk.Contex
 func (app *BaseApp) NewUncachedContext(isCheckTx bool, header tmproto.Header) sdk.Context {
 	return sdk.NewContext(app.cms, header, isCheckTx, app.logger)
 }
+
+var UnitTestFixture = container.Provide(
+	func(baseApp *BaseApp) (
+		func() sdk.Context,
+		func() context.Context) {
+		getSDKContext := func() sdk.Context { return baseApp.deliverState.ctx }
+		getContext := func() context.Context {
+			ctx := getSDKContext()
+			return sdk.WrapSDKContext(ctx)
+		}
+		return getSDKContext, getContext
+	})
+
+type unitTestClient struct {
+	baseApp *BaseApp
+}
+
+func (u unitTestClient) Invoke(ctx context.Context, _ string, args interface{}, reply interface{}, opts ...grpc.CallOption) error {
+	msg, ok := args.(sdk.Msg)
+	if !ok {
+		return fmt.Errorf("expected instance of %T, got %T", msg, args)
+	}
+
+	err := msg.ValidateBasic()
+	if err != nil {
+		return err
+	}
+
+	if handler := u.baseApp.msgServiceRouter.Handler(msg); handler != nil {
+		res, err := handler(sdk.UnwrapSDKContext(ctx), msg)
+		if err != nil {
+			return err
+		}
+		reply = res
+	}
+	panic("TODO")
+}
+
+func (u unitTestClient) NewStream(ctx context.Context, desc *grpc.StreamDesc, method string, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+	return nil, fmt.Errorf("not supported")
+}
+
+var _ grpc.ClientConnInterface = &unitTestClient{}
