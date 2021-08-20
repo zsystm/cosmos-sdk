@@ -454,6 +454,7 @@ func (s *IntegrationTestSuite) TestCLIQueryTxCmdByEvents() {
 	s.Require().NoError(err)
 	var txRes sdk.TxResponse
 	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txRes))
+	s.Require().Equal(uint32(0), txRes.Code)
 	s.Require().NoError(s.network.WaitForNextBlock())
 
 	// Query the tx by hash to get the inner tx.
@@ -461,6 +462,41 @@ func (s *IntegrationTestSuite) TestCLIQueryTxCmdByEvents() {
 	s.Require().NoError(err)
 	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txRes))
 	protoTx := txRes.GetTx().(*tx.Tx)
+
+	// Create 1st LEGACY_AMINO_JSON tx (correct sequence in signer_info)
+	_, legacyTxSeq, err := val.ClientCtx.AccountRetriever.GetAccountNumberSequence(val.ClientCtx, val.Address)
+	s.Require().NoError(err)
+	out, err = s.createBankMsg(
+		val, account2.GetAddress(),
+		sdk.NewCoins(sendTokens),
+		"--sign-mode=amino-json",
+	)
+	s.Require().NoError(err)
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txRes))
+	s.Require().Equal(uint32(0), txRes.Code)
+	s.Require().NoError(s.network.WaitForNextBlock())
+
+	// Create 2nd LEGACY_AMINO_JSON tx (dummy sequence in signer_info)
+	dummyTxSeq := uint64(42)
+	_, realTxSeq, err := val.ClientCtx.AccountRetriever.GetAccountNumberSequence(val.ClientCtx, val.Address)
+	s.Require().NoError(err)
+	out, err = s.createBankMsg(
+		val, account2.GetAddress(),
+		sdk.NewCoins(sendTokens),
+		fmt.Sprintf("--%s=true", flags.FlagGenerateOnly),
+	)
+	s.Require().NoError(err)
+	unsignedTxFile := testutil.WriteToNewTempFile(s.T(), out.String())
+	signedTx, err := TxSignExec(val.ClientCtx, val.Address, unsignedTxFile.Name(), fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON))
+	s.Require().NoError(err)
+	// After the tx is signed, we modify the sequence
+	malleableSignedTx := strings.Replace(signedTx.String(), fmt.Sprintf("\"sequence\":\"%d\"", realTxSeq), fmt.Sprintf("\"sequence\":\"%d\"", dummyTxSeq), 1)
+	signedTxFile := testutil.WriteToNewTempFile(s.T(), malleableSignedTx)
+	out, err = TxBroadcastExec(val.ClientCtx, signedTxFile.Name(), fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock))
+	s.Require().NoError(err)
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txRes))
+	s.Require().Equal(uint32(0), txRes.Code)
+	s.Require().NoError(s.network.WaitForNextBlock())
 
 	testCases := []struct {
 		name         string
@@ -531,6 +567,24 @@ func (s *IntegrationTestSuite) TestCLIQueryTxCmdByEvents() {
 			},
 			false, "",
 		},
+		{
+			"LEGACY_AMINO_JSON fetch by addr/seq (correct seq)",
+			[]string{
+				"--type=acc_seq",
+				fmt.Sprintf("%s/%d", val.Address, legacyTxSeq),
+				fmt.Sprintf("--%s=json", tmcli.OutputFlag),
+			},
+			false, "",
+		},
+		{
+			"LEGACY_AMINO_JSON fetch by addr/seq (dummy seq)",
+			[]string{
+				"--type=acc_seq",
+				fmt.Sprintf("%s/%d", val.Address, dummyTxSeq),
+				fmt.Sprintf("--%s=json", tmcli.OutputFlag),
+			},
+			false, "",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -545,6 +599,7 @@ func (s *IntegrationTestSuite) TestCLIQueryTxCmdByEvents() {
 				s.Require().Contains(err.Error(), tc.expectErrStr)
 			} else {
 				var result sdk.TxResponse
+				fmt.Println(out.String())
 				s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &result))
 				s.Require().NotNil(result.Height)
 			}
