@@ -1,5 +1,3 @@
-// +build norace
-
 package rest_test
 
 import (
@@ -7,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
@@ -17,16 +15,12 @@ import (
 	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/testutil"
-	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
-	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
-	authcli "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
-	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	authtest "github.com/cosmos/cosmos-sdk/x/auth/client/testutil"
 	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 	bankcli "github.com/cosmos/cosmos-sdk/x/bank/client/testutil"
@@ -40,7 +34,7 @@ type IntegrationTestSuite struct {
 	network *network.Network
 
 	stdTx    legacytx.StdTx
-	stdTxRes sdk.TxResponse
+	stdTxRes *sdk.TxResponse
 }
 
 func (s *IntegrationTestSuite) SetupSuite() {
@@ -71,12 +65,8 @@ func (s *IntegrationTestSuite) SetupSuite() {
 
 	// Broadcast a StdTx used for tests.
 	s.stdTx = s.createTestStdTx(s.network.Validators[0], 0, 1)
-	res, err := s.broadcastReq(s.stdTx, "block")
+	s.stdTxRes, err = s.broadcastReq(s.stdTx, "block")
 	s.Require().NoError(err)
-
-	// NOTE: this uses amino explicitly, don't migrate it!
-	s.Require().NoError(s.cfg.LegacyAmino.UnmarshalJSON(res, &s.stdTxRes))
-	s.Require().Equal(uint32(0), s.stdTxRes.Code)
 
 	s.Require().NoError(s.network.WaitForNextBlock())
 }
@@ -86,49 +76,23 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 	s.network.Cleanup()
 }
 
-func mkStdTx() legacytx.StdTx {
+func (s *IntegrationTestSuite) mkStdTx() legacytx.StdTx {
+	val := s.network.Validators[0]
 	// NOTE: this uses StdTx explicitly, don't migrate it!
 	return legacytx.StdTx{
-		Msgs: []sdk.Msg{&types.MsgSend{}},
+		Msgs: []sdk.Msg{&types.MsgSend{
+			FromAddress: val.Address.String(),
+		}},
 		Fee: legacytx.StdFee{
 			Amount: sdk.Coins{sdk.NewInt64Coin("foo", 10)},
 			Gas:    10000,
 		},
 		Memo: "FOOBAR",
+		Signatures: []legacytx.StdSignature{{
+			PubKey:    val.PubKey,
+			Signature: []byte{42},
+		}},
 	}
-}
-
-func (s *IntegrationTestSuite) TestEncodeDecode() {
-	var require = s.Require()
-	val := s.network.Validators[0]
-	stdTx := mkStdTx()
-
-	// NOTE: this uses amino explicitly, don't migrate it!
-	cdc := val.ClientCtx.LegacyAmino
-
-	bz, err := cdc.MarshalJSON(stdTx)
-	require.NoError(err)
-
-	res, err := rest.PostRequest(fmt.Sprintf("%s/txs/encode", val.APIAddress), "application/json", bz)
-	require.NoError(err)
-
-	var encodeResp authrest.EncodeResp
-	err = cdc.UnmarshalJSON(res, &encodeResp)
-	require.NoError(err)
-
-	bz, err = cdc.MarshalJSON(authrest.DecodeReq(encodeResp))
-	require.NoError(err)
-
-	res, err = rest.PostRequest(fmt.Sprintf("%s/txs/decode", val.APIAddress), "application/json", bz)
-	require.NoError(err)
-
-	var respWithHeight rest.ResponseWithHeight
-	err = cdc.UnmarshalJSON(res, &respWithHeight)
-	require.NoError(err)
-	var decodeResp authrest.DecodeResp
-	err = cdc.UnmarshalJSON(respWithHeight.Result, &decodeResp)
-	require.NoError(err)
-	require.Equal(stdTx, legacytx.StdTx(decodeResp))
 }
 
 func (s *IntegrationTestSuite) TestQueryAccountWithColon() {
@@ -141,19 +105,6 @@ func (s *IntegrationTestSuite) TestQueryAccountWithColon() {
 	res, err := rest.GetRequest(fmt.Sprintf("%s/cosmos/auth/v1beta1/accounts/%s", val.APIAddress, addrWithColon))
 	s.Require().NoError(err)
 	s.Require().Contains(string(res), "decoding bech32 failed")
-}
-
-func (s *IntegrationTestSuite) TestBroadcastTxRequest() {
-	stdTx := mkStdTx()
-
-	// we just test with async mode because this tx will fail - all we care about is that it got encoded and broadcast correctly
-	res, err := s.broadcastReq(stdTx, "async")
-	s.Require().NoError(err)
-	var txRes sdk.TxResponse
-	// NOTE: this uses amino explicitly, don't migrate it!
-	s.Require().NoError(s.cfg.LegacyAmino.UnmarshalJSON(res, &txRes))
-	// we just check for a non-empty TxHash here, the actual hash will depend on the underlying tx configuration
-	s.Require().NotEmpty(txRes.TxHash)
 }
 
 // Helper function to test querying txs. We will use it to query StdTx and service `Msg`s.
@@ -266,57 +217,6 @@ func (s *IntegrationTestSuite) TestQueryTx() {
 	s.testQueryTx(txRes.Height, txRes.TxHash, addr.String())
 }
 
-func (s *IntegrationTestSuite) TestMultipleSyncBroadcastTxRequests() {
-	// First test transaction from validator should have sequence=1 (non-genesis tx)
-	testCases := []struct {
-		desc      string
-		sequence  uint64
-		shouldErr bool
-	}{
-		{
-			"First tx (correct sequence)",
-			1,
-			false,
-		},
-		{
-			"Second tx (correct sequence)",
-			2,
-			false,
-		},
-		{
-			"Third tx (incorrect sequence)",
-			9,
-			true,
-		},
-	}
-	for _, tc := range testCases {
-		s.Run(fmt.Sprintf("Case %s", tc.desc), func() {
-			// broadcast test with sync mode, as we want to run CheckTx to verify account sequence is correct
-			stdTx := s.createTestStdTx(s.network.Validators[1], 1, tc.sequence)
-			res, err := s.broadcastReq(stdTx, "sync")
-			s.Require().NoError(err)
-
-			var txRes sdk.TxResponse
-			// NOTE: this uses amino explicitly, don't migrate it!
-			s.Require().NoError(s.cfg.LegacyAmino.UnmarshalJSON(res, &txRes))
-			// we check for a exitCode=0, indicating a successful broadcast
-			if tc.shouldErr {
-				var sigVerifyFailureCode uint32 = 4
-				s.Require().Equal(sigVerifyFailureCode, txRes.Code,
-					"Testcase '%s': Expected signature verification failure {Code: %d} from TxResponse. "+
-						"Found {Code: %d, RawLog: '%v'}",
-					tc.desc, sigVerifyFailureCode, txRes.Code, txRes.RawLog,
-				)
-			} else {
-				s.Require().Equal(uint32(0), txRes.Code,
-					"Testcase '%s': TxResponse errored unexpectedly. Err: {Code: %d, RawLog: '%v'}",
-					tc.desc, txRes.Code, txRes.RawLog,
-				)
-			}
-		})
-	}
-}
-
 func (s *IntegrationTestSuite) createTestStdTx(val *network.Validator, accNum, sequence uint64) legacytx.StdTx {
 	txConfig := legacytx.StdTxConfig{Cdc: s.cfg.LegacyAmino}
 
@@ -353,89 +253,26 @@ func (s *IntegrationTestSuite) createTestStdTx(val *network.Validator, accNum, s
 	return stdTx
 }
 
-func (s *IntegrationTestSuite) broadcastReq(stdTx legacytx.StdTx, mode string) ([]byte, error) {
+func (s *IntegrationTestSuite) broadcastReq(stdTx legacytx.StdTx, mode string) (*sdk.TxResponse, error) {
 	val := s.network.Validators[0]
 
-	// NOTE: this uses amino explicitly, don't migrate it!
-	cdc := val.ClientCtx.LegacyAmino
-	req := authrest.BroadcastReq{
-		Tx:   stdTx,
-		Mode: mode,
-	}
-	bz, err := cdc.MarshalJSON(req)
-	s.Require().NoError(err)
-
-	return rest.PostRequest(fmt.Sprintf("%s/txs", val.APIAddress), "application/json", bz)
-}
-
-// testQueryIBCTx is a helper function to test querying txs which:
-// - show an error message on legacy REST endpoints
-// - succeed using gRPC
-// In practice, we call this function on IBC txs.
-func (s *IntegrationTestSuite) testQueryIBCTx(txRes sdk.TxResponse, cmd *cobra.Command, args []string) {
-	val := s.network.Validators[0]
-
-	errMsg := "this transaction cannot be displayed via legacy REST endpoints, because it does not support" +
-		" Amino serialization. Please either use CLI, gRPC, gRPC-gateway, or directly query the Tendermint RPC" +
-		" endpoint to query this transaction. The new REST endpoint (via gRPC-gateway) is "
-
-	// Test that legacy endpoint return the above error message on IBC txs.
-	testCases := []struct {
-		desc string
-		url  string
-	}{
-		{
-			"Query by hash",
-			fmt.Sprintf("%s/txs/%s", val.APIAddress, txRes.TxHash),
-		},
-		{
-			"Query by height",
-			fmt.Sprintf("%s/txs?tx.height=%d", val.APIAddress, txRes.Height),
-		},
+	var err error
+	accSeqs := make([]uint64, len(stdTx.GetSigners()))
+	for i, signer := range stdTx.GetSigners() {
+		_, accSeqs[i], err = val.ClientCtx.AccountRetriever.GetAccountNumberSequence(val.ClientCtx, signer)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	for _, tc := range testCases {
-		s.Run(fmt.Sprintf("Case %s", tc.desc), func() {
-			txJSON, err := rest.GetRequest(tc.url)
-			s.Require().NoError(err)
-
-			var errResp rest.ErrorResponse
-			s.Require().NoError(val.ClientCtx.LegacyAmino.UnmarshalJSON(txJSON, &errResp))
-
-			s.Require().Contains(errResp.Error, errMsg)
-		})
+	txBz, err := convertAndEncodeStdTx(val.ClientCtx.TxConfig, stdTx, accSeqs)
+	if err != nil {
+		return nil, err
 	}
 
-	// try fetching the txn using gRPC req, it will fetch info since it has proto codec.
-	grpcJSON, err := rest.GetRequest(fmt.Sprintf("%s/cosmos/tx/v1beta1/txs/%s", val.APIAddress, txRes.TxHash))
-	s.Require().NoError(err)
+	val.ClientCtx = val.ClientCtx.WithBroadcastMode(mode)
 
-	var getTxRes txtypes.GetTxResponse
-	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(grpcJSON, &getTxRes))
-	s.Require().Equal(getTxRes.Tx.Body.Memo, "foobar")
-
-	// generate broadcast only txn.
-	args = append(args, fmt.Sprintf("--%s=true", flags.FlagGenerateOnly))
-	out, err := clitestutil.ExecTestCLICmd(val.ClientCtx, cmd, args)
-	s.Require().NoError(err)
-
-	txFile := testutil.WriteToNewTempFile(s.T(), string(out.Bytes()))
-	txFileName := txFile.Name()
-
-	// encode the generated txn.
-	out, err = clitestutil.ExecTestCLICmd(val.ClientCtx, authcli.GetEncodeCommand(), []string{txFileName})
-	s.Require().NoError(err)
-
-	bz, err := val.ClientCtx.LegacyAmino.MarshalJSON(authrest.DecodeReq{Tx: string(out.Bytes())})
-	s.Require().NoError(err)
-
-	// try to decode the txn using legacy rest, it fails.
-	res, err := rest.PostRequest(fmt.Sprintf("%s/txs/decode", val.APIAddress), "application/json", bz)
-	s.Require().NoError(err)
-
-	var errResp rest.ErrorResponse
-	s.Require().NoError(val.ClientCtx.LegacyAmino.UnmarshalJSON(res, &errResp))
-	s.Require().Contains(errResp.Error, errMsg)
+	return val.ClientCtx.BroadcastTx(txBz)
 }
 
 // TestLegacyMultiSig creates a legacy multisig transaction, and makes sure
@@ -527,6 +364,49 @@ func (s *IntegrationTestSuite) TestLegacyMultisig() {
 	s.Require().Equal(uint32(0), txRes.Code)
 
 	s.testQueryTx(txRes.Height, txRes.TxHash, recipient.String())
+}
+
+// convertAndEncodeStdTx encodes the stdTx as a transaction in the format
+// specified by txConfig. Since stdTx doesn't contain the signers' sequence
+// explicitly, we pass an additional accSeqs array and set them in the proto
+// tx's signer_infos.
+func convertAndEncodeStdTx(txConfig client.TxConfig, stdTx legacytx.StdTx, accSeqs []uint64) ([]byte, error) {
+	builder := txConfig.NewTxBuilder()
+
+	var theTx sdk.Tx
+
+	// check if we need a StdTx anyway, in that case don't copy
+	if _, ok := builder.GetTx().(legacytx.StdTx); ok {
+		theTx = stdTx
+	} else {
+		err := tx.CopyTx(stdTx, builder, false)
+		if err != nil {
+			return nil, err
+		}
+
+		sigs, err := stdTx.GetSignaturesV2()
+		if err != nil {
+			return nil, err
+		}
+
+		// Set the correct account sequences on the proto tx signer_infos.
+		if len(sigs) != len(accSeqs) {
+			return nil, fmt.Errorf("expected %d accSeqs, got %d", len(sigs), len(accSeqs))
+		}
+		correctSigs := make([]signing.SignatureV2, len(sigs))
+		for i, sig := range sigs {
+			correctSigs[i] = signing.SignatureV2{
+				PubKey:   sig.PubKey,
+				Data:     sig.Data,
+				Sequence: accSeqs[i],
+			}
+		}
+		builder.SetSignatures(correctSigs...)
+
+		theTx = builder.GetTx()
+	}
+
+	return txConfig.TxEncoder()(theTx)
 }
 
 func TestIntegrationTestSuite(t *testing.T) {

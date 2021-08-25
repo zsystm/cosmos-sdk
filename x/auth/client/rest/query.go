@@ -10,9 +10,13 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	clientrest "github.com/cosmos/cosmos-sdk/client/rest"
+	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	genutilrest "github.com/cosmos/cosmos-sdk/x/genutil/client/rest"
@@ -217,4 +221,27 @@ func checkAminoMarshalError(ctx client.Context, resp interface{}, grpcEndPoint s
 	}
 
 	return nil
+}
+
+// convertToStdTx converts tx proto binary bytes retrieved from Tendermint into
+// a StdTx. Returns the StdTx, as well as a flag denoting if the function
+// successfully converted or not.
+func convertToStdTx(w http.ResponseWriter, clientCtx client.Context, txBytes []byte) (legacytx.StdTx, error) {
+	txI, err := clientCtx.TxConfig.TxDecoder()(txBytes)
+	if rest.CheckBadRequestError(w, err) {
+		return legacytx.StdTx{}, err
+	}
+
+	tx, ok := txI.(signing.Tx)
+	if !ok {
+		rest.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("%+v is not backwards compatible with %T", tx, legacytx.StdTx{}))
+		return legacytx.StdTx{}, sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "expected %T, got %T", (signing.Tx)(nil), txI)
+	}
+
+	stdTx, err := clienttx.ConvertTxToStdTx(clientCtx.LegacyAmino, tx)
+	if rest.CheckBadRequestError(w, err) {
+		return legacytx.StdTx{}, err
+	}
+
+	return stdTx, nil
 }
