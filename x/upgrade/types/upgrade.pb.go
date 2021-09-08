@@ -52,6 +52,10 @@ type Plan struct {
 	// moved to the IBC module in the sub module 02-client.
 	// If this field is not empty, an error will be thrown.
 	UpgradedClientState *types.Any `protobuf:"bytes,5,opt,name=upgraded_client_state,json=upgradedClientState,proto3" json:"upgraded_client_state,omitempty" yaml:"upgraded_client_state"` // Deprecated: Do not use.
+	// Optional: Upgrade contains additional instructions for the devops or a hypervisor.
+	// App specific instructions are handled by the `info` attribute. Here we provide
+	// information such as pre-upgrade or post-upgrade commands.
+	Upgrade *UpgradeInstructions `protobuf:"bytes,6,opt,name=Upgrade,proto3" json:"Upgrade,omitempty"`
 }
 
 func (m *Plan) Reset()      { *m = Plan{} }
@@ -86,6 +90,96 @@ func (m *Plan) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Plan proto.InternalMessageInfo
 
+type UpgradeInstructions struct {
+	// If not empty, a shell command to be run by the upgrade manager or a hypervisor after shutting down
+	// the app and before running a new node.
+	PreRun string `protobuf:"bytes,1,opt,name=pre_run,json=preRun,proto3" json:"pre_run,omitempty"`
+	// If not empty, a shell command to be run by the upgrade manager or a hypervisor after shutting down
+	// the app and after running a new app.
+	PostRun string `protobuf:"bytes,2,opt,name=post_run,json=postRun,proto3" json:"post_run,omitempty"`
+	// List of required assets to download. This follows the cosmovisor structure.
+	// SHOULD have only one entry per platform.
+	Assets []*Asset `protobuf:"bytes,3,rep,name=assets,proto3" json:"assets,omitempty"`
+	// Description contains additional information about the upgrade process. Can reference an external resource.
+	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+}
+
+func (m *UpgradeInstructions) Reset()         { *m = UpgradeInstructions{} }
+func (m *UpgradeInstructions) String() string { return proto.CompactTextString(m) }
+func (*UpgradeInstructions) ProtoMessage()    {}
+func (*UpgradeInstructions) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ccf2a7d4d7b48dca, []int{1}
+}
+func (m *UpgradeInstructions) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *UpgradeInstructions) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_UpgradeInstructions.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *UpgradeInstructions) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpgradeInstructions.Merge(m, src)
+}
+func (m *UpgradeInstructions) XXX_Size() int {
+	return m.Size()
+}
+func (m *UpgradeInstructions) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpgradeInstructions.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpgradeInstructions proto.InternalMessageInfo
+
+type Asset struct {
+	// Platform identifier. It's composed from OS and CPU architecture. Example: "linux/amd64"
+	Platform string `protobuf:"bytes,1,opt,name=platform,proto3" json:"platform,omitempty"`
+	// URL to a script or binary to download. Should be related to the UpgradeInstructions pre_run or post_run
+	// commands. If multiple files are needed, then they should be packed in a gzip archive.
+	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	// Checksum is a sha256 hex encoded checksum of an artifact referenced by the URL.
+	Checksum string `protobuf:"bytes,3,opt,name=checksum,proto3" json:"checksum,omitempty"`
+}
+
+func (m *Asset) Reset()         { *m = Asset{} }
+func (m *Asset) String() string { return proto.CompactTextString(m) }
+func (*Asset) ProtoMessage()    {}
+func (*Asset) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ccf2a7d4d7b48dca, []int{2}
+}
+func (m *Asset) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Asset) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Asset.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Asset) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Asset.Merge(m, src)
+}
+func (m *Asset) XXX_Size() int {
+	return m.Size()
+}
+func (m *Asset) XXX_DiscardUnknown() {
+	xxx_messageInfo_Asset.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Asset proto.InternalMessageInfo
+
 // SoftwareUpgradeProposal is a gov Content type for initiating a software
 // upgrade.
 type SoftwareUpgradeProposal struct {
@@ -97,7 +191,7 @@ type SoftwareUpgradeProposal struct {
 func (m *SoftwareUpgradeProposal) Reset()      { *m = SoftwareUpgradeProposal{} }
 func (*SoftwareUpgradeProposal) ProtoMessage() {}
 func (*SoftwareUpgradeProposal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ccf2a7d4d7b48dca, []int{1}
+	return fileDescriptor_ccf2a7d4d7b48dca, []int{3}
 }
 func (m *SoftwareUpgradeProposal) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -136,7 +230,7 @@ type CancelSoftwareUpgradeProposal struct {
 func (m *CancelSoftwareUpgradeProposal) Reset()      { *m = CancelSoftwareUpgradeProposal{} }
 func (*CancelSoftwareUpgradeProposal) ProtoMessage() {}
 func (*CancelSoftwareUpgradeProposal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ccf2a7d4d7b48dca, []int{2}
+	return fileDescriptor_ccf2a7d4d7b48dca, []int{4}
 }
 func (m *CancelSoftwareUpgradeProposal) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -177,7 +271,7 @@ func (m *ModuleVersion) Reset()         { *m = ModuleVersion{} }
 func (m *ModuleVersion) String() string { return proto.CompactTextString(m) }
 func (*ModuleVersion) ProtoMessage()    {}
 func (*ModuleVersion) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ccf2a7d4d7b48dca, []int{3}
+	return fileDescriptor_ccf2a7d4d7b48dca, []int{5}
 }
 func (m *ModuleVersion) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -208,6 +302,8 @@ var xxx_messageInfo_ModuleVersion proto.InternalMessageInfo
 
 func init() {
 	proto.RegisterType((*Plan)(nil), "cosmos.upgrade.v1beta1.Plan")
+	proto.RegisterType((*UpgradeInstructions)(nil), "cosmos.upgrade.v1beta1.UpgradeInstructions")
+	proto.RegisterType((*Asset)(nil), "cosmos.upgrade.v1beta1.Asset")
 	proto.RegisterType((*SoftwareUpgradeProposal)(nil), "cosmos.upgrade.v1beta1.SoftwareUpgradeProposal")
 	proto.RegisterType((*CancelSoftwareUpgradeProposal)(nil), "cosmos.upgrade.v1beta1.CancelSoftwareUpgradeProposal")
 	proto.RegisterType((*ModuleVersion)(nil), "cosmos.upgrade.v1beta1.ModuleVersion")
@@ -218,36 +314,45 @@ func init() {
 }
 
 var fileDescriptor_ccf2a7d4d7b48dca = []byte{
-	// 462 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x53, 0x3d, 0x6f, 0xd3, 0x40,
-	0x18, 0xf6, 0x51, 0xb7, 0xd0, 0x8b, 0x58, 0x8e, 0x50, 0x4c, 0x54, 0xec, 0xc8, 0x62, 0xc8, 0x00,
-	0x67, 0xb5, 0x48, 0x0c, 0xd9, 0x48, 0x07, 0x24, 0x24, 0xa4, 0xca, 0x05, 0x06, 0x96, 0xea, 0x62,
-	0x5f, 0x9c, 0x13, 0xe7, 0x3b, 0xcb, 0x77, 0x29, 0xe4, 0x5f, 0x54, 0x62, 0x61, 0xec, 0xcf, 0xc9,
-	0xd8, 0x91, 0x29, 0x40, 0xb2, 0x30, 0x33, 0x32, 0xa1, 0xbb, 0xb3, 0x51, 0x04, 0x19, 0x3b, 0xf9,
-	0xfd, 0x78, 0xde, 0xe7, 0x79, 0x3f, 0x7c, 0xf0, 0x71, 0x26, 0x55, 0x29, 0x55, 0x32, 0xab, 0x8a,
-	0x9a, 0xe4, 0x34, 0xb9, 0x38, 0x1a, 0x53, 0x4d, 0x8e, 0x5a, 0x1f, 0x57, 0xb5, 0xd4, 0x12, 0x1d,
-	0x38, 0x14, 0x6e, 0xa3, 0x0d, 0xaa, 0xf7, 0xb0, 0x90, 0xb2, 0xe0, 0x34, 0xb1, 0xa8, 0xf1, 0x6c,
-	0x92, 0x10, 0x31, 0x77, 0x25, 0xbd, 0x6e, 0x21, 0x0b, 0x69, 0xcd, 0xc4, 0x58, 0x4d, 0x34, 0xfa,
-	0xb7, 0x40, 0xb3, 0x92, 0x2a, 0x4d, 0xca, 0xca, 0x01, 0xe2, 0xdf, 0x00, 0xfa, 0xa7, 0x9c, 0x08,
-	0x84, 0xa0, 0x2f, 0x48, 0x49, 0x03, 0xd0, 0x07, 0x83, 0xfd, 0xd4, 0xda, 0x68, 0x08, 0x7d, 0x83,
-	0x0f, 0x6e, 0xf5, 0xc1, 0xa0, 0x73, 0xdc, 0xc3, 0x8e, 0x0c, 0xb7, 0x64, 0xf8, 0x4d, 0x4b, 0x36,
-	0x82, 0x8b, 0x65, 0xe4, 0x5d, 0x7e, 0x8b, 0x40, 0x00, 0x52, 0x5b, 0x83, 0x0e, 0xe0, 0xde, 0x94,
-	0xb2, 0x62, 0xaa, 0x83, 0x9d, 0x3e, 0x18, 0xec, 0xa4, 0x8d, 0x67, 0x74, 0x98, 0x98, 0xc8, 0xc0,
-	0x77, 0x3a, 0xc6, 0x46, 0x1c, 0xde, 0x6f, 0x26, 0xcd, 0xcf, 0x33, 0xce, 0xa8, 0xd0, 0xe7, 0x4a,
-	0x13, 0x4d, 0x83, 0x5d, 0x2b, 0xdc, 0xfd, 0x4f, 0xf8, 0x85, 0x98, 0x8f, 0xe2, 0x5f, 0xcb, 0xe8,
-	0x70, 0x4e, 0x4a, 0x3e, 0x8c, 0xb7, 0x16, 0xc7, 0x01, 0x48, 0xef, 0xb5, 0x99, 0x13, 0x9b, 0x38,
-	0x33, 0xf1, 0xe1, 0x9d, 0x2f, 0x57, 0x91, 0xf7, 0xf3, 0x2a, 0x02, 0xf1, 0x67, 0x00, 0x1f, 0x9c,
-	0xc9, 0x89, 0xfe, 0x48, 0x6a, 0xfa, 0xd6, 0x21, 0x4f, 0x6b, 0x59, 0x49, 0x45, 0x38, 0xea, 0xc2,
-	0x5d, 0xcd, 0x34, 0x6f, 0x17, 0xe2, 0x1c, 0xd4, 0x87, 0x9d, 0x9c, 0xaa, 0xac, 0x66, 0x95, 0x66,
-	0x52, 0xd8, 0xc5, 0xec, 0xa7, 0x9b, 0x21, 0xf4, 0x1c, 0xfa, 0x15, 0x27, 0xc2, 0x4e, 0xdd, 0x39,
-	0x3e, 0xc4, 0xdb, 0x2f, 0x89, 0xcd, 0xce, 0x47, 0xbe, 0xd9, 0x5a, 0x6a, 0xf1, 0x1b, 0x5d, 0x11,
-	0xf8, 0xe8, 0x84, 0x88, 0x8c, 0xf2, 0x1b, 0x6e, 0x6d, 0x43, 0xe2, 0x25, 0xbc, 0xfb, 0x5a, 0xe6,
-	0x33, 0x4e, 0xdf, 0xd1, 0x5a, 0x99, 0xae, 0xb7, 0x5d, 0x3f, 0x80, 0xb7, 0x2f, 0x5c, 0xda, 0x92,
-	0xf9, 0x69, 0xeb, 0x5a, 0x22, 0x60, 0x88, 0x46, 0xaf, 0x16, 0x3f, 0x42, 0x6f, 0xb1, 0x0a, 0xc1,
-	0xf5, 0x2a, 0x04, 0xdf, 0x57, 0x21, 0xb8, 0x5c, 0x87, 0xde, 0xf5, 0x3a, 0xf4, 0xbe, 0xae, 0x43,
-	0xef, 0xfd, 0x93, 0x82, 0xe9, 0xe9, 0x6c, 0x8c, 0x33, 0x59, 0x26, 0xcd, 0x7f, 0xef, 0x3e, 0x4f,
-	0x55, 0xfe, 0x21, 0xf9, 0xf4, 0xf7, 0x11, 0xe8, 0x79, 0x45, 0xd5, 0x78, 0xcf, 0x9e, 0xf7, 0xd9,
-	0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x2b, 0x67, 0xe1, 0x07, 0x23, 0x03, 0x00, 0x00,
+	// 598 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0x4d, 0x6f, 0xd3, 0x30,
+	0x18, 0xae, 0xdb, 0xac, 0xdd, 0x5c, 0x21, 0x21, 0x6f, 0x6c, 0x59, 0xb5, 0x25, 0x55, 0xc5, 0xa1,
+	0x12, 0x90, 0x68, 0x43, 0x70, 0xe8, 0x6d, 0x9d, 0x10, 0x02, 0x09, 0x69, 0xca, 0xf8, 0x90, 0xb8,
+	0x4c, 0x6e, 0xea, 0xa6, 0xd1, 0x1c, 0x3b, 0xb2, 0x9d, 0x41, 0xff, 0xc5, 0x24, 0x2e, 0x1c, 0x77,
+	0xe4, 0x6f, 0x70, 0xdb, 0x71, 0x47, 0x4e, 0x03, 0xb6, 0x0b, 0x67, 0x7e, 0x01, 0xb2, 0xe3, 0x4c,
+	0xd3, 0xd6, 0xdd, 0x38, 0xf5, 0xfd, 0x78, 0xde, 0xe7, 0x79, 0xfa, 0xc6, 0x36, 0x7c, 0x18, 0x73,
+	0x99, 0x71, 0x19, 0x16, 0x79, 0x22, 0xf0, 0x98, 0x84, 0x47, 0x5b, 0x23, 0xa2, 0xf0, 0x56, 0x95,
+	0x07, 0xb9, 0xe0, 0x8a, 0xa3, 0xd5, 0x12, 0x15, 0x54, 0x55, 0x8b, 0xea, 0xac, 0x27, 0x9c, 0x27,
+	0x94, 0x84, 0x06, 0x35, 0x2a, 0x26, 0x21, 0x66, 0xb3, 0x72, 0xa4, 0xb3, 0x92, 0xf0, 0x84, 0x9b,
+	0x30, 0xd4, 0x91, 0xad, 0xfa, 0x37, 0x07, 0x54, 0x9a, 0x11, 0xa9, 0x70, 0x96, 0x97, 0x80, 0xde,
+	0xf7, 0x3a, 0x74, 0xf6, 0x28, 0x66, 0x08, 0x41, 0x87, 0xe1, 0x8c, 0xb8, 0xa0, 0x0b, 0xfa, 0x4b,
+	0x91, 0x89, 0xd1, 0x00, 0x3a, 0x1a, 0xef, 0xd6, 0xbb, 0xa0, 0xdf, 0xde, 0xee, 0x04, 0x25, 0x59,
+	0x50, 0x91, 0x05, 0x6f, 0x2b, 0xb2, 0x21, 0x3c, 0x3d, 0xf7, 0x6b, 0xc7, 0x3f, 0x7d, 0xe0, 0x82,
+	0xc8, 0xcc, 0xa0, 0x55, 0xd8, 0x9c, 0x92, 0x34, 0x99, 0x2a, 0xb7, 0xd1, 0x05, 0xfd, 0x46, 0x64,
+	0x33, 0xad, 0x93, 0xb2, 0x09, 0x77, 0x9d, 0x52, 0x47, 0xc7, 0x88, 0xc2, 0x07, 0xf6, 0x9f, 0x8e,
+	0x0f, 0x62, 0x9a, 0x12, 0xa6, 0x0e, 0xa4, 0xc2, 0x8a, 0xb8, 0x0b, 0x46, 0x78, 0xe5, 0x96, 0xf0,
+	0x0e, 0x9b, 0x0d, 0x7b, 0x7f, 0xcf, 0xfd, 0x8d, 0x19, 0xce, 0xe8, 0xa0, 0x37, 0x77, 0xb8, 0xe7,
+	0x82, 0x68, 0xb9, 0xea, 0xec, 0x9a, 0xc6, 0xbe, 0xae, 0xa3, 0x17, 0xb0, 0xf5, 0xae, 0x2c, 0xbb,
+	0x4d, 0xc3, 0xff, 0x28, 0x98, 0xbf, 0xee, 0xc0, 0xc2, 0x5e, 0x31, 0xa9, 0x44, 0x11, 0xab, 0x94,
+	0x33, 0x19, 0x55, 0xb3, 0x83, 0xc5, 0xaf, 0x27, 0x7e, 0xed, 0xcf, 0x89, 0x0f, 0x7a, 0xdf, 0x00,
+	0x5c, 0x9e, 0x03, 0x45, 0x6b, 0xb0, 0x95, 0x0b, 0x72, 0x20, 0x0a, 0x66, 0xb7, 0xda, 0xcc, 0x05,
+	0x89, 0x0a, 0x86, 0xd6, 0xe1, 0x62, 0xce, 0xa5, 0x32, 0x9d, 0xba, 0xe9, 0xb4, 0x74, 0xae, 0x5b,
+	0xcf, 0x60, 0x13, 0x4b, 0x49, 0x94, 0x74, 0x1b, 0xdd, 0x46, 0xbf, 0xbd, 0xbd, 0x79, 0x97, 0xb7,
+	0x1d, 0x8d, 0x8a, 0x2c, 0x18, 0x75, 0x61, 0x7b, 0x4c, 0x64, 0x2c, 0xd2, 0x5c, 0x4b, 0xdb, 0xe5,
+	0x5e, 0x2f, 0x0d, 0x1c, 0x63, 0xf5, 0x03, 0x5c, 0x30, 0x83, 0xa8, 0x03, 0x17, 0x73, 0x8a, 0xd5,
+	0x84, 0x8b, 0xcc, 0x9a, 0xbb, 0xca, 0xd1, 0x7d, 0xd8, 0x28, 0x04, 0xb5, 0xce, 0x74, 0xa8, 0xd1,
+	0xf1, 0x94, 0xc4, 0x87, 0xb2, 0xc8, 0xcc, 0xe7, 0x5c, 0x8a, 0xae, 0x72, 0x4b, 0xfc, 0x05, 0xc0,
+	0xb5, 0x7d, 0x3e, 0x51, 0x9f, 0xb0, 0x20, 0x76, 0x17, 0x7b, 0x82, 0xe7, 0x5c, 0x62, 0x8a, 0x56,
+	0xe0, 0x82, 0x4a, 0x15, 0xad, 0xce, 0x56, 0x99, 0xdc, 0xb4, 0x5c, 0xbf, 0x65, 0x19, 0x3d, 0x87,
+	0x4e, 0x4e, 0x31, 0x33, 0x8a, 0xed, 0xed, 0x8d, 0xbb, 0x36, 0xa1, 0x8f, 0xef, 0xd0, 0xd1, 0x07,
+	0x30, 0x32, 0xf8, 0x6b, 0x5f, 0x06, 0xc3, 0xcd, 0x5d, 0xcc, 0x62, 0x42, 0xff, 0xb3, 0xb5, 0x6b,
+	0x12, 0x2f, 0xe1, 0xbd, 0x37, 0x7c, 0x5c, 0x50, 0xf2, 0x9e, 0x08, 0xa9, 0x5d, 0xcf, 0xbb, 0x48,
+	0x2e, 0x6c, 0x1d, 0x95, 0x6d, 0x43, 0xe6, 0x44, 0x55, 0x6a, 0x88, 0x80, 0x26, 0x1a, 0xbe, 0x3e,
+	0xfd, 0xed, 0xd5, 0x4e, 0x2f, 0x3c, 0x70, 0x76, 0xe1, 0x81, 0x5f, 0x17, 0x1e, 0x38, 0xbe, 0xf4,
+	0x6a, 0x67, 0x97, 0x5e, 0xed, 0xc7, 0xa5, 0x57, 0xfb, 0xf8, 0x38, 0x49, 0xd5, 0xb4, 0x18, 0x05,
+	0x31, 0xcf, 0x42, 0xfb, 0x84, 0x94, 0x3f, 0x4f, 0xe4, 0xf8, 0x30, 0xfc, 0x7c, 0xf5, 0x9e, 0xa8,
+	0x59, 0x4e, 0xe4, 0xa8, 0x69, 0x6e, 0xca, 0xd3, 0x7f, 0x01, 0x00, 0x00, 0xff, 0xff, 0x25, 0xdf,
+	0x90, 0x94, 0x6e, 0x04, 0x00, 0x00,
 }
 
 func (this *Plan) Equal(that interface{}) bool {
@@ -282,6 +387,77 @@ func (this *Plan) Equal(that interface{}) bool {
 		return false
 	}
 	if !this.UpgradedClientState.Equal(that1.UpgradedClientState) {
+		return false
+	}
+	if !this.Upgrade.Equal(that1.Upgrade) {
+		return false
+	}
+	return true
+}
+func (this *UpgradeInstructions) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*UpgradeInstructions)
+	if !ok {
+		that2, ok := that.(UpgradeInstructions)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.PreRun != that1.PreRun {
+		return false
+	}
+	if this.PostRun != that1.PostRun {
+		return false
+	}
+	if len(this.Assets) != len(that1.Assets) {
+		return false
+	}
+	for i := range this.Assets {
+		if !this.Assets[i].Equal(that1.Assets[i]) {
+			return false
+		}
+	}
+	if this.Description != that1.Description {
+		return false
+	}
+	return true
+}
+func (this *Asset) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Asset)
+	if !ok {
+		that2, ok := that.(Asset)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Platform != that1.Platform {
+		return false
+	}
+	if this.Url != that1.Url {
+		return false
+	}
+	if this.Checksum != that1.Checksum {
 		return false
 	}
 	return true
@@ -390,6 +566,18 @@ func (m *Plan) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Upgrade != nil {
+		{
+			size, err := m.Upgrade.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintUpgrade(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.UpgradedClientState != nil {
 		{
 			size, err := m.UpgradedClientState.MarshalToSizedBuffer(dAtA[:i])
@@ -414,18 +602,120 @@ func (m *Plan) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x18
 	}
-	n2, err2 := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.Time, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdTime(m.Time):])
-	if err2 != nil {
-		return 0, err2
+	n3, err3 := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.Time, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdTime(m.Time):])
+	if err3 != nil {
+		return 0, err3
 	}
-	i -= n2
-	i = encodeVarintUpgrade(dAtA, i, uint64(n2))
+	i -= n3
+	i = encodeVarintUpgrade(dAtA, i, uint64(n3))
 	i--
 	dAtA[i] = 0x12
 	if len(m.Name) > 0 {
 		i -= len(m.Name)
 		copy(dAtA[i:], m.Name)
 		i = encodeVarintUpgrade(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *UpgradeInstructions) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UpgradeInstructions) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *UpgradeInstructions) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Description) > 0 {
+		i -= len(m.Description)
+		copy(dAtA[i:], m.Description)
+		i = encodeVarintUpgrade(dAtA, i, uint64(len(m.Description)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Assets) > 0 {
+		for iNdEx := len(m.Assets) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Assets[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintUpgrade(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.PostRun) > 0 {
+		i -= len(m.PostRun)
+		copy(dAtA[i:], m.PostRun)
+		i = encodeVarintUpgrade(dAtA, i, uint64(len(m.PostRun)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PreRun) > 0 {
+		i -= len(m.PreRun)
+		copy(dAtA[i:], m.PreRun)
+		i = encodeVarintUpgrade(dAtA, i, uint64(len(m.PreRun)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Asset) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Asset) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Asset) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Checksum) > 0 {
+		i -= len(m.Checksum)
+		copy(dAtA[i:], m.Checksum)
+		i = encodeVarintUpgrade(dAtA, i, uint64(len(m.Checksum)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Url) > 0 {
+		i -= len(m.Url)
+		copy(dAtA[i:], m.Url)
+		i = encodeVarintUpgrade(dAtA, i, uint64(len(m.Url)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Platform) > 0 {
+		i -= len(m.Platform)
+		copy(dAtA[i:], m.Platform)
+		i = encodeVarintUpgrade(dAtA, i, uint64(len(m.Platform)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -583,6 +873,58 @@ func (m *Plan) Size() (n int) {
 	}
 	if m.UpgradedClientState != nil {
 		l = m.UpgradedClientState.Size()
+		n += 1 + l + sovUpgrade(uint64(l))
+	}
+	if m.Upgrade != nil {
+		l = m.Upgrade.Size()
+		n += 1 + l + sovUpgrade(uint64(l))
+	}
+	return n
+}
+
+func (m *UpgradeInstructions) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PreRun)
+	if l > 0 {
+		n += 1 + l + sovUpgrade(uint64(l))
+	}
+	l = len(m.PostRun)
+	if l > 0 {
+		n += 1 + l + sovUpgrade(uint64(l))
+	}
+	if len(m.Assets) > 0 {
+		for _, e := range m.Assets {
+			l = e.Size()
+			n += 1 + l + sovUpgrade(uint64(l))
+		}
+	}
+	l = len(m.Description)
+	if l > 0 {
+		n += 1 + l + sovUpgrade(uint64(l))
+	}
+	return n
+}
+
+func (m *Asset) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Platform)
+	if l > 0 {
+		n += 1 + l + sovUpgrade(uint64(l))
+	}
+	l = len(m.Url)
+	if l > 0 {
+		n += 1 + l + sovUpgrade(uint64(l))
+	}
+	l = len(m.Checksum)
+	if l > 0 {
 		n += 1 + l + sovUpgrade(uint64(l))
 	}
 	return n
@@ -826,6 +1168,368 @@ func (m *Plan) Unmarshal(dAtA []byte) error {
 			if err := m.UpgradedClientState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Upgrade", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUpgrade
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Upgrade == nil {
+				m.Upgrade = &UpgradeInstructions{}
+			}
+			if err := m.Upgrade.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipUpgrade(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *UpgradeInstructions) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowUpgrade
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UpgradeInstructions: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UpgradeInstructions: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PreRun", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUpgrade
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PreRun = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PostRun", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUpgrade
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PostRun = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Assets", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUpgrade
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Assets = append(m.Assets, &Asset{})
+			if err := m.Assets[len(m.Assets)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Description", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUpgrade
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Description = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipUpgrade(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Asset) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowUpgrade
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Asset: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Asset: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Platform", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUpgrade
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Platform = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Url", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUpgrade
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Url = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Checksum", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowUpgrade
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUpgrade
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Checksum = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
