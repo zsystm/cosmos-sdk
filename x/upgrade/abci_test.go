@@ -211,12 +211,55 @@ func TestPlanStringer(t *testing.T) {
 	require.Equal(t, `Upgrade Plan
   Name: test
   height: 100
-  Info: .`, types.Plan{Name: "test", Height: 100, Info: ""}.String())
+  Info: 
+  Instructions: <nil>.`, types.Plan{Name: "test", Height: 100, Info: "", Upgrade: nil}.String())
 
 	require.Equal(t, fmt.Sprintf(`Upgrade Plan
   Name: test
   height: 100
-  Info: .`), types.Plan{Name: "test", Height: 100, Info: ""}.String())
+  Info: 
+  Instructions: <nil>.`), types.Plan{Name: "test", Height: 100, Info: "", Upgrade: nil}.String())
+
+	require.Equal(t, `Upgrade Plan
+  Name: test
+  height: 100
+  Info: 
+  Instructions: pre_run:"clear" .`, types.Plan{Name: "test", Height: 100, Info: "", Upgrade: &types.UpgradeInstructions{PreRun: "clear"}}.String())
+
+	require.Equal(t, `Upgrade Plan
+  Name: test
+  height: 100
+  Info: 
+  Instructions: pre_run:"clear" .`, types.Plan{Name: "test", Height: 100, Info: "", Upgrade: &types.UpgradeInstructions{PreRun: "clear", Assets: nil}}.String())
+
+	asset1 := types.Asset{
+		Platform: "",
+		Url:      "",
+		Checksum: "",
+	}
+
+	assets := []*types.Asset{&asset1}
+
+	require.Equal(t, `Upgrade Plan
+  Name: test
+  height: 100
+  Info: 
+  Instructions: pre_run:"clear" assets:<> .`, types.Plan{Name: "test", Height: 100, Info: "", Upgrade: &types.UpgradeInstructions{PreRun: "clear", Assets: assets}}.String())
+
+	asset1 = types.Asset{
+		Platform: "linux/amd64",
+		Url:      "https://example.com/asset.zip",
+		Checksum: "deaaa99fda9407c4dbe1d04bd49bab0cc3c1dd76fa392cd55a9425be074af01e",
+	}
+
+	assets = []*types.Asset{&asset1}
+
+	require.Equal(t, `Upgrade Plan
+  Name: test
+  height: 100
+  Info: 
+  Instructions: pre_run:"clear" assets:<platform:"linux/amd64" url:"https://example.com/asset.zip" checksum:"deaaa99fda9407c4dbe1d04bd49bab0cc3c1dd76fa392cd55a9425be074af01e" > .`, types.Plan{Name: "test", Height: 100, Info: "", Upgrade: &types.UpgradeInstructions{PreRun: "clear", Assets: assets}}.String())
+
 }
 
 func VerifyNotDone(t *testing.T, newCtx sdk.Context, name string) {
