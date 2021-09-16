@@ -5,9 +5,11 @@ import (
 
 	"cosmossdk.io/math"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -49,12 +51,13 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		storeKey:   key,
-		cdc:        cdc,
-		authKeeper: ak,
-		bankKeeper: bk,
-		paramstore: ps,
-		hooks:      nil,
+		storeKey:     key,
+		transientKey: tKey,
+		cdc:          cdc,
+		authKeeper:   ak,
+		bankKeeper:   bk,
+		paramstore:   ps,
+		hooks:        nil,
 	}
 }
 
@@ -94,4 +97,50 @@ func (k Keeper) SetLastTotalPower(ctx sdk.Context, power math.Int) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshal(&sdk.IntProto{Int: power})
 	store.Set(types.LastTotalPowerKey, bz)
+}
+
+// GetValidatorUpdate returns the ABCI validator power update for the current block
+// by the consensus address.
+func (k Keeper) GetValidatorUpdate(ctx sdk.Context, consAddr sdk.ConsAddress) (abci.ValidatorUpdate, bool) {
+	store := prefix.NewStore(ctx.TransientStore(k.transientKey), types.ValidatorUpdatesKey)
+	bz := store.Get(consAddr.Bytes())
+	if len(bz) == 0 {
+		return abci.ValidatorUpdate{}, false
+	}
+
+	var valUpdate abci.ValidatorUpdate
+	k.cdc.MustUnmarshal(bz, &valUpdate)
+	return valUpdate, true
+}
+
+// HasValidatorUpdate returns true if there is a power update for the given validator
+// within the last block.
+func (k Keeper) HasValidatorUpdate(ctx sdk.Context, consAddr sdk.ConsAddress) bool {
+	store := prefix.NewStore(ctx.TransientStore(k.transientKey), types.ValidatorUpdatesKey)
+	return store.Has(consAddr.Bytes())
+}
+
+// SetValidatorUpdate sets the ABCI validator power update for the current block
+// by the consensus address.
+func (k Keeper) SetValidatorUpdate(ctx sdk.Context, consAddr sdk.ConsAddress, valUpdate abci.ValidatorUpdate) {
+	store := prefix.NewStore(ctx.TransientStore(k.transientKey), types.ValidatorUpdatesKey)
+	bz := k.cdc.MustMarshal(&valUpdate)
+	store.Set(consAddr.Bytes(), bz)
+}
+
+// GetValidatorUpdates returns all the ABCI validator power updates within the current block.
+func (k Keeper) GetValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
+	store := ctx.TransientStore(k.transientKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorUpdatesKey)
+
+	var valsetUpdates []abci.ValidatorUpdate
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		var valUpdate abci.ValidatorUpdate
+		k.cdc.MustUnmarshal(iterator.Value(), &valUpdate)
+		valsetUpdates = append(valsetUpdates, valUpdate)
+	}
+
+	return valsetUpdates
 }
