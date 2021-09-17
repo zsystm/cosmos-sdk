@@ -260,7 +260,7 @@ func setupBaseApp(t *testing.T, options ...func(*baseapp.BaseApp)) *baseapp.Base
 
 func testTxHandler(options middleware.TxHandlerOptions) tx.Handler {
 	return middleware.ComposeMiddlewares(
-		middleware.NewRunMsgsTxHandler(options.MsgServiceRouter, middleware.NewLegacyRouter()),
+		middleware.NewRunMsgsTxHandler(options.MsgServiceRouter, options.LegacyRouter),
 		middleware.GasTxMiddleware,
 		middleware.RecoveryTxMiddleware,
 		middleware.NewIndexEventsTxMiddleware(options.IndexEvents),
