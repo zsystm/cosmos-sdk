@@ -240,6 +240,9 @@ message UnbondingDelegationEntry {
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.nullable)   = false
   ];
+
+  // incrementing id that uniquely identifies this entry
+  int64 id = 5;
 }
 
 // RedelegationEntry defines a redelegation object with relevant metadata.
