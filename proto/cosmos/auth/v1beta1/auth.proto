@@ -16,6 +16,7 @@ message BaseAccount {
   option (gogoproto.equal)            = false;
 
   option (cosmos_proto.implements_interface) = "AccountI";
+  option (cosmos_proto.legacy_amino_name) = "cosmos-sdk/BaseAccount";
 
   string              address = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
   google.protobuf.Any pub_key = 2

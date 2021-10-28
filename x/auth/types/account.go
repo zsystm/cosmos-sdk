@@ -329,6 +329,38 @@ type AccountI interface {
 	String() string
 }
 
+type AccountIResolver interface {
+	GetHandler(proto.Message) (AccountI, error)
+}
+
+type AccountHandler struct {
+	Constructor func(proto.Message) (AccountI, error)
+	Type        proto.Message
+}
+
+func (AccountHandler) IsAutoGroupType() {}
+
+func NewBaseAccountHandler(account BaseAccount) AccountI {
+	return &BaseAccountHandler{account}
+}
+
+func NewModuleAccountHandler(account ModuleAccount) AccountI {
+	return &ModuleAcountHandler{account}
+}
+
+type Module struct{}
+
+func (m Module) Provide() []AccountHandler {
+	return []AccountHandler{
+		{Func: NewBaseAccountHandler},
+		{Func: NewModuleAccountHandler},
+	}
+}
+
+type BaseAccountHandler struct {
+	BaseAccount
+}
+
 // ModuleAccountI defines an account interface for modules that hold tokens in
 // an escrow.
 type ModuleAccountI interface {
