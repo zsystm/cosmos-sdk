@@ -176,7 +176,10 @@ func (vmm validateMemoTxHandler) checkForValidMemo(ctx context.Context, tx sdk.T
 		return sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
 	}
 
-	params := vmm.ak.GetParams(sdkCtx)
+	params, err := vmm.ak.GetParams(sdkCtx)
+	if err != nil {
+		return err
+	}
 
 	memoLength := len(memoTx.GetMemo())
 	if uint64(memoLength) > params.MaxMemoCharacters {
@@ -243,7 +246,10 @@ func ConsumeTxSizeGasMiddleware(ak AccountKeeper) tx.Middleware {
 
 func (cgts consumeTxSizeGasTxHandler) simulateSigGasCost(ctx context.Context, tx sdk.Tx) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	params := cgts.ak.GetParams(sdkCtx)
+	params, err := cgts.ak.GetParams(sdkCtx)
+	if err != nil {
+		return err
+	}
 
 	sigTx, ok := tx.(authsigning.SigVerifiableTx)
 	if !ok {
@@ -297,7 +303,10 @@ func (cgts consumeTxSizeGasTxHandler) simulateSigGasCost(ctx context.Context, tx
 
 func (cgts consumeTxSizeGasTxHandler) consumeTxSizeGas(ctx context.Context, _ sdk.Tx, txBytes []byte) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	params := cgts.ak.GetParams(sdkCtx)
+	params, err := cgts.ak.GetParams(sdkCtx)
+	if err != nil {
+		return err
+	}
 	sdkCtx.GasMeter().ConsumeGas(params.TxSizeCostPerByte*sdk.Gas(len(txBytes)), "txSize")
 
 	return nil

@@ -81,7 +81,10 @@ func (ak AccountKeeper) Params(c context.Context, req *types.QueryParamsRequest)
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 	ctx := sdk.UnwrapSDKContext(c)
-	params := ak.GetParams(ctx)
+	params, err := ak.GetParams(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	return &types.QueryParamsResponse{Params: params}, nil
 }

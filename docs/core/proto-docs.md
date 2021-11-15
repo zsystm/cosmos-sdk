@@ -8,6 +8,9 @@
     - [BaseAccount](#cosmos.auth.v1beta1.BaseAccount)
     - [ModuleAccount](#cosmos.auth.v1beta1.ModuleAccount)
     - [Params](#cosmos.auth.v1beta1.Params)
+    - [ParamsUpdateResponse](#cosmos.auth.v1beta1.ParamsUpdateResponse)
+  
+    - [Msg](#cosmos.auth.v1beta1.Msg)
   
 - [cosmos/auth/v1beta1/genesis.proto](#cosmos/auth/v1beta1/genesis.proto)
     - [GenesisState](#cosmos.auth.v1beta1.GenesisState)
@@ -789,11 +792,31 @@ Params defines the parameters for the auth module.
 
 
 
+
+<a name="cosmos.auth.v1beta1.ParamsUpdateResponse"></a>
+
+### ParamsUpdateResponse
+
+
+
+
+
+
  <!-- end messages -->
 
  <!-- end enums -->
 
  <!-- end HasExtensions -->
+
+
+<a name="cosmos.auth.v1beta1.Msg"></a>
+
+### Msg
+Msg defines the auth Msg service.
+
+| Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
+| ----------- | ------------ | ------------- | ------------| ------- | -------- |
+| `UpdateParams` | [Params](#cosmos.auth.v1beta1.Params) | [ParamsUpdateResponse](#cosmos.auth.v1beta1.ParamsUpdateResponse) |  | |
 
  <!-- end services -->
 

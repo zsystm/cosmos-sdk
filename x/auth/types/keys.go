@@ -24,6 +24,9 @@ var (
 
 	// param key for global account number
 	GlobalAccountNumberKey = []byte("globalAccountNumber")
+
+	// key for auth parameters
+	ParamStoreKey = []byte("params")
 )
 
 // AddressStoreKey turn an address to key used to get it from the account store

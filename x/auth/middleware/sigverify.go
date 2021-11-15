@@ -178,7 +178,10 @@ func (vscd validateSigCountTxHandler) checkSigCount(ctx context.Context, tx sdk.
 		return sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be a sigTx")
 	}
 
-	params := vscd.ak.GetParams(sdkCtx)
+	params, err := vscd.ak.GetParams(sdkCtx)
+	if err != nil {
+		return err
+	}
 	pubKeys, err := sigTx.GetPubKeys()
 	if err != nil {
 		return err
@@ -316,7 +319,10 @@ func (sgcm sigGasConsumeTxHandler) sigGasConsume(ctx context.Context, tx sdk.Tx,
 		return sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
 	}
 
-	params := sgcm.ak.GetParams(sdkCtx)
+	params, err := sgcm.ak.GetParams(sdkCtx)
+	if err != nil {
+		return err
+	}
 	sigs, err := sigTx.GetSignaturesV2()
 	if err != nil {
 		return err

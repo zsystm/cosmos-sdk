@@ -48,3 +48,10 @@ message Params {
   uint64 sig_verify_cost_secp256k1 = 5
       [(gogoproto.customname) = "SigVerifyCostSecp256k1"];
 }
+
+message ParamsUpdateResponse {}
+
+// Msg defines the auth Msg service.
+service Msg {
+  rpc UpdateParams(Params) returns (ParamsUpdateResponse);
+}

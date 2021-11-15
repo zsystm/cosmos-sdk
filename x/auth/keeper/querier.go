@@ -50,7 +50,10 @@ func queryAccount(ctx sdk.Context, req abci.RequestQuery, k AccountKeeper, legac
 }
 
 func queryParams(ctx sdk.Context, k AccountKeeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	params := k.GetParams(ctx)
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, params)
 	if err != nil {
