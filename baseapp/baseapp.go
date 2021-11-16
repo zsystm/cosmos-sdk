@@ -52,7 +52,6 @@ type BaseApp struct { // nolint: maligned
 	queryRouter       sdk.QueryRouter      // router for redirecting query calls
 	grpcQueryRouter   *GRPCQueryRouter     // router for redirecting gRPC query calls
 	interfaceRegistry types.InterfaceRegistry
-	txDecoder         sdk.TxDecoder // unmarshal []byte into sdk.Tx
 
 	txHandler      tx.Handler       // txHandler for {Deliver,Check}Tx and simulations
 	initChainer    sdk.InitChainer  // initialize state with validators and state blob

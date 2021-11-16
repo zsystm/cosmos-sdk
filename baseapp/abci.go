@@ -255,13 +255,8 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		panic(fmt.Sprintf("unknown RequestCheckTx type: %s", req.Type))
 	}
 
-	tx, err := app.txDecoder(req.Tx)
-	if err != nil {
-		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
-	}
-
 	ctx := app.getContextForTx(mode, req.Tx)
-	res, err := app.txHandler.CheckTx(ctx, tx, req)
+	res, err := app.txHandler.CheckTx(ctx, tx.Request{TxBytes: req.Tx}, req)
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, uint64(res.GasUsed), uint64(res.GasWanted), app.trace)
 	}
@@ -285,14 +280,9 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 			}
 		}
 	}()
-	tx, err := app.txDecoder(req.Tx)
-	if err != nil {
-		res = sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
-		return res
-	}
 
 	ctx := app.getContextForTx(runTxModeDeliver, req.Tx)
-	res, err = app.txHandler.DeliverTx(ctx, tx, req)
+	res, err := app.txHandler.DeliverTx(ctx, tx.Request{TxBytes: req.Tx}, req)
 	if err != nil {
 		res = sdkerrors.ResponseDeliverTx(err, uint64(res.GasUsed), uint64(res.GasWanted), app.trace)
 		return res
