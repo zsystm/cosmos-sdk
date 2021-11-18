@@ -10,6 +10,12 @@ import "cosmos_proto/cosmos.proto";
 service Msg {
   // VerifyInvariant defines a method to verify a particular invariance.
   rpc VerifyInvariant(MsgVerifyInvariant) returns (MsgVerifyInvariantResponse);
+
+  rpc TripCircuitBreaker(MsgTripCircuitBreaker) returns (MsgTripCircuitBreakerResponse);
+
+  rpc ClearCircuitBreaker(MsgClearCircuitBreaker) returns (MsgClearCircuitBreakerResponse);
+
+  rpc AuthorizeCircuitBreaker(MsgAuthorizeCircuitBreaker) returns (MsgAuthorizeCircuitBreakerResponse);
 }
 
 // MsgVerifyInvariant represents a message to verify a particular invariance.
@@ -24,3 +30,21 @@ message MsgVerifyInvariant {
 
 // MsgVerifyInvariantResponse defines the Msg/VerifyInvariant response type.
 message MsgVerifyInvariantResponse {}
+
+message MsgTripCircuitBreaker {
+  string sender                = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // type_urls is the list of Msg type URls to trip in the circuit breaker.
+  repeated string type_urls = 2;
+}
+
+message MsgTripCircuitBreakerResponse {}
+
+message MsgClearCircuitBreaker {
+  string sender                = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // type_urls is the list of Msg type URls to clear in the circuit breaker.
+  repeated string type_urls = 2;
+}
+
+message MsgClearCircuitBreakerResponse {}

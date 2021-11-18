@@ -97,3 +97,11 @@ func (k Keeper) InvCheckPeriod() uint { return k.invCheckPeriod }
 func (k Keeper) SendCoinsFromAccountToFeeCollector(ctx sdk.Context, senderAddr sdk.AccAddress, amt sdk.Coins) error {
 	return k.supplyKeeper.SendCoinsFromAccountToModule(ctx, senderAddr, k.feeCollectorName, amt)
 }
+
+func (k Keeper) IsCircuitBreakerTripped(ctx sdk.Context) bool {
+	panic("TODO")
+}
+
+func (k Keeper) IsTypeURLTripped(ctx sdk.Context, typeUrl string) bool {
+	panic("TODO")
+}
