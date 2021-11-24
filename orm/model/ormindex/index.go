@@ -4,12 +4,15 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
+	"github.com/cosmos/cosmos-sdk/orm/model/ormiterator"
+
 	"github.com/cosmos/cosmos-sdk/orm/backend/kv"
 )
 
 type Index interface {
 	Fields() []protoreflect.Name
-	PrefixKey([]protoreflect.Value) ([]byte, error)
+	PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) ormiterator.Iterator
+	RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) ormiterator.Iterator
 	ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, key, value []byte, message proto.Message) error
 
 	doNotImplement()

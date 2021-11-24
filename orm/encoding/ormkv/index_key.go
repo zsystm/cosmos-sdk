@@ -9,7 +9,7 @@ import (
 )
 
 type IndexKeyCodec struct {
-	*BaseCodec
+	*KeyCodec
 	pkFieldOrder    []int
 	tableName       protoreflect.FullName
 	indexFieldNames []protoreflect.Name
@@ -48,7 +48,7 @@ func (i IndexKeyCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
 		return nil, nil, ormerrors.BadDecodeEntry
 	}
 
-	bz, err := i.BaseCodec.Encode(indexEntry.FullKey)
+	bz, err := i.KeyCodec.Encode(indexEntry.FullKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -108,7 +108,7 @@ func MakeIndexKeyCodec(prefix []byte, indexFields []protoreflect.FieldDescriptor
 		return nil, err
 	}
 	return &IndexKeyCodec{
-		BaseCodec:    cdc,
+		KeyCodec:     cdc,
 		pkFieldOrder: pkFieldOrder,
 		indexFields:  indexFields,
 	}, nil

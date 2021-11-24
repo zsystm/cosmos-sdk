@@ -3,6 +3,8 @@ package ormindex
 import (
 	"bytes"
 
+	"github.com/cosmos/cosmos-sdk/orm/model/ormiterator"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -12,6 +14,34 @@ import (
 
 type PrimaryKey struct {
 	*ormkv.PrimaryKeyCodec
+}
+
+func (p PrimaryKey) PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
+	prefixBz, err := p.Encode(prefix)
+	if err != nil {
+		return ormiterator.ErrIterator{Err: err}
+	}
+
+	return iterator(store.ReadCommitmentStore(), store, p, prefixBz, prefixBz, options)
+}
+
+func (p PrimaryKey) RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
+	err := p.CheckValidRangeIterationKeys(start, end)
+	if err != nil {
+		return ormiterator.ErrIterator{Err: err}
+	}
+
+	startBz, err := p.Encode(start)
+	if err != nil {
+		return ormiterator.ErrIterator{Err: err}
+	}
+
+	endBz, err := p.Encode(end)
+	if err != nil {
+		return ormiterator.ErrIterator{Err: err}
+	}
+
+	return iterator(store.ReadCommitmentStore(), store, p, startBz, endBz, options)
 }
 
 func (p PrimaryKey) doNotImplement() {}
@@ -65,10 +95,6 @@ func (p PrimaryKey) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, key
 	}
 
 	return p.unmarshalMessage(keyValues, value, message)
-}
-
-func (p PrimaryKey) PrefixKey(values []protoreflect.Value) ([]byte, error) {
-	return p.Encode(values)
 }
 
 var _ UniqueIndex = &PrimaryKey{}

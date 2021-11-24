@@ -3,6 +3,8 @@ package ormindex
 import (
 	"bytes"
 
+	"github.com/cosmos/cosmos-sdk/orm/model/ormiterator"
+
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 
 	"google.golang.org/protobuf/proto"
@@ -15,6 +17,34 @@ import (
 type IndexImpl struct {
 	*ormkv.IndexKeyCodec
 	primaryKey PrimaryKey
+}
+
+func (s IndexImpl) PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
+	prefixBz, err := s.Encode(prefix)
+	if err != nil {
+		return ormiterator.ErrIterator{Err: err}
+	}
+
+	return iterator(store.ReadIndexStore(), store, s, prefixBz, prefixBz, options)
+}
+
+func (s IndexImpl) RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
+	err := s.CheckValidRangeIterationKeys(start, end)
+	if err != nil {
+		return ormiterator.ErrIterator{Err: err}
+	}
+
+	startBz, err := s.Encode(start)
+	if err != nil {
+		return ormiterator.ErrIterator{Err: err}
+	}
+
+	endBz, err := s.Encode(end)
+	if err != nil {
+		return ormiterator.ErrIterator{Err: err}
+	}
+
+	return iterator(store.ReadIndexStore(), store, s, startBz, endBz, options)
 }
 
 var _ Indexer = &IndexImpl{}
@@ -65,10 +95,6 @@ func (s IndexImpl) OnDelete(store kv.Store, message protoreflect.Message) error 
 		return err
 	}
 	return store.Delete(key)
-}
-
-func (s IndexImpl) PrefixKey(values []protoreflect.Value) ([]byte, error) {
-	return s.Encode(values)
 }
 
 func (s IndexImpl) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, key, _ []byte, message proto.Message) error {

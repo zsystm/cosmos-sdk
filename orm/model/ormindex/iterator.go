@@ -2,45 +2,44 @@ package ormindex
 
 import (
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cosmos/cosmos-sdk/orm/backend/kv"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormiterator"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 )
 
-func PrefixIterator(store kv.ReadStore, index Index, prefix []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
-	prefixBz, err := index.PrefixKey(prefix)
-	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
-	}
+//func PrefixIterator(store kv.ReadStore, index Index, prefix []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
+//	prefixBz, err := index.PrefixKey(prefix)
+//	if err != nil {
+//		return ormiterator.ErrIterator{Err: err}
+//	}
+//
+//	return iterator(store, index, prefixBz, prefixBz, options)
+//}
+//
+//func RangeIterator(store kv.ReadStore, index Index, start, end []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
+//	startBz, err := index.PrefixKey(start)
+//	if err != nil {
+//		return ormiterator.ErrIterator{Err: err}
+//	}
+//
+//	endBz, err := index.PrefixKey(end)
+//	if err != nil {
+//		return ormiterator.ErrIterator{Err: err}
+//	}
+//
+//	return iterator(store, index, startBz, endBz, options)
+//}
 
-	return iterator(store, index, prefixBz, prefixBz, options)
-}
-
-func RangeIterator(store kv.ReadStore, index Index, start, end []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
-	startBz, err := index.PrefixKey(start)
-	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
-	}
-
-	endBz, err := index.PrefixKey(end)
-	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
-	}
-
-	return iterator(store, index, startBz, endBz, options)
-}
-
-func iterator(store kv.ReadStore, index Index, start, end []byte, options IteratorOptions) ormiterator.Iterator {
+func iterator(iteratorStore kv.ReadStore, store kv.IndexCommitmentReadStore, index Index, start, end []byte, options IteratorOptions) ormiterator.Iterator {
 	if !options.Reverse {
 		if len(options.Cursor) != 0 {
 			start = options.Cursor
 		}
-		it := store.Iterator(start, storetypes.PrefixEndBytes(end))
+		it := iteratorStore.Iterator(start, storetypes.PrefixEndBytes(end))
 		return &indexIterator{
-			index:    nil,
-			store:    nil,
+			index:    index,
+			store:    store,
 			iterator: it,
 			started:  false,
 		}
@@ -48,10 +47,10 @@ func iterator(store kv.ReadStore, index Index, start, end []byte, options Iterat
 		if len(options.Cursor) != 0 {
 			end = options.Cursor
 		}
-		it := store.ReverseIterator(start, storetypes.PrefixEndBytes(end))
+		it := iteratorStore.ReverseIterator(start, storetypes.PrefixEndBytes(end))
 		return &indexIterator{
-			index:    nil,
-			store:    nil,
+			index:    index,
+			store:    store,
 			iterator: it,
 			started:  false,
 		}

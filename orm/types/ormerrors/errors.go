@@ -26,4 +26,5 @@ var (
 	InvalidListOptions            = errors.New(codespace, 19, "invalid list options")
 	UnsupportedKeyField           = errors.New(codespace, 20, "unsupported key field")
 	UnexpectedError               = errors.New(codespace, 21, "unexpected error")
+	InvalidRangeIterationKeys     = errors.New(codespace, 22, "invalid range iteration keys")
 )

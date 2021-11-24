@@ -6,8 +6,8 @@ import (
 
 type UniqueKeyCodec struct {
 	MessageType protoreflect.MessageType
-	KeyCodec    *BaseCodec
-	ValueCodec  *BaseCodec
+	KeyCodec    *KeyCodec
+	ValueCodec  *KeyCodec
 }
 
 func NewUniqueKeyCodec(

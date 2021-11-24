@@ -13,7 +13,7 @@ import (
 )
 
 type PrimaryKeyCodec struct {
-	*BaseCodec
+	*KeyCodec
 	Type protoreflect.MessageType
 }
 
@@ -50,8 +50,8 @@ func NewPrimaryKeyCodec(
 	cdc, err := NewBaseCodec(pkPrefix, pkFields)
 
 	return &PrimaryKeyCodec{
-		BaseCodec: cdc,
-		Type:      messageType,
+		KeyCodec: cdc,
+		Type:     messageType,
 	}, nil
 }
 
@@ -83,7 +83,7 @@ func (p PrimaryKeyCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
 		return nil, nil, ormerrors.BadDecodeEntry
 	}
 
-	bz, err := p.BaseCodec.Encode(pkEntry.Key)
+	bz, err := p.KeyCodec.Encode(pkEntry.Key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -97,7 +97,7 @@ func (p PrimaryKeyCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
 }
 
 func (p *PrimaryKeyCodec) ClearValues(mref protoreflect.Message) {
-	for _, f := range p.Fields {
+	for _, f := range p.FieldDescriptors {
 		mref.Clear(f)
 	}
 }
