@@ -9,10 +9,21 @@ type ReadStore interface {
 	ReverseIterator(start, end []byte) Iterator
 }
 
+type IndexCommitmentReadStore interface {
+	ReadCommitmentStore() ReadStore
+	ReadIndexStore() ReadStore
+}
+
 type Store interface {
 	ReadStore
 	Set(key, value []byte) error
 	Delete(key []byte) error
+}
+
+type IndexCommitmentStore interface {
+	IndexCommitmentReadStore
+	CommitmentStore() Store
+	IndexStore() Store
 }
 
 type Iterator = sdkstore.Iterator

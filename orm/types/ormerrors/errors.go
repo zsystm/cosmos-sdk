@@ -25,4 +25,5 @@ var (
 	IndexOutOfBounds              = errors.New(codespace, 18, "index out of bounds")
 	InvalidListOptions            = errors.New(codespace, 19, "invalid list options")
 	UnsupportedKeyField           = errors.New(codespace, 20, "unsupported key field")
+	UnexpectedError               = errors.New(codespace, 21, "unexpected error")
 )

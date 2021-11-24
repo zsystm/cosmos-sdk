@@ -15,16 +15,37 @@ type UniqueIndexImpl struct {
 var _ Indexer = &UniqueIndexImpl{}
 var _ UniqueIndex = &UniqueIndexImpl{}
 
+func (u UniqueIndexImpl) doNotImplement() {}
+
 func (u UniqueIndexImpl) Fields() []protoreflect.Name {
 	panic("implement me")
 }
 
-func (u UniqueIndexImpl) Has(store kv.ReadStore, key []protoreflect.Value) (found bool, err error) {
-	panic("implement me")
+func (u UniqueIndexImpl) Has(store kv.IndexCommitmentReadStore, keyValues []protoreflect.Value) (found bool, err error) {
+	key, err := u.KeyCodec.Encode(keyValues)
+	if err != nil {
+		return false, err
+	}
+
+	return store.ReadIndexStore().Has(key)
 }
 
-func (u UniqueIndexImpl) Get(store kv.ReadStore, key []protoreflect.Value, message proto.Message) (found bool, err error) {
-	panic("implement me")
+func (u UniqueIndexImpl) Get(store kv.IndexCommitmentReadStore, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {
+	key, err := u.KeyCodec.Encode(keyValues)
+	if err != nil {
+		return false, err
+	}
+
+	bz, err := store.ReadIndexStore().Get(key)
+	if err != nil {
+		return false, err
+	}
+
+	if len(bz) == 0 {
+		return false, nil
+	}
+
+	return true, proto.Unmarshal(bz, message)
 }
 
 func (u UniqueIndexImpl) OnCreate(store kv.Store, message protoreflect.Message) error {
@@ -88,6 +109,6 @@ func (u UniqueIndexImpl) PrefixKey(values []protoreflect.Value) ([]byte, error) 
 	return u.KeyCodec.Encode(values)
 }
 
-func (u UniqueIndexImpl) ReadValueFromIndexKey(store kv.ReadStore, key, value []byte, message proto.Message) error {
+func (u UniqueIndexImpl) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, key, value []byte, message proto.Message) error {
 	panic("implement me")
 }

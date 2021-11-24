@@ -14,20 +14,21 @@ import (
 )
 
 type Table interface {
-	Save(store kv.Store, message proto.Message, mode SaveMode) error
-	Delete(store kv.Store, primaryKey []protoreflect.Value) error
+	ormindex.UniqueIndex
 
-	PrimaryKey() ormindex.UniqueIndex
-	GetIndex(fields string) ormindex.Index
-	GetUniqueIndex(fields string) ormindex.UniqueIndex
-	Indexes() []ormindex.Indexer
+	Save(store kv.IndexCommitmentStore, message proto.Message, mode SaveMode) error
+	Delete(store kv.IndexCommitmentStore, primaryKey []protoreflect.Value) error
+
+	GetIndex(fields Fields) ormindex.Index
+	GetUniqueIndex(fields Fields) ormindex.UniqueIndex
+	Indexes() []ormindex.Index
 
 	Decode(k []byte, v []byte) (ormkv.Entry, error)
 
 	DefaultJSON() json.RawMessage
 	ValidateJSON(io.Reader) error
-	ImportJSON(kv.Store, io.Reader) error
-	ExportJSON(kv.ReadStore, io.Writer) error
+	ImportJSON(kv.IndexCommitmentStore, io.Reader) error
+	ExportJSON(kv.IndexCommitmentReadStore, io.Writer) error
 }
 
 type SaveMode int

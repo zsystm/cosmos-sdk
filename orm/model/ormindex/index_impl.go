@@ -3,6 +3,8 @@ package ormindex
 import (
 	"bytes"
 
+	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -15,14 +17,16 @@ type IndexImpl struct {
 	primaryKey PrimaryKey
 }
 
-func (s IndexImpl) Fields() []protoreflect.Name {
-	panic("implement me")
-}
-
 var _ Indexer = &IndexImpl{}
 var _ Index = &IndexImpl{}
 
 var sentinelValue = []byte{0}
+
+func (s IndexImpl) doNotImplement() {}
+
+func (s IndexImpl) Fields() []protoreflect.Name {
+	panic("implement me")
+}
 
 func (s IndexImpl) OnCreate(store kv.Store, message protoreflect.Message) error {
 	_, key, err := s.EncodeFromMessage(message)
@@ -67,11 +71,20 @@ func (s IndexImpl) PrefixKey(values []protoreflect.Value) ([]byte, error) {
 	return s.Encode(values)
 }
 
-func (s IndexImpl) ReadValueFromIndexKey(store kv.ReadStore, key, _ []byte, message proto.Message) error {
+func (s IndexImpl) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, key, _ []byte, message proto.Message) error {
 	pkValues, err := s.ReadPrimaryKey(bytes.NewReader(key))
 	if err != nil {
 		return err
 	}
 
-	return s.primaryKey.ReadPrimaryKey(store, pkValues, message)
+	found, err := s.primaryKey.Get(store, pkValues, message)
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return ormerrors.UnexpectedError.Wrapf("can't find primary key")
+	}
+
+	return nil
 }

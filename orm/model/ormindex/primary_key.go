@@ -14,30 +14,37 @@ type PrimaryKey struct {
 	*ormkv.PrimaryKeyCodec
 }
 
+func (p PrimaryKey) doNotImplement() {}
+
 func (p PrimaryKey) Fields() []protoreflect.Name {
 	panic("implement me")
 }
 
-func (p PrimaryKey) Has(store kv.ReadStore, key []protoreflect.Value) (found bool, err error) {
-	panic("implement me")
+func (p PrimaryKey) Has(store kv.IndexCommitmentReadStore, key []protoreflect.Value) (found bool, err error) {
+	keyBz, err := p.Encode(key)
+	if err != nil {
+		return false, err
+	}
+
+	return store.ReadCommitmentStore().Has(keyBz)
 }
 
-func (p PrimaryKey) Get(store kv.ReadStore, key []protoreflect.Value, message proto.Message) (found bool, err error) {
-	panic("implement me")
-}
-
-func (p PrimaryKey) ReadPrimaryKey(store kv.ReadStore, keyValues []protoreflect.Value, message proto.Message) error {
+func (p PrimaryKey) Get(store kv.IndexCommitmentReadStore, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {
 	key, err := p.Encode(keyValues)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	bz, err := store.Get(key)
+	return p.GetByKeyBytes(store, key, keyValues, message)
+}
+
+func (p PrimaryKey) GetByKeyBytes(store kv.IndexCommitmentReadStore, key []byte, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {
+	bz, err := store.ReadCommitmentStore().Get(key)
 	if err != nil {
-		return err
+		return true, err
 	}
 
-	return p.unmarshalMessage(keyValues, bz, message)
+	return true, p.unmarshalMessage(keyValues, bz, message)
 }
 
 func (p PrimaryKey) unmarshalMessage(keyValues []protoreflect.Value, value []byte, message proto.Message) error {
@@ -51,7 +58,7 @@ func (p PrimaryKey) unmarshalMessage(keyValues []protoreflect.Value, value []byt
 	return nil
 }
 
-func (p PrimaryKey) ReadValueFromIndexKey(store kv.ReadStore, key, value []byte, message proto.Message) error {
+func (p PrimaryKey) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, key, value []byte, message proto.Message) error {
 	keyValues, err := p.Decode(bytes.NewReader(key))
 	if err != nil {
 		return err

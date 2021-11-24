@@ -96,7 +96,7 @@ func (p PrimaryKeyCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
 	return bz, v, nil
 }
 
-func (p *PrimaryKeyCodec) Clear(mref protoreflect.Message) {
+func (p *PrimaryKeyCodec) ClearValues(mref protoreflect.Message) {
 	for _, f := range p.Fields {
 		mref.Clear(f)
 	}

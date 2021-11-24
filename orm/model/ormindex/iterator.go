@@ -62,7 +62,7 @@ type indexIterator struct {
 	ormiterator.UnimplementedIterator
 
 	index    Index
-	store    kv.ReadStore
+	store    kv.IndexCommitmentReadStore
 	iterator kv.Iterator
 	started  bool
 }
