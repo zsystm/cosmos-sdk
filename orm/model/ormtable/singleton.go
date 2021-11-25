@@ -17,6 +17,9 @@ import (
 
 type Singleton struct {
 	*ormindex.SingletonIndex
+
+	typeResolver    TypeResolver
+	customValidator func(proto.Message) error
 }
 
 func (s Singleton) Save(store kv.IndexCommitmentStore, message proto.Message, _ SaveMode) error {
@@ -58,22 +61,35 @@ func (s *Singleton) DefaultJSON() json.RawMessage {
 	return bz
 }
 
-func (s *Singleton) ValidateJSON(reader io.Reader) error {
-	panic("implement me")
-}
-
-func (s *Singleton) ImportJSON(store kv.IndexCommitmentStore, reader io.Reader) error {
+func (s *Singleton) decodeJson(reader io.Reader) (proto.Message, error) {
 	bz, err := io.ReadAll(reader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	msg := s.MsgType.New().Interface()
-	err = protojson.Unmarshal(bz, msg)
+	err = protojson.UnmarshalOptions{Resolver: s.typeResolver}.Unmarshal(bz, msg)
+	return msg, err
+}
+
+func (s *Singleton) ValidateJSON(reader io.Reader) error {
+	msg, err := s.decodeJson(reader)
 	if err != nil {
 		return err
 	}
 
+	if s.customValidator != nil {
+		return s.customValidator(msg)
+	} else {
+		return DefaultValidator(msg)
+	}
+}
+
+func (s *Singleton) ImportJSON(store kv.IndexCommitmentStore, reader io.Reader) error {
+	msg, err := s.decodeJson(reader)
+	if err != nil {
+		return err
+	}
 	return s.Save(store, msg, SAVE_MODE_DEFAULT)
 }
 
@@ -97,3 +113,5 @@ func (s *Singleton) ExportJSON(store kv.IndexCommitmentReadStore, writer io.Writ
 	_, err = writer.Write(bz)
 	return err
 }
+
+var _ Table = &Singleton{}

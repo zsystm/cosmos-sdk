@@ -2,6 +2,7 @@ package ormtable
 
 import (
 	"bytes"
+	io "io"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -78,4 +79,12 @@ func (t AutoIncrementTable) EncodeKV(entry ormkv.Entry) (k, v []byte, err error)
 		return nil, nil, err
 	}
 	return k, v, nil
+}
+
+func (t AutoIncrementTable) ImportJSON(store kv.IndexCommitmentStore, reader io.Reader) error {
+	panic("TODO")
+}
+
+func (t AutoIncrementTable) ExportJSON(store kv.IndexCommitmentReadStore, writer io.Writer) error {
+	panic("TODO")
 }
