@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	io "io"
 
+	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
+
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cosmos/cosmos-sdk/orm/backend/kv"
-	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormindex"
 )
 
@@ -18,34 +19,34 @@ type Singleton struct {
 	*ormindex.SingletonIndex
 }
 
-func (s Singleton) Save(store kv.IndexCommitmentStore, message proto.Message, mode SaveMode) error {
-	panic("implement me")
-}
-
-func (s Singleton) Delete(store kv.IndexCommitmentStore, primaryKey []protoreflect.Value) error {
-	panic("implement me")
-}
-
-func (s Singleton) GetIndex(fields Fields) ormindex.Index {
-	if len(fields.fields) == 0 {
-		return s.SingletonIndex
+func (s Singleton) Save(store kv.IndexCommitmentStore, message proto.Message, _ SaveMode) error {
+	bz, err := proto.Marshal(message)
+	if err != nil {
+		return err
 	}
-	return nil
+	return store.CommitmentStore().Set(s.Prefix, bz)
 }
 
-func (s Singleton) GetUniqueIndex(fields Fields) ormindex.UniqueIndex {
-	if len(fields.fields) == 0 {
-		return s.SingletonIndex
+func (s Singleton) Delete(store kv.IndexCommitmentStore, _ []protoreflect.Value) error {
+	return store.CommitmentStore().Delete(s.Prefix)
+}
+
+func (s Singleton) GetIndex(fields ormkv.Fields) ormindex.Index {
+	if fields.String() != "" {
+		return nil
 	}
-	return nil
+	return s.SingletonIndex
+}
+
+func (s Singleton) GetUniqueIndex(fields ormkv.Fields) ormindex.UniqueIndex {
+	if fields.String() != "" {
+		return nil
+	}
+	return s.SingletonIndex
 }
 
 func (s Singleton) Indexes() []ormindex.Index {
 	return []ormindex.Index{s}
-}
-
-func (s Singleton) Decode(k []byte, v []byte) (ormkv.Entry, error) {
-	panic("implement me")
 }
 
 func (s *Singleton) DefaultJSON() json.RawMessage {

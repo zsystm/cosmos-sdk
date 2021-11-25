@@ -10,9 +10,9 @@ import (
 
 type IndexKeyCodec struct {
 	*KeyCodec
-	pkFieldOrder    []int
 	tableName       protoreflect.FullName
-	indexFieldNames []protoreflect.Name
+	indexFieldNames Fields
+	pkFieldOrder    []int
 	indexFields     []protoreflect.FieldDescriptor
 }
 
@@ -31,10 +31,10 @@ func (cdc IndexKeyCodec) DecodeKV(k, _ []byte) (Entry, error) {
 
 	numIndexFields := len(cdc.indexFields)
 	return &IndexKeyEntry{
-		TableName:       cdc.tableName,
-		IndexFieldNames: cdc.indexFieldNames,
-		IndexKey:        values[:numIndexFields],
-		PrimaryKeyRest:  values[numIndexFields:],
+		TableName:      cdc.tableName,
+		Fields:         cdc.indexFieldNames,
+		IndexPart:      values[:numIndexFields],
+		PrimaryKeyRest: values[numIndexFields:],
 	}, nil
 }
 
@@ -48,7 +48,7 @@ func (i IndexKeyCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
 		return nil, nil, ormerrors.BadDecodeEntry
 	}
 
-	bz, err := i.KeyCodec.Encode(indexEntry.FullKey)
+	bz, err := i.KeyCodec.Encode(append(indexEntry.IndexPart, indexEntry.PrimaryKeyRest...))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -80,7 +80,7 @@ func (cdc IndexKeyCodec) extractPrimaryKey(values []protoreflect.Value) []protor
 
 var _ Codec = &IndexKeyCodec{}
 
-func MakeIndexKeyCodec(prefix []byte, indexFields []protoreflect.FieldDescriptor, primaryKeyFields []protoreflect.FieldDescriptor) (*IndexKeyCodec, error) {
+func NewIndexKeyCodec(prefix []byte, indexFields []protoreflect.FieldDescriptor, primaryKeyFields []protoreflect.FieldDescriptor) (*IndexKeyCodec, error) {
 	indexFieldMap := map[protoreflect.Name]int{}
 
 	var keyFields []protoreflect.FieldDescriptor
@@ -103,7 +103,7 @@ func MakeIndexKeyCodec(prefix []byte, indexFields []protoreflect.FieldDescriptor
 		k++
 	}
 
-	cdc, err := NewBaseCodec(prefix, keyFields)
+	cdc, err := NewKeyCodec(prefix, keyFields)
 	if err != nil {
 		return nil, err
 	}

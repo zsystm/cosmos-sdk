@@ -11,13 +11,18 @@ import (
 )
 
 type Entry interface {
-	isEntry()
+	doNotImplement()
 	fmt.Stringer
+	GetTableName() protoreflect.FullName
 }
 
 type PrimaryKeyEntry struct {
 	Key   []protoreflect.Value
 	Value proto.Message
+}
+
+func (p PrimaryKeyEntry) GetTableName() protoreflect.FullName {
+	return p.Value.ProtoReflect().Descriptor().FullName()
 }
 
 func (p PrimaryKeyEntry) String() string {
@@ -47,33 +52,39 @@ func fmtValues(values []protoreflect.Value) string {
 	return string(bz)
 }
 
-func (p PrimaryKeyEntry) isEntry() {}
+func (p PrimaryKeyEntry) doNotImplement() {}
 
 type IndexKeyEntry struct {
-	TableName       protoreflect.FullName
-	IndexFieldNames []protoreflect.Name
-	FullKey         []protoreflect.Value
-	IndexKey        []protoreflect.Value
-	PrimaryKeyRest  []protoreflect.Value
-	PrimaryKey      []protoreflect.Value
+	TableName      protoreflect.FullName
+	Fields         Fields
+	IsPrefix       bool
+	IsUnique       bool
+	IndexPart      []protoreflect.Value
+	PrimaryKeyRest []protoreflect.Value
+	PrimaryKey     []protoreflect.Value
 }
 
-func (i IndexKeyEntry) isEntry() {}
+func (i IndexKeyEntry) GetTableName() protoreflect.FullName {
+	return i.TableName
+}
+
+func (i IndexKeyEntry) GetFields() Fields {
+	return i.Fields
+}
+
+func (i IndexKeyEntry) doNotImplement() {}
 
 func (i IndexKeyEntry) string() string {
-	return fmt.Sprintf("%s%s:%s:%s", i.TableName, i.IndexFieldNames, fmtValues(i.IndexKey), fmtValues(i.PrimaryKeyRest))
+	return fmt.Sprintf("%s%s:%s:%s", i.GetTableName, i.Fields, fmtValues(i.IndexPart), fmtValues(i.PrimaryKeyRest))
 }
 
 func (i IndexKeyEntry) String() string {
-	return fmt.Sprintf("IDX:%s", i.string())
-}
+	if i.IsUnique {
+		return fmt.Sprintf("UNIQ:%s", i.string())
+	} else {
 
-type UniqueIndexEntry struct {
-	IndexKeyEntry
-}
-
-func (u UniqueIndexEntry) String() string {
-	return fmt.Sprintf("UNIQ:%s", u.string())
+		return fmt.Sprintf("IDX:%s", i.string())
+	}
 }
 
 type SeqEntry struct {
@@ -81,21 +92,28 @@ type SeqEntry struct {
 	Value     uint64
 }
 
-func (s SeqEntry) isEntry() {}
+func (s SeqEntry) GetTableName() protoreflect.FullName {
+	return s.TableName
+}
+
+func (s SeqEntry) doNotImplement() {}
 
 func (s SeqEntry) String() string {
 	return fmt.Sprintf("SEQ:%s:%d", s.TableName, s.Value)
 }
 
 type SchemaEntry struct {
-	Id             uint32
 	FileDescriptor *descriptorpb.FileDescriptorProto
+}
+
+func (s SchemaEntry) GetTableName() protoreflect.FullName {
+	return ""
 }
 
 func (s SchemaEntry) String() string {
 	return fmt.Sprintf("FILEDESC:%v", s.FileDescriptor.Name)
 }
 
-func (s SchemaEntry) isEntry() {}
+func (s SchemaEntry) doNotImplement() {}
 
 var _, _, _, _ Entry = PrimaryKeyEntry{}, IndexKeyEntry{}, SeqEntry{}, SchemaEntry{}

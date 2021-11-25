@@ -15,15 +15,14 @@ import (
 
 type Table interface {
 	ormindex.UniqueIndex
+	ormkv.Codec
 
 	Save(store kv.IndexCommitmentStore, message proto.Message, mode SaveMode) error
 	Delete(store kv.IndexCommitmentStore, primaryKey []protoreflect.Value) error
 
-	GetIndex(fields Fields) ormindex.Index
-	GetUniqueIndex(fields Fields) ormindex.UniqueIndex
+	GetIndex(fields ormkv.Fields) ormindex.Index
+	GetUniqueIndex(fields ormkv.Fields) ormindex.UniqueIndex
 	Indexes() []ormindex.Index
-
-	Decode(k []byte, v []byte) (ormkv.Entry, error)
 
 	DefaultJSON() json.RawMessage
 	ValidateJSON(io.Reader) error

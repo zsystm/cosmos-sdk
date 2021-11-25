@@ -1,6 +1,8 @@
 package ormtable
 
 import (
+	"bytes"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -54,4 +56,26 @@ func (s *AutoIncrementTable) nextSeqValue(kv kv.Store) (uint64, error) {
 	seq++
 	err = kv.Set(s.seqCodec.Prefix, s.seqCodec.EncodeValue(seq))
 	return seq, err
+}
+
+func (t AutoIncrementTable) DecodeKV(k, v []byte) (ormkv.Entry, error) {
+	entry, err := t.TableImpl.DecodeKV(k, v)
+	if err != nil {
+		if bytes.HasPrefix(k, t.seqCodec.Prefix) {
+			return t.seqCodec.DecodeKV(k, v)
+		}
+		return nil, err
+	}
+	return entry, nil
+}
+
+func (t AutoIncrementTable) EncodeKV(entry ormkv.Entry) (k, v []byte, err error) {
+	k, v, err = t.TableImpl.EncodeKV(entry)
+	if err != nil {
+		if _, ok := entry.(ormkv.SeqEntry); ok {
+			return t.seqCodec.EncodeKV(entry)
+		}
+		return nil, nil, err
+	}
+	return k, v, nil
 }

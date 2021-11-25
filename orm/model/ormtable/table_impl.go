@@ -1,8 +1,11 @@
 package ormtable
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	io "io"
+	"math"
 
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 
@@ -18,10 +21,10 @@ type TableImpl struct {
 	*ormindex.PrimaryKey
 	indexers              []ormindex.Indexer
 	indexes               []ormindex.Index
-	indexesByFields       map[Fields]ormindex.Index
-	uniqueIndexesByFields map[Fields]ormindex.UniqueIndex
+	indexesByFields       map[ormkv.Fields]ormindex.Index
+	uniqueIndexesByFields map[ormkv.Fields]ormindex.UniqueIndex
 	indexesById           map[uint32]ormindex.Index
-	prefix                []byte
+	tablePrefix           []byte
 }
 
 func (t TableImpl) Save(store kv.IndexCommitmentStore, message proto.Message, mode SaveMode) error {
@@ -119,20 +122,16 @@ func (t TableImpl) Delete(store kv.IndexCommitmentStore, primaryKey []protorefle
 	return nil
 }
 
-func (t TableImpl) GetIndex(fields Fields) ormindex.Index {
+func (t TableImpl) GetIndex(fields ormkv.Fields) ormindex.Index {
 	return t.indexesByFields[fields]
 }
 
-func (t TableImpl) GetUniqueIndex(fields Fields) ormindex.UniqueIndex {
+func (t TableImpl) GetUniqueIndex(fields ormkv.Fields) ormindex.UniqueIndex {
 	return t.uniqueIndexesByFields[fields]
 }
 
 func (t TableImpl) Indexes() []ormindex.Index {
 	return t.indexes
-}
-
-func (t TableImpl) Decode(k []byte, v []byte) (ormkv.Entry, error) {
-	panic("implement me")
 }
 
 func (t TableImpl) DefaultJSON() json.RawMessage {
@@ -149,6 +148,54 @@ func (t TableImpl) ImportJSON(store kv.IndexCommitmentStore, reader io.Reader) e
 
 func (t TableImpl) ExportJSON(store kv.IndexCommitmentReadStore, writer io.Writer) error {
 	panic("implement me")
+}
+
+func (t TableImpl) DecodeKV(k, v []byte) (ormkv.Entry, error) {
+	r := bytes.NewReader(k)
+	if bytes.HasPrefix(k, t.tablePrefix) {
+		err := ormkv.SkipPrefix(r, t.tablePrefix)
+		if err != nil {
+			return nil, err
+		}
+
+		id, err := binary.ReadUvarint(r)
+		if err != nil {
+			return nil, err
+		}
+
+		if id == 0 {
+			return t.PrimaryKey.DecodeKV(k, v)
+		}
+
+		if id > math.MaxUint32 {
+			return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("uint32 varint id out of range %d", id)
+		}
+
+		idx, ok := t.indexesById[uint32(id)]
+		if !ok {
+			return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("can't find field with id %d", id)
+		}
+
+		return idx.DecodeKV(k, v)
+	} else {
+		return nil, ormerrors.UnexpectedDecodePrefix
+	}
+}
+
+func (t TableImpl) EncodeKV(entry ormkv.Entry) (k, v []byte, err error) {
+	switch entry := entry.(type) {
+	case ormkv.PrimaryKeyEntry:
+		return t.PrimaryKey.EncodeKV(entry)
+	case ormkv.IndexKeyEntry:
+		idx, ok := t.indexesByFields[entry.Fields]
+		if !ok {
+			return nil, nil, ormerrors.BadDecodeEntry.Wrapf("can't find index with fields %s", entry.Fields)
+		}
+
+		return idx.EncodeKV(entry)
+	default:
+		return nil, nil, ormerrors.BadDecodeEntry.Wrapf("%s", entry)
+	}
 }
 
 var _ Table = &TableImpl{}

@@ -47,7 +47,7 @@ func NewPrimaryKeyCodec(
 	pkPrefix := AppendVarUint32(prefix, tableDesc.Id)
 	pkPrefix = AppendVarUint32(pkPrefix, 0)
 
-	cdc, err := NewBaseCodec(pkPrefix, pkFields)
+	cdc, err := NewKeyCodec(pkPrefix, pkFields)
 
 	return &PrimaryKeyCodec{
 		KeyCodec: cdc,

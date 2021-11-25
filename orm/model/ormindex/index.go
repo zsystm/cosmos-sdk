@@ -1,6 +1,7 @@
 package ormindex
 
 import (
+	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -10,6 +11,8 @@ import (
 )
 
 type Index interface {
+	ormkv.Codec
+
 	Fields() []protoreflect.Name
 	PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) ormiterator.Iterator
 	RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) ormiterator.Iterator

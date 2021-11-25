@@ -1,6 +1,7 @@
 package ormindex
 
 import (
+	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -12,6 +13,7 @@ import (
 
 type UniqueIndexImpl struct {
 	ormkv.UniqueKeyCodec
+	primaryKey PrimaryKey
 }
 
 func (u UniqueIndexImpl) PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
@@ -45,7 +47,7 @@ func (u UniqueIndexImpl) RangeIterator(store kv.IndexCommitmentReadStore, start,
 func (u UniqueIndexImpl) doNotImplement() {}
 
 func (u UniqueIndexImpl) Fields() []protoreflect.Name {
-	panic("implement me")
+	return u.KeyCodec.FieldNames
 }
 
 func (u UniqueIndexImpl) Has(store kv.IndexCommitmentReadStore, keyValues []protoreflect.Value) (found bool, err error) {
@@ -133,7 +135,21 @@ func (u UniqueIndexImpl) OnDelete(store kv.Store, message protoreflect.Message) 
 }
 
 func (u UniqueIndexImpl) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, key, value []byte, message proto.Message) error {
-	panic("implement me")
+	pk, err := u.ExtractPrimaryKey(key, value)
+	if err != nil {
+		return err
+	}
+
+	found, err := u.primaryKey.Get(store, pk, message)
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return ormerrors.UnexpectedError.Wrapf("can't find primary key")
+	}
+
+	return nil
 }
 
 var _ Indexer = &UniqueIndexImpl{}
