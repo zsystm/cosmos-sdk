@@ -40,18 +40,18 @@ func (k Keeper) Grants(c context.Context, req *authz.QueryGrantsRequest) (*authz
 	authStore := prefix.NewStore(store, key)
 
 	if req.MsgTypeUrl != "" {
-		authorization, expiration := k.GetCleanAuthorization(ctx, grantee, granter, req.MsgTypeUrl)
-		if authorization == nil {
+		authorization, found := k.getGrant(ctx, grantStoreKey(grantee, granter, req.MsgTypeUrl))
+		if !found {
 			return nil, status.Errorf(codes.NotFound, "no authorization found for %s type", req.MsgTypeUrl)
 		}
-		authorizationAny, err := codectypes.NewAnyWithValue(authorization)
+		authorizationAny, err := codectypes.NewAnyWithValue(authorization.GetAuthorization())
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, err.Error())
 		}
 		return &authz.QueryGrantsResponse{
 			Grants: []*authz.Grant{{
 				Authorization: authorizationAny,
-				Expiration:    expiration,
+				Expiration:    authorization.Expiration,
 			}},
 		}, nil
 	}
