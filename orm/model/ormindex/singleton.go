@@ -15,11 +15,11 @@ type SingletonIndex struct {
 }
 
 func (s SingletonIndex) PrefixIterator(store kv.IndexCommitmentReadStore, _ []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
-	return iterator(store.ReadCommitmentStore(), store, s, s.Prefix, s.Prefix, options)
+	return prefixIterator(store.ReadCommitmentStore(), store, s, s.Prefix, options)
 }
 
 func (s SingletonIndex) RangeIterator(store kv.IndexCommitmentReadStore, _, _ []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
-	return iterator(store.ReadCommitmentStore(), store, s, s.Prefix, s.Prefix, options)
+	return rangeIterator(store.ReadCommitmentStore(), store, s, s.Prefix, s.Prefix, options)
 }
 
 func (s SingletonIndex) doNotImplement() {}

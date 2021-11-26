@@ -5,14 +5,21 @@ import (
 	"io"
 	"strings"
 
+	"google.golang.org/protobuf/reflect/protoreflect"
+
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormfield"
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type Codec interface {
 	DecodeKV(k, v []byte) (Entry, error)
 	EncodeKV(entry Entry) (k, v []byte, err error)
+}
+
+type IndexCodecI interface {
+	Codec
+	GetIndexValues(k, v []byte) ([]protoreflect.Value, error)
+	GetPrimaryKeyValues(k, v []byte) ([]protoreflect.Value, error)
 }
 
 type KeyCodec struct {

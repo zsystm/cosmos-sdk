@@ -18,6 +18,16 @@ type UniqueKeyCodec struct {
 	ValueCodec *KeyCodec
 }
 
+func (u UniqueKeyCodec) GetIndexValues(k, _ []byte) ([]protoreflect.Value, error) {
+	return u.KeyCodec.Decode(bytes.NewReader(k))
+}
+
+func (u UniqueKeyCodec) GetPrimaryKeyValues(_, v []byte) ([]protoreflect.Value, error) {
+	return u.ValueCodec.Decode(bytes.NewReader(v))
+}
+
+var _ IndexCodecI = UniqueKeyCodec{}
+
 //func NewUniqueKeyCodec(
 //	prefix []byte,
 //	messageType protoreflect.MessageType,

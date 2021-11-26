@@ -10,6 +10,14 @@ type Iterator interface {
 	mustEmbedUnimplementedIterator()
 
 	Next(proto.Message) (bool, error)
+
+	// TODO
+	//Valid() bool
+	//Next()
+	//IndexKey() ([]protoreflect.Value, error)
+	//PrimaryKey() ([]protoreflect.Value, error)
+	//Value(proto.Message) error
+
 	Cursor() Cursor
 	Close()
 }

@@ -1,9 +1,10 @@
 package ormindex
 
 import (
-	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 
 	"github.com/cosmos/cosmos-sdk/orm/model/ormiterator"
 
@@ -22,7 +23,7 @@ func (u UniqueIndexImpl) PrefixIterator(store kv.IndexCommitmentReadStore, prefi
 		return ormiterator.ErrIterator{Err: err}
 	}
 
-	return iterator(store.ReadIndexStore(), store, u, prefixBz, prefixBz, options)
+	return prefixIterator(store.ReadIndexStore(), store, u, prefixBz, options)
 }
 
 func (u UniqueIndexImpl) RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
@@ -41,7 +42,7 @@ func (u UniqueIndexImpl) RangeIterator(store kv.IndexCommitmentReadStore, start,
 		return ormiterator.ErrIterator{Err: err}
 	}
 
-	return iterator(store.ReadIndexStore(), store, u, startBz, endBz, options)
+	return rangeIterator(store.ReadIndexStore(), store, u, startBz, endBz, options)
 }
 
 func (u UniqueIndexImpl) doNotImplement() {}

@@ -17,6 +17,16 @@ type PrimaryKeyCodec struct {
 	Type protoreflect.MessageType
 }
 
+func (p PrimaryKeyCodec) GetIndexValues(k, _ []byte) ([]protoreflect.Value, error) {
+	return p.Decode(bytes.NewReader(k))
+}
+
+func (p PrimaryKeyCodec) GetPrimaryKeyValues(k, _ []byte) ([]protoreflect.Value, error) {
+	return p.Decode(bytes.NewReader(k))
+}
+
+var _ IndexCodecI = PrimaryKeyCodec{}
+
 func NewPrimaryKeyCodec(
 	prefix []byte,
 	messageType protoreflect.MessageType,
