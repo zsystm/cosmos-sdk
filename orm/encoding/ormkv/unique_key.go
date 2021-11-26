@@ -18,15 +18,31 @@ type UniqueKeyCodec struct {
 	ValueCodec *KeyCodec
 }
 
-func (u UniqueKeyCodec) GetIndexValues(k, _ []byte) ([]protoreflect.Value, error) {
-	return u.KeyCodec.Decode(bytes.NewReader(k))
+func (u UniqueKeyCodec) DecodeIndexKey(k, v []byte) (indexFields, primaryKey []protoreflect.Value, err error) {
+	ks, err := u.KeyCodec.Decode(bytes.NewReader(k))
+
+	// got prefix key
+	if err == io.EOF {
+		return ks, nil, err
+	} else if err != nil {
+		return nil, nil, err
+	}
+
+	// got prefix key
+	if len(ks) < len(u.KeyCodec.FieldCodecs) {
+		return ks, nil, err
+	}
+
+	vs, err := u.ValueCodec.Decode(bytes.NewReader(v))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pk := u.extractPrimaryKey(ks, vs)
+	return ks, pk, nil
 }
 
-func (u UniqueKeyCodec) GetPrimaryKeyValues(_, v []byte) ([]protoreflect.Value, error) {
-	return u.ValueCodec.Decode(bytes.NewReader(v))
-}
-
-var _ IndexCodecI = UniqueKeyCodec{}
+var _ IndexCodec = UniqueKeyCodec{}
 
 //func NewUniqueKeyCodec(
 //	prefix []byte,
@@ -61,35 +77,17 @@ func (u UniqueKeyCodec) ExtractPrimaryKey(k, v []byte) ([]protoreflect.Value, er
 }
 
 func (u UniqueKeyCodec) DecodeKV(k, v []byte) (Entry, error) {
-	ks, err := u.KeyCodec.Decode(bytes.NewReader(k))
-	if err == io.EOF {
-		return IndexKeyEntry{
-			TableName: u.tableName,
-			Fields:    u.indexFieldNames,
-			IsPrefix:  true,
-			IsUnique:  true,
-			IndexPart: ks,
-		}, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	vs, err := u.ValueCodec.Decode(bytes.NewReader(v))
+	idxVals, pk, err := u.DecodeIndexKey(k, v)
 	if err != nil {
 		return nil, err
 	}
-
-	pk := u.extractPrimaryKey(ks, vs)
-
 	return IndexKeyEntry{
-		TableName:      u.tableName,
-		Fields:         u.indexFieldNames,
-		IsPrefix:       false,
-		IsUnique:       true,
-		IndexPart:      ks,
-		PrimaryKeyRest: vs,
-		PrimaryKey:     pk,
-	}, nil
+		TableName:   u.tableName,
+		Fields:      u.indexFieldNames,
+		IsUnique:    true,
+		IndexValues: idxVals,
+		PrimaryKey:  pk,
+	}, err
 }
 
 func (cdc UniqueKeyCodec) extractPrimaryKey(keyValues, valueValues []protoreflect.Value) []protoreflect.Value {
@@ -110,11 +108,11 @@ func (cdc UniqueKeyCodec) extractPrimaryKey(keyValues, valueValues []protoreflec
 
 func (u UniqueKeyCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
 	indexEntry := entry.(IndexKeyEntry)
-	k, err = u.KeyCodec.Encode(indexEntry.IndexPart)
+	k, err = u.KeyCodec.Encode(indexEntry.IndexValues)
 	if err != nil {
 		return nil, nil, err
 	}
-	v, err = u.ValueCodec.Encode(indexEntry.PrimaryKeyRest)
+	v, err = u.ValueCodec.Encode(indexEntry.PrimaryKey)
 	return k, v, err
 }
 

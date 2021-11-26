@@ -2,6 +2,7 @@ package ormkv
 
 import (
 	"bytes"
+	"io"
 
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 
@@ -16,10 +17,19 @@ type IndexKeyCodec struct {
 	indexFields     []protoreflect.FieldDescriptor
 }
 
-func (cdc IndexKeyCodec) DecodeKV(k, _ []byte) (Entry, error) {
+func (cdc IndexKeyCodec) DecodeIndexKey(k, v []byte) (indexFields, primaryKey []protoreflect.Value, err error) {
+
 	values, err := cdc.Decode(bytes.NewReader(k))
-	if err != nil {
-		return nil, err
+	// got prefix key
+	if err == io.EOF {
+		return values, nil, nil
+	} else if err != nil {
+		return nil, nil, err
+	}
+
+	// got prefix key
+	if len(values) < len(cdc.FieldCodecs) {
+		return values, nil, nil
 	}
 
 	numPkFields := len(cdc.pkFieldOrder)
@@ -29,12 +39,22 @@ func (cdc IndexKeyCodec) DecodeKV(k, _ []byte) (Entry, error) {
 		pkValues[i] = values[cdc.pkFieldOrder[i]]
 	}
 
-	numIndexFields := len(cdc.indexFields)
+	return values, pkValues, nil
+}
+
+var _ IndexCodec = &IndexKeyCodec{}
+
+func (cdc IndexKeyCodec) DecodeKV(k, v []byte) (Entry, error) {
+	idxValues, pk, err := cdc.DecodeIndexKey(k, v)
+	if err != nil {
+		return nil, err
+	}
+
 	return &IndexKeyEntry{
-		TableName:      cdc.tableName,
-		Fields:         cdc.indexFieldNames,
-		IndexPart:      values[:numIndexFields],
-		PrimaryKeyRest: values[numIndexFields:],
+		TableName:   cdc.tableName,
+		Fields:      cdc.indexFieldNames,
+		IndexValues: idxValues,
+		PrimaryKey:  pk,
 	}, nil
 }
 
@@ -48,7 +68,7 @@ func (i IndexKeyCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
 		return nil, nil, ormerrors.BadDecodeEntry
 	}
 
-	bz, err := i.KeyCodec.Encode(append(indexEntry.IndexPart, indexEntry.PrimaryKeyRest...))
+	bz, err := i.KeyCodec.Encode(indexEntry.IndexValues)
 	if err != nil {
 		return nil, nil, err
 	}

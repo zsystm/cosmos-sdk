@@ -55,13 +55,12 @@ func fmtValues(values []protoreflect.Value) string {
 func (p PrimaryKeyEntry) doNotImplement() {}
 
 type IndexKeyEntry struct {
-	TableName      protoreflect.FullName
-	Fields         Fields
-	IsPrefix       bool
-	IsUnique       bool
-	IndexPart      []protoreflect.Value
-	PrimaryKeyRest []protoreflect.Value
-	PrimaryKey     []protoreflect.Value
+	TableName   protoreflect.FullName
+	Fields      Fields
+	IsUnique    bool
+	IndexValues []protoreflect.Value
+	// PrimaryKey is empty if this is a prefix key
+	PrimaryKey []protoreflect.Value
 }
 
 func (i IndexKeyEntry) GetTableName() protoreflect.FullName {
@@ -75,7 +74,7 @@ func (i IndexKeyEntry) GetFields() Fields {
 func (i IndexKeyEntry) doNotImplement() {}
 
 func (i IndexKeyEntry) string() string {
-	return fmt.Sprintf("%s%s:%s:%s", i.GetTableName, i.Fields, fmtValues(i.IndexPart), fmtValues(i.PrimaryKeyRest))
+	return fmt.Sprintf("%s%s:%s:%s", i.GetTableName, i.Fields, fmtValues(i.IndexValues), fmtValues(i.PrimaryKey))
 }
 
 func (i IndexKeyEntry) String() string {

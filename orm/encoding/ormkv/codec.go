@@ -16,10 +16,9 @@ type Codec interface {
 	EncodeKV(entry Entry) (k, v []byte, err error)
 }
 
-type IndexCodecI interface {
+type IndexCodec interface {
 	Codec
-	GetIndexValues(k, v []byte) ([]protoreflect.Value, error)
-	GetPrimaryKeyValues(k, v []byte) ([]protoreflect.Value, error)
+	DecodeIndexKey(k, v []byte) (indexFields, primaryKey []protoreflect.Value, err error)
 }
 
 type KeyCodec struct {

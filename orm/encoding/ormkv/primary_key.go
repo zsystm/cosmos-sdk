@@ -2,6 +2,7 @@ package ormkv
 
 import (
 	"bytes"
+	"io"
 
 	ormv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/v1alpha1"
 
@@ -17,15 +18,26 @@ type PrimaryKeyCodec struct {
 	Type protoreflect.MessageType
 }
 
-func (p PrimaryKeyCodec) GetIndexValues(k, _ []byte) ([]protoreflect.Value, error) {
-	return p.Decode(bytes.NewReader(k))
+func (p PrimaryKeyCodec) DecodeIndexKey(k, _ []byte) (indexFields, primaryKey []protoreflect.Value, err error) {
+	indexFields, err = p.Decode(bytes.NewReader(k))
+
+	// got prefix key
+	if err == io.EOF {
+		return indexFields, nil, nil
+	} else if err != nil {
+		return nil, nil, err
+	}
+
+	if len(indexFields) == len(p.FieldCodecs) {
+		// for primary keys the index fields are the primary key
+		// but only if we don't have a prefix key
+		primaryKey = indexFields
+	}
+	return indexFields, primaryKey, nil
+
 }
 
-func (p PrimaryKeyCodec) GetPrimaryKeyValues(k, _ []byte) ([]protoreflect.Value, error) {
-	return p.Decode(bytes.NewReader(k))
-}
-
-var _ IndexCodecI = PrimaryKeyCodec{}
+var _ IndexCodec = PrimaryKeyCodec{}
 
 func NewPrimaryKeyCodec(
 	prefix []byte,
