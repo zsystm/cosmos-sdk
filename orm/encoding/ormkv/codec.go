@@ -254,12 +254,15 @@ func (cdc KeyCodec) CheckValidRangeIterationKeys(start, end []protoreflect.Value
 
 	for i := 0; i < n; i++ {
 		fieldCdc := cdc.FieldCodecs[i]
-		if fieldCdc.IsOrdered() {
-			continue
-		}
 		x := start[i]
 		y := end[i]
-		if fieldCdc.Compare(x, y) != 0 {
+		cmp := fieldCdc.Compare(x, y)
+		if cmp > 0 {
+			return ormerrors.InvalidRangeIterationKeys.Wrapf(
+				"start must be before end for field %s",
+				cdc.FieldDescriptors[i].FullName(),
+			)
+		} else if cmp != 0 && !fieldCdc.IsOrdered() {
 			descriptor := cdc.FieldDescriptors[i]
 			return ormerrors.InvalidRangeIterationKeys.Wrapf(
 
