@@ -135,13 +135,8 @@ func (u UniqueIndexImpl) OnDelete(store kv.Store, message protoreflect.Message) 
 	return store.Set(key, value)
 }
 
-func (u UniqueIndexImpl) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, key, value []byte, message proto.Message) error {
-	pk, err := u.ExtractPrimaryKey(key, value)
-	if err != nil {
-		return err
-	}
-
-	found, err := u.primaryKey.Get(store, pk, message)
+func (u UniqueIndexImpl) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, primaryKey []protoreflect.Value, _ []byte, message proto.Message) error {
+	found, err := u.primaryKey.Get(store, primaryKey, message)
 	if err != nil {
 		return err
 	}

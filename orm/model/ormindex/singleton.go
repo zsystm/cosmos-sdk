@@ -45,7 +45,7 @@ func (s SingletonIndex) Fields() []protoreflect.Name {
 	return nil
 }
 
-func (s SingletonIndex) ReadValueFromIndexKey(_ kv.IndexCommitmentReadStore, _, value []byte, message proto.Message) error {
+func (s SingletonIndex) ReadValueFromIndexKey(_ kv.IndexCommitmentReadStore, _ []protoreflect.Value, value []byte, message proto.Message) error {
 	return proto.Unmarshal(value, message)
 }
 

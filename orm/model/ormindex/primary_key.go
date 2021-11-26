@@ -1,8 +1,6 @@
 package ormindex
 
 import (
-	"bytes"
-
 	"github.com/cosmos/cosmos-sdk/orm/model/ormiterator"
 
 	"google.golang.org/protobuf/proto"
@@ -88,13 +86,8 @@ func (p PrimaryKey) unmarshalMessage(keyValues []protoreflect.Value, value []byt
 	return nil
 }
 
-func (p PrimaryKey) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, key, value []byte, message proto.Message) error {
-	keyValues, err := p.Decode(bytes.NewReader(key))
-	if err != nil {
-		return err
-	}
-
-	return p.unmarshalMessage(keyValues, value, message)
+func (p PrimaryKey) ReadValueFromIndexKey(_ kv.IndexCommitmentReadStore, primaryKey []protoreflect.Value, value []byte, message proto.Message) error {
+	return p.unmarshalMessage(primaryKey, value, message)
 }
 
 var _ UniqueIndex = &PrimaryKey{}

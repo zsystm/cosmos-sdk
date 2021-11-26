@@ -2,24 +2,21 @@ package ormiterator
 
 import (
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 )
 
 type Iterator interface {
-	mustEmbedUnimplementedIterator()
-
-	Next(proto.Message) (bool, error)
-
-	// TODO
-	//Valid() bool
-	//Next()
-	//IndexKey() ([]protoreflect.Value, error)
-	//PrimaryKey() ([]protoreflect.Value, error)
-	//Value(proto.Message) error
+	Next() (bool, error)
+	IndexKey() ([]protoreflect.Value, error)
+	PrimaryKey() ([]protoreflect.Value, error)
+	Value(proto.Message) error
 
 	Cursor() Cursor
 	Close()
+
+	mustEmbedUnimplementedIterator()
 }
 
 type Cursor []byte
@@ -28,15 +25,25 @@ type UnimplementedIterator struct{}
 
 func (u UnimplementedIterator) mustEmbedUnimplementedIterator() {}
 
-func (u UnimplementedIterator) Next(proto.Message) (bool, error) {
+func (u UnimplementedIterator) Next() (bool, error) {
 	return false, ormerrors.UnsupportedOperation
+}
+
+func (u UnimplementedIterator) IndexKey() ([]protoreflect.Value, error) {
+	return nil, ormerrors.UnsupportedOperation
+}
+
+func (u UnimplementedIterator) PrimaryKey() ([]protoreflect.Value, error) {
+	return nil, ormerrors.UnsupportedOperation
+}
+
+func (u UnimplementedIterator) Value(proto.Message) error {
+	return ormerrors.UnsupportedOperation
 }
 
 func (u UnimplementedIterator) Cursor() Cursor { return nil }
 
-func (u UnimplementedIterator) Close() {
-	panic("implement me")
-}
+func (u UnimplementedIterator) Close() {}
 
 var _ Iterator = UnimplementedIterator{}
 
@@ -45,9 +52,15 @@ type ErrIterator struct {
 	Err error
 }
 
-func (e ErrIterator) Cursor() Cursor { return nil }
+func (e ErrIterator) Next() (bool, error) { return false, e.Err }
 
-func (e ErrIterator) Next(proto.Message) (bool, error) { return false, e.Err }
+func (e ErrIterator) IndexKey() ([]protoreflect.Value, error) { return nil, e.Err }
+
+func (e ErrIterator) PrimaryKey() ([]protoreflect.Value, error) { return nil, e.Err }
+
+func (e ErrIterator) Value(proto.Message) error { return e.Err }
+
+func (e ErrIterator) Cursor() Cursor { return nil }
 
 func (e ErrIterator) Close() {}
 

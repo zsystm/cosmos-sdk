@@ -1,8 +1,6 @@
 package ormindex
 
 import (
-	"bytes"
-
 	"github.com/cosmos/cosmos-sdk/orm/model/ormiterator"
 
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
@@ -97,13 +95,8 @@ func (s IndexImpl) OnDelete(store kv.Store, message protoreflect.Message) error 
 	return store.Delete(key)
 }
 
-func (s IndexImpl) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, key, _ []byte, message proto.Message) error {
-	pkValues, err := s.ReadPrimaryKey(bytes.NewReader(key))
-	if err != nil {
-		return err
-	}
-
-	found, err := s.primaryKey.Get(store, pkValues, message)
+func (s IndexImpl) ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, primaryKey []protoreflect.Value, _ []byte, message proto.Message) error {
+	found, err := s.primaryKey.Get(store, primaryKey, message)
 	if err != nil {
 		return err
 	}

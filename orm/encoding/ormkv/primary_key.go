@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"io"
 
-	ormv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/v1alpha1"
-
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 
 	"google.golang.org/protobuf/proto"
@@ -39,46 +37,8 @@ func (p PrimaryKeyCodec) DecodeIndexKey(k, _ []byte) (indexFields, primaryKey []
 
 var _ IndexCodec = PrimaryKeyCodec{}
 
-func NewPrimaryKeyCodec(
-	prefix []byte,
-	messageType protoreflect.MessageType,
-	tableDesc *ormv1alpha1.TableDescriptor,
-) (*PrimaryKeyCodec, error) {
-	tableId := tableDesc.Id
-	if tableId == 0 {
-		return nil, ormerrors.InvalidTableId.Wrapf("table %s", messageType.Descriptor().FullName())
-	}
-
-	primaryKeyDescriptor := tableDesc.PrimaryKey
-	if primaryKeyDescriptor == nil {
-		return nil, ormerrors.MissingPrimaryKey.Wrap(string(messageType.Descriptor().FullName()))
-	}
-
-	desc := messageType.Descriptor()
-	pkFields, err := GetFieldDescriptors(desc, primaryKeyDescriptor.Fields)
-	if err != nil {
-		return nil, err
-	}
-
-	if primaryKeyDescriptor.AutoIncrement {
-		if len(pkFields) != 1 && pkFields[0].Kind() != protoreflect.Uint64Kind {
-			return nil, ormerrors.InvalidAutoIncrementKey.Wrapf("got %s for %s", primaryKeyDescriptor.Fields, desc.FullName())
-		}
-	}
-
-	pkPrefix := AppendVarUint32(prefix, tableDesc.Id)
-	pkPrefix = AppendVarUint32(pkPrefix, 0)
-
-	cdc, err := NewKeyCodec(pkPrefix, pkFields)
-
-	return &PrimaryKeyCodec{
-		KeyCodec: cdc,
-		Type:     messageType,
-	}, nil
-}
-
 func (p PrimaryKeyCodec) DecodeKV(k, v []byte) (Entry, error) {
-	vals, err := p.Decode(bytes.NewReader(k))
+	values, err := p.Decode(bytes.NewReader(k))
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +50,7 @@ func (p PrimaryKeyCodec) DecodeKV(k, v []byte) (Entry, error) {
 	}
 
 	return PrimaryKeyEntry{
-		Key:   vals,
+		Key:   values,
 		Value: msg,
 	}, nil
 }
@@ -118,9 +78,9 @@ func (p PrimaryKeyCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
 	return bz, v, nil
 }
 
-func (p *PrimaryKeyCodec) ClearValues(mref protoreflect.Message) {
+func (p *PrimaryKeyCodec) ClearValues(message protoreflect.Message) {
 	for _, f := range p.FieldDescriptors {
-		mref.Clear(f)
+		message.Clear(f)
 	}
 }
 

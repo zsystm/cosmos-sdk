@@ -2,6 +2,7 @@ package ormindex
 
 import (
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cosmos/cosmos-sdk/orm/backend/kv"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormiterator"
@@ -77,10 +78,14 @@ type indexIterator struct {
 	index    Index
 	store    kv.IndexCommitmentReadStore
 	iterator kv.Iterator
-	started  bool
+
+	indexValues []protoreflect.Value
+	primaryKey  []protoreflect.Value
+	value       []byte
+	started     bool
 }
 
-func (i indexIterator) Next(message proto.Message) (bool, error) {
+func (i *indexIterator) Next() (bool, error) {
 	if !i.started {
 		i.started = true
 	} else {
@@ -91,8 +96,26 @@ func (i indexIterator) Next(message proto.Message) (bool, error) {
 		return false, nil
 	}
 
-	err := i.index.ReadValueFromIndexKey(i.store, i.iterator.Key(), i.iterator.Value(), message)
+	var err error
+	i.value = i.iterator.Value()
+	i.indexValues, i.primaryKey, err = i.index.DecodeIndexKey(i.iterator.Key(), i.value)
+	if err != nil {
+		return true, err
+	}
+
 	return true, err
+}
+
+func (i indexIterator) IndexKey() ([]protoreflect.Value, error) {
+	return i.indexValues, nil
+}
+
+func (i indexIterator) PrimaryKey() ([]protoreflect.Value, error) {
+	return i.primaryKey, nil
+}
+
+func (i indexIterator) Value(message proto.Message) error {
+	return i.index.ReadValueFromIndexKey(i.store, i.primaryKey, i.value, message)
 }
 
 func (i indexIterator) Cursor() ormiterator.Cursor {
@@ -100,7 +123,10 @@ func (i indexIterator) Cursor() ormiterator.Cursor {
 }
 
 func (i indexIterator) Close() {
-	_ = i.iterator.Close()
+	err := i.iterator.Close()
+	if err != nil {
+		panic(err)
+	}
 }
 
 var _ ormiterator.Iterator = &indexIterator{}

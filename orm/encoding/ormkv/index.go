@@ -17,7 +17,7 @@ type IndexKeyCodec struct {
 	indexFields     []protoreflect.FieldDescriptor
 }
 
-func (cdc IndexKeyCodec) DecodeIndexKey(k, v []byte) (indexFields, primaryKey []protoreflect.Value, err error) {
+func (cdc IndexKeyCodec) DecodeIndexKey(k, _ []byte) (indexFields, primaryKey []protoreflect.Value, err error) {
 
 	values, err := cdc.Decode(bytes.NewReader(k))
 	// got prefix key
@@ -100,47 +100,4 @@ func (cdc IndexKeyCodec) extractPrimaryKey(values []protoreflect.Value) []protor
 
 var _ Codec = &IndexKeyCodec{}
 
-func NewIndexKeyCodec(prefix []byte, indexFields []protoreflect.FieldDescriptor, primaryKeyFields []protoreflect.FieldDescriptor) (*IndexKeyCodec, error) {
-	indexFieldMap := map[protoreflect.Name]int{}
-
-	var keyFields []protoreflect.FieldDescriptor
-	for i, f := range indexFields {
-		indexFieldMap[f.Name()] = i
-		keyFields = append(keyFields, f)
-	}
-
-	numIndexFields := len(indexFields)
-	numPrimaryKeyFields := len(primaryKeyFields)
-	pkFieldOrder := make([]int, numPrimaryKeyFields)
-	k := 0
-	for j, f := range primaryKeyFields {
-		if i, ok := indexFieldMap[f.Name()]; ok {
-			pkFieldOrder[j] = i
-			continue
-		}
-		keyFields = append(keyFields, f)
-		pkFieldOrder[j] = numIndexFields + k
-		k++
-	}
-
-	cdc, err := NewKeyCodec(prefix, keyFields)
-	if err != nil {
-		return nil, err
-	}
-	return &IndexKeyCodec{
-		KeyCodec:     cdc,
-		pkFieldOrder: pkFieldOrder,
-		indexFields:  indexFields,
-	}, nil
-}
-
 var _ Codec = &IndexKeyCodec{}
-
-//func NewIndexKeyCodec(
-//	prefix []byte,
-//	messageDescriptor protoreflect.MessageDescriptor,
-//	tableDescriptor *ormpb.TableDescriptor,
-//	indexId int,
-//) {
-//
-//}

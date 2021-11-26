@@ -12,6 +12,10 @@ type SingletonKey struct {
 	MsgType protoreflect.MessageType
 }
 
+func (s SingletonKey) DecodeIndexKey([]byte, []byte) (indexFields []protoreflect.Value, primaryKey []protoreflect.Value, err error) {
+	return nil, nil, nil
+}
+
 func (s SingletonKey) DecodeKV(_, v []byte) (Entry, error) {
 	msg := s.MsgType.New().Interface()
 	err := proto.Unmarshal(v, msg)
@@ -35,3 +39,5 @@ func (s SingletonKey) EncodeKV(entry Entry) (k, v []byte, err error) {
 
 	return s.Prefix, bz, nil
 }
+
+var _ IndexCodec = SingletonKey{}
