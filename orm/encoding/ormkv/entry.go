@@ -74,7 +74,7 @@ func (i IndexKeyEntry) GetFields() Fields {
 func (i IndexKeyEntry) doNotImplement() {}
 
 func (i IndexKeyEntry) string() string {
-	return fmt.Sprintf("%s%s:%s:%s", i.GetTableName, i.Fields, fmtValues(i.IndexValues), fmtValues(i.PrimaryKey))
+	return fmt.Sprintf("%s%s:%s:%s", i.TableName, i.Fields, fmtValues(i.IndexValues), fmtValues(i.PrimaryKey))
 }
 
 func (i IndexKeyEntry) String() string {

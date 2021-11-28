@@ -11,7 +11,7 @@ type Iterator interface {
 	Next() (bool, error)
 	IndexKey() ([]protoreflect.Value, error)
 	PrimaryKey() ([]protoreflect.Value, error)
-	Value(proto.Message) error
+	GetMessage(proto.Message) error
 
 	Cursor() Cursor
 	Close()
@@ -37,7 +37,7 @@ func (u UnimplementedIterator) PrimaryKey() ([]protoreflect.Value, error) {
 	return nil, ormerrors.UnsupportedOperation
 }
 
-func (u UnimplementedIterator) Value(proto.Message) error {
+func (u UnimplementedIterator) GetMessage(proto.Message) error {
 	return ormerrors.UnsupportedOperation
 }
 
@@ -58,7 +58,7 @@ func (e ErrIterator) IndexKey() ([]protoreflect.Value, error) { return nil, e.Er
 
 func (e ErrIterator) PrimaryKey() ([]protoreflect.Value, error) { return nil, e.Err }
 
-func (e ErrIterator) Value(proto.Message) error { return e.Err }
+func (e ErrIterator) GetMessage(proto.Message) error { return e.Err }
 
 func (e ErrIterator) Cursor() Cursor { return nil }
 

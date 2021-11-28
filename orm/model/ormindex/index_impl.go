@@ -17,32 +17,32 @@ type IndexImpl struct {
 	primaryKey PrimaryKey
 }
 
-func (s IndexImpl) PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
+func (s IndexImpl) PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) (ormiterator.Iterator, error) {
 	prefixBz, err := s.Encode(prefix)
 	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
+		return nil, err
 	}
 
-	return prefixIterator(store.ReadIndexStore(), store, s, prefixBz, options)
+	return prefixIterator(store.ReadIndexStore(), store, s, prefixBz, options), nil
 }
 
-func (s IndexImpl) RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
+func (s IndexImpl) RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) (ormiterator.Iterator, error) {
 	err := s.CheckValidRangeIterationKeys(start, end)
 	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
+		return nil, err
 	}
 
 	startBz, err := s.Encode(start)
 	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
+		return nil, err
 	}
 
 	endBz, err := s.Encode(end)
 	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
+		return nil, err
 	}
 
-	return rangeIterator(store.ReadIndexStore(), store, s, startBz, endBz, options)
+	return rangeIterator(store.ReadIndexStore(), store, s, startBz, endBz, options), nil
 }
 
 var _ Indexer = &IndexImpl{}

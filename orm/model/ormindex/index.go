@@ -15,8 +15,8 @@ type Index interface {
 	ormkv.IndexCodec
 
 	Fields() []protoreflect.Name
-	PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) ormiterator.Iterator
-	RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) ormiterator.Iterator
+	PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) (ormiterator.Iterator, error)
+	RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) (ormiterator.Iterator, error)
 	ReadValueFromIndexKey(store kv.IndexCommitmentReadStore, primaryKey []protoreflect.Value, value []byte, message proto.Message) error
 
 	doNotImplement()

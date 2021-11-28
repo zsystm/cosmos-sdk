@@ -17,32 +17,32 @@ type UniqueIndexImpl struct {
 	primaryKey PrimaryKey
 }
 
-func (u UniqueIndexImpl) PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
+func (u UniqueIndexImpl) PrefixIterator(store kv.IndexCommitmentReadStore, prefix []protoreflect.Value, options IteratorOptions) (ormiterator.Iterator, error) {
 	prefixBz, err := u.KeyCodec.Encode(prefix)
 	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
+		return nil, err
 	}
 
-	return prefixIterator(store.ReadIndexStore(), store, u, prefixBz, options)
+	return prefixIterator(store.ReadIndexStore(), store, u, prefixBz, options), nil
 }
 
-func (u UniqueIndexImpl) RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
+func (u UniqueIndexImpl) RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) (ormiterator.Iterator, error) {
 	err := u.KeyCodec.CheckValidRangeIterationKeys(start, end)
 	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
+		return nil, err
 	}
 
 	startBz, err := u.KeyCodec.Encode(start)
 	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
+		return nil, err
 	}
 
 	endBz, err := u.KeyCodec.Encode(end)
 	if err != nil {
-		return ormiterator.ErrIterator{Err: err}
+		return nil, err
 	}
 
-	return rangeIterator(store.ReadIndexStore(), store, u, startBz, endBz, options)
+	return rangeIterator(store.ReadIndexStore(), store, u, startBz, endBz, options), nil
 }
 
 func (u UniqueIndexImpl) doNotImplement() {}

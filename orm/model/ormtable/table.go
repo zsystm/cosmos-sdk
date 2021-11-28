@@ -17,6 +17,8 @@ type Table interface {
 	ormindex.UniqueIndex
 	ormkv.Codec
 
+	MessageType() protoreflect.MessageType
+
 	Save(store kv.IndexCommitmentStore, message proto.Message, mode SaveMode) error
 	Delete(store kv.IndexCommitmentStore, primaryKey []protoreflect.Value) error
 

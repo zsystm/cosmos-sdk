@@ -14,12 +14,12 @@ type SingletonIndex struct {
 	*ormkv.SingletonKey
 }
 
-func (s SingletonIndex) PrefixIterator(store kv.IndexCommitmentReadStore, _ []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
-	return prefixIterator(store.ReadCommitmentStore(), store, s, s.Prefix, options)
+func (s SingletonIndex) PrefixIterator(store kv.IndexCommitmentReadStore, _ []protoreflect.Value, options IteratorOptions) (ormiterator.Iterator, error) {
+	return prefixIterator(store.ReadCommitmentStore(), store, s, s.Prefix, options), nil
 }
 
-func (s SingletonIndex) RangeIterator(store kv.IndexCommitmentReadStore, _, _ []protoreflect.Value, options IteratorOptions) ormiterator.Iterator {
-	return rangeIterator(store.ReadCommitmentStore(), store, s, s.Prefix, s.Prefix, options)
+func (s SingletonIndex) RangeIterator(store kv.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) (ormiterator.Iterator, error) {
+	return rangeIterator(store.ReadCommitmentStore(), store, s, s.Prefix, s.Prefix, options), nil
 }
 
 func (s SingletonIndex) doNotImplement() {}

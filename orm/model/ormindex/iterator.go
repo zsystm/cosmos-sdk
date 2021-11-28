@@ -114,7 +114,7 @@ func (i indexIterator) PrimaryKey() ([]protoreflect.Value, error) {
 	return i.primaryKey, nil
 }
 
-func (i indexIterator) Value(message proto.Message) error {
+func (i indexIterator) GetMessage(message proto.Message) error {
 	return i.index.ReadValueFromIndexKey(i.store, i.primaryKey, i.value, message)
 }
 

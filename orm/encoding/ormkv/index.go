@@ -11,11 +11,45 @@ import (
 
 type IndexKeyCodec struct {
 	*KeyCodec
-	tableName       protoreflect.FullName
-	indexFieldNames Fields
-	pkFieldOrder    []int
-	indexFields     []protoreflect.FieldDescriptor
+	tableName    protoreflect.FullName
+	fieldNames   Fields
+	pkFieldOrder []int
 }
+
+func NewIndexKeyCodec(prefix []byte, indexFields []protoreflect.FieldDescriptor, primaryKeyFields []protoreflect.FieldDescriptor) (*IndexKeyCodec, error) {
+	indexFieldMap := map[protoreflect.Name]int{}
+
+	var keyFields []protoreflect.FieldDescriptor
+	for i, f := range indexFields {
+		indexFieldMap[f.Name()] = i
+		keyFields = append(keyFields, f)
+	}
+
+	numIndexFields := len(indexFields)
+	numPrimaryKeyFields := len(primaryKeyFields)
+	pkFieldOrder := make([]int, numPrimaryKeyFields)
+	k := 0
+	for j, f := range primaryKeyFields {
+		if i, ok := indexFieldMap[f.Name()]; ok {
+			pkFieldOrder[j] = i
+			continue
+		}
+		keyFields = append(keyFields, f)
+		pkFieldOrder[j] = numIndexFields + k
+		k++
+	}
+
+	cdc, err := NewKeyCodec(prefix, keyFields)
+	if err != nil {
+		return nil, err
+	}
+	return &IndexKeyCodec{
+		KeyCodec:     cdc,
+		pkFieldOrder: pkFieldOrder,
+	}, nil
+}
+
+var _ Codec = &IndexKeyCodec{}
 
 func (cdc IndexKeyCodec) DecodeIndexKey(k, _ []byte) (indexFields, primaryKey []protoreflect.Value, err error) {
 
@@ -52,7 +86,7 @@ func (cdc IndexKeyCodec) DecodeKV(k, v []byte) (Entry, error) {
 
 	return &IndexKeyEntry{
 		TableName:   cdc.tableName,
-		Fields:      cdc.indexFieldNames,
+		Fields:      cdc.fieldNames,
 		IndexValues: idxValues,
 		PrimaryKey:  pk,
 	}, nil
@@ -77,27 +111,3 @@ func (i IndexKeyCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
 }
 
 var sentinel = []byte{0}
-
-func (cdc IndexKeyCodec) ReadPrimaryKey(reader *bytes.Reader) ([]protoreflect.Value, error) {
-	values, err := cdc.Decode(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	return cdc.extractPrimaryKey(values), nil
-}
-
-func (cdc IndexKeyCodec) extractPrimaryKey(values []protoreflect.Value) []protoreflect.Value {
-	numPkFields := len(cdc.pkFieldOrder)
-	pkValues := make([]protoreflect.Value, numPkFields)
-
-	for i := 0; i < numPkFields; i++ {
-		pkValues[i] = values[cdc.pkFieldOrder[i]]
-	}
-
-	return pkValues
-}
-
-var _ Codec = &IndexKeyCodec{}
-
-var _ Codec = &IndexKeyCodec{}

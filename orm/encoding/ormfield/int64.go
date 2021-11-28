@@ -33,7 +33,8 @@ func (i Int64Codec) Encode(value protoreflect.Value, w io.Writer) error {
 		y := uint64(x) + math.MaxInt64 + 1
 		return binary.Write(w, binary.BigEndian, y)
 	} else {
-		x += math.MaxInt64 + 1
+		x += math.MaxInt64
+		x += 1
 		return binary.Write(w, binary.BigEndian, uint64(x))
 	}
 }

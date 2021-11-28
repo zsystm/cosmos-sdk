@@ -33,6 +33,10 @@ type TableImpl struct {
 	customValidator       func(proto.Message) error
 }
 
+func (t TableImpl) MessageType() protoreflect.MessageType {
+	return t.msgType
+}
+
 type TypeResolver interface {
 	protoregistry.MessageTypeResolver
 	protoregistry.ExtensionTypeResolver
@@ -227,10 +231,9 @@ func (t TableImpl) ExportJSON(store kv.IndexCommitmentReadStore, writer io.Write
 		return err
 	}
 
-	it := t.PrefixIterator(store, nil, ormindex.IteratorOptions{})
+	it, _ := t.PrefixIterator(store, nil, ormindex.IteratorOptions{})
 	for {
-		msg := t.msgType.New().Interface()
-		found, err := it.Next(msg)
+		found, err := it.Next()
 		if err != nil {
 			return err
 		}
@@ -240,6 +243,12 @@ func (t TableImpl) ExportJSON(store kv.IndexCommitmentReadStore, writer io.Write
 			if err != nil {
 				return err
 			}
+		}
+
+		msg := t.msgType.New().Interface()
+		err = it.GetMessage(msg)
+		if err != nil {
+			return err
 		}
 
 		bz, err := protojson.Marshal(msg)
