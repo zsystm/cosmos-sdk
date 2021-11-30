@@ -12,7 +12,8 @@ import (
 )
 
 type Builder struct {
-	objects map[string]*graphql.Object
+	objects      map[string]*graphql.Object
+	protoObjects map[protoreflect.FullName]*graphql.Object
 }
 
 //func (b Builder) buildTable(tableDesc *ormpb.TableDescriptor, desc protoreflect.MessageDescriptor) (*graphql.Field, error) {
