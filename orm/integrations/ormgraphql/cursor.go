@@ -39,11 +39,3 @@ var cursor = graphql.NewScalar(graphql.ScalarConfig{
 		}
 	},
 })
-
-func decodeBase64Scalar(value string) []byte {
-	bytes, err := base64.RawURLEncoding.DecodeString(value)
-	if err != nil {
-		return nil
-	}
-	return bytes
-}
