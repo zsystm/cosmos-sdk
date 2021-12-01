@@ -69,6 +69,8 @@ func (b *Builder) getFieldCodecBasic(fieldDescriptor protoreflect.FieldDescripto
 	switch fieldDescriptor.Kind() {
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
 		return int32Codec{}, nil
+	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return int64Codec{}, nil
 	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
 		return uint32Codec{}, nil
 	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
@@ -77,6 +79,12 @@ func (b *Builder) getFieldCodecBasic(fieldDescriptor protoreflect.FieldDescripto
 		return boolCodec{}, nil
 	case protoreflect.StringKind:
 		return stringCodec{}, nil
+	case protoreflect.EnumKind:
+		enum, err := b.protoEnumToGraphqlEnum(fieldDescriptor.Enum())
+		if err != nil {
+			return nil, err
+		}
+		return enumCodec{enum}, nil
 	case protoreflect.MessageKind:
 		if fieldDescriptor.IsMap() {
 			return nil, fmt.Errorf("maps not supported yet")
@@ -86,6 +94,8 @@ func (b *Builder) getFieldCodecBasic(fieldDescriptor protoreflect.FieldDescripto
 			return nil, err
 		}
 		return messageCodec{obj}, nil
+	case protoreflect.BytesKind:
+		return bytesCodec{}, nil
 	default:
 		return nil, fmt.Errorf("field of kind %v not supported", fieldDescriptor.Kind())
 	}

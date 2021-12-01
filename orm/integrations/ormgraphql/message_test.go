@@ -3,6 +3,10 @@ package ormgraphql
 import (
 	"encoding/json"
 	"testing"
+	"time"
+
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/graphql-go/graphql"
 	"gotest.tools/v3/assert"
@@ -17,8 +21,8 @@ func TestMessage(t *testing.T) {
 		U64:      3,
 		Str:      "abc",
 		Bz:       []byte{4, 7, 9},
-		Ts:       nil,
-		Dur:      nil,
+		Ts:       timestamppb.Now(),
+		Dur:      durationpb.New(time.Duration(1000)),
 		I32:      10,
 		S32:      -3,
 		Sf32:     -5,
@@ -67,6 +71,19 @@ msg {
   x
 }
 oneof
+e
+i64
+s64
+sf64
+bz
+ts {
+ seconds
+ nanos
+}
+dur {
+  seconds
+  nanos
+}
 } }`
 	res := graphql.Do(graphql.Params{
 		Schema:        schema,

@@ -29,7 +29,7 @@ var uint64Scalar = graphql.NewScalar(graphql.ScalarConfig{
 
 	},
 	ParseValue: func(value interface{}) interface{} {
-		x, err := strconv.ParseUint(value.(string), 10, 32)
+		x, err := strconv.ParseUint(value.(string), 10, 64)
 		if err != nil {
 			return uint64(0)
 		}

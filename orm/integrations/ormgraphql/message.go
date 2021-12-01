@@ -8,8 +8,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func (b Builder) protoMessageToGraphqlObject(descriptor protoreflect.MessageDescriptor) (*graphql.Object, error) {
-	name := messageName(descriptor)
+func (b *Builder) protoMessageToGraphqlObject(descriptor protoreflect.MessageDescriptor) (*graphql.Object, error) {
+	name := descriptorName(descriptor)
 
 	if obj, ok := b.objects[name]; ok {
 		return obj, nil
@@ -28,7 +28,7 @@ func (b Builder) protoMessageToGraphqlObject(descriptor protoreflect.MessageDesc
 	return obj, nil
 }
 
-func messageName(descriptor protoreflect.MessageDescriptor) string {
+func descriptorName(descriptor protoreflect.Descriptor) string {
 	return strings.ReplaceAll(string(descriptor.FullName()), ".", "_")
 }
 
