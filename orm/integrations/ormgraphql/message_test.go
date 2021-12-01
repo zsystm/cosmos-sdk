@@ -14,25 +14,27 @@ func TestMessage(t *testing.T) {
 	b := NewBuilder()
 	a := &testpb.A{
 		U32:      14,
-		U64:      0,
-		Str:      "",
-		Bz:       nil,
+		U64:      3,
+		Str:      "abc",
+		Bz:       []byte{4, 7, 9},
 		Ts:       nil,
 		Dur:      nil,
 		I32:      10,
-		S32:      0,
-		Sf32:     0,
-		I64:      0,
-		S64:      0,
-		Sf64:     0,
-		F32:      0,
-		F64:      0,
+		S32:      -3,
+		Sf32:     -5,
+		I64:      11,
+		S64:      7,
+		Sf64:     -7,
+		F32:      1,
+		F64:      2,
 		B:        true,
-		E:        0,
-		Repeated: nil,
+		E:        testpb.Enum_ENUM_FIVE,
+		Repeated: []uint32{0, 1, 2, 4},
 		Map:      nil,
-		Msg:      nil,
-		Sum:      nil,
+		Msg: &testpb.B{
+			X: "xyz",
+		},
+		Sum: &testpb.A_Oneof{Oneof: 3},
 	}
 	obj, err := b.protoMessageToGraphqlObject(a.ProtoReflect().Descriptor())
 	assert.NilError(t, err)
@@ -59,6 +61,12 @@ f32
 u64
 f64
 b
+repeated
+str
+msg {
+  x
+}
+oneof
 } }`
 	res := graphql.Do(graphql.Params{
 		Schema:        schema,

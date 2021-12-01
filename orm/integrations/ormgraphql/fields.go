@@ -53,7 +53,7 @@ func (b *Builder) protoFieldToGraphqlField(fieldDescriptor protoreflect.FieldDes
 func (b *Builder) getFieldCodec(fieldDescriptor protoreflect.FieldDescriptor) (fieldCodec, error) {
 	// TODO maps
 
-	cdc, err := getFieldCodecBasic(fieldDescriptor)
+	cdc, err := b.getFieldCodecBasic(fieldDescriptor)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (b *Builder) getFieldCodec(fieldDescriptor protoreflect.FieldDescriptor) (f
 	}
 }
 
-func getFieldCodecBasic(fieldDescriptor protoreflect.FieldDescriptor) (fieldCodec, error) {
+func (b *Builder) getFieldCodecBasic(fieldDescriptor protoreflect.FieldDescriptor) (fieldCodec, error) {
 	switch fieldDescriptor.Kind() {
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
 		return int32Codec{}, nil
@@ -75,7 +75,34 @@ func getFieldCodecBasic(fieldDescriptor protoreflect.FieldDescriptor) (fieldCode
 		return uint64Codec{}, nil
 	case protoreflect.BoolKind:
 		return boolCodec{}, nil
+	case protoreflect.StringKind:
+		return stringCodec{}, nil
+	case protoreflect.MessageKind:
+		if fieldDescriptor.IsMap() {
+			return nil, fmt.Errorf("maps not supported yet")
+		}
+		obj, err := b.protoMessageToGraphqlObject(fieldDescriptor.Message())
+		if err != nil {
+			return nil, err
+		}
+		return messageCodec{obj}, nil
 	default:
 		return nil, fmt.Errorf("field of kind %v not supported", fieldDescriptor.Kind())
 	}
+}
+
+type messageCodec struct {
+	obj *graphql.Object
+}
+
+func (m messageCodec) Type() graphql.Type {
+	return m.obj
+}
+
+func (m messageCodec) ToGraphql(value protoreflect.Value) (interface{}, error) {
+	return value.Message(), nil
+}
+
+func (m messageCodec) FromGraphql(i interface{}) (protoreflect.Value, error) {
+	return protoreflect.ValueOfMessage(i.(protoreflect.Message)), nil
 }
