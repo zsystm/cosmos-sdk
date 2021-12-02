@@ -1,6 +1,8 @@
 package kv
 
-import sdkstore "github.com/cosmos/cosmos-sdk/store"
+import (
+	sdkstore "github.com/cosmos/cosmos-sdk/store"
+)
 
 type ReadStore interface {
 	Get(key []byte) ([]byte, error)
@@ -27,3 +29,15 @@ type IndexCommitmentStore interface {
 }
 
 type Iterator = sdkstore.Iterator
+
+type ReadMultiStore interface {
+	GetReadCommitmentStore(name string, height uint64) (ReadStore, error)
+	GetReadIndexStore(name string, height uint64) (ReadStore, error)
+}
+
+type MultiStore interface {
+	ReadMultiStore
+
+	GetCommitmentStore(name string) (Store, error)
+	GetIndexStore(name string) (Store, error)
+}

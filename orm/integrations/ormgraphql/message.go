@@ -8,6 +8,17 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+func (b *Builder) registerMessages(descriptors protoreflect.MessageDescriptors) error {
+	n := descriptors.Len()
+	for i := 0; i < n; i++ {
+		_, err := b.protoMessageToGraphqlObject(descriptors.Get(i))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (b *Builder) protoMessageToGraphqlObject(descriptor protoreflect.MessageDescriptor) (*graphql.Object, error) {
 	name := descriptorName(descriptor)
 
@@ -25,7 +36,9 @@ func (b *Builder) protoMessageToGraphqlObject(descriptor protoreflect.MessageDes
 		Fields: fields,
 	})
 	b.objects[name] = obj
-	return obj, nil
+
+	err = b.registerMessages(descriptor.Messages())
+	return obj, err
 }
 
 func descriptorName(descriptor protoreflect.Descriptor) string {
