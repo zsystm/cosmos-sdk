@@ -1,0 +1,14 @@
+syntax = "proto3";
+package cosmos.msg.v1;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+
+  // signer indicates that this field is the signer of a message. It should
+  // generally be a field of type string with the cosmos_proto.scalar option
+  // set to cosmos.AddressString. By annotating a field with this option,
+  // the message will automatically be assumed to implement the
+  // cosmos.msg.v1.Msg interface.
+  bool signer = 287612341;
+}
