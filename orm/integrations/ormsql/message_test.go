@@ -20,14 +20,17 @@ func TestMessageCodec(t *testing.T) {
 	msgCdc, err := b.makeMessageCodec(msgType, tableDesc)
 	assert.NilError(t, err)
 	t.Logf("%+v", msgCdc.structType)
-	x := &testpb.A{U32: 7, I32: 4}
+	x := &testpb.A{U32: 7, I32: 4,
+		Map:      map[string]uint32{"abc": 4},
+		Msg:      &testpb.B{X: "foo"},
+		Repeated: []uint32{1, 2, 4, 7, 9},
+	}
 	val := msgCdc.encode(x.ProtoReflect())
 	t.Logf("%+v", val)
 
 	//db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	db, err := gorm.Open(sqlite.Open("file:test.sqlite"), &gorm.Config{})
 	assert.NilError(t, err)
-	assert.NilError(t, db.Table("a").AutoMigrate(val.Interface()))
-	db.Table("a").Create(val.Interface())
-	db.Commit()
+	assert.NilError(t, msgCdc.autoMigrate(db))
+	msgCdc.save(db, x.ProtoReflect())
 }
