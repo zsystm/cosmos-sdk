@@ -2,6 +2,7 @@ package ormsql
 
 import (
 	"fmt"
+	"google.golang.org/protobuf/proto"
 	"reflect"
 	"strings"
 
@@ -19,7 +20,20 @@ type messageCodec struct {
 	fieldCodecs []*fieldCodec
 }
 
-func (b *builder) makeMessageCodec(messageType protoreflect.MessageType, tableDesc *ormv1alpha1.TableDescriptor) (*messageCodec, error) {
+func (b *schema) getMessageCodec(message proto.Message) (*messageCodec, error) {
+	return b.messageCodecForType(message.ProtoReflect().Type())
+}
+
+func (b *schema) messageCodecForType(messageType protoreflect.MessageType) (*messageCodec, error) {
+	if existing, ok := b.messageCodecs[messageType.Descriptor().FullName()]; ok {
+		return existing, nil
+	}
+
+	tableDesc := proto.GetExtension(messageType.Descriptor().Options(), ormv1alpha1.E_Table).(*ormv1alpha1.TableDescriptor)
+	return b.makeMessageCodec(messageType, tableDesc)
+}
+
+func (b *schema) makeMessageCodec(messageType protoreflect.MessageType, tableDesc *ormv1alpha1.TableDescriptor) (*messageCodec, error) {
 	if tableDesc.PrimaryKey == nil {
 		return nil, fmt.Errorf("missing primary key")
 	}
@@ -53,12 +67,20 @@ func (b *builder) makeMessageCodec(messageType protoreflect.MessageType, tableDe
 
 	tableName := strings.ReplaceAll(string(messageType.Descriptor().FullName()), ".", "_")
 
-	return &messageCodec{
+	msgCdc := &messageCodec{
 		tableName:   tableName,
 		msgType:     messageType,
 		fieldCodecs: fieldCodecs,
 		structType:  reflect.StructOf(structFields),
-	}, nil
+	}
+
+	err := msgCdc.autoMigrate(b.gormDb)
+	if err != nil {
+		return nil, err
+	}
+
+	b.messageCodecs[messageType.Descriptor().FullName()] = msgCdc
+	return msgCdc, nil
 }
 
 func (m *messageCodec) encode(message protoreflect.Message) reflect.Value {
@@ -70,6 +92,16 @@ func (m *messageCodec) encode(message protoreflect.Message) reflect.Value {
 	return ptr
 }
 
+func (m messageCodec) decode(value reflect.Value, msg protoreflect.Message) error {
+	for _, codec := range m.fieldCodecs {
+		err := codec.decode(value, msg)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (m *messageCodec) autoMigrate(db *gorm.DB) error {
 	val := m.encode(m.msgType.New())
 	return db.Table(m.tableName).AutoMigrate(val.Interface())
@@ -79,3 +111,9 @@ func (m *messageCodec) save(db *gorm.DB, message protoreflect.Message) {
 	val := m.encode(message)
 	db.Table(m.tableName).Save(val.Interface())
 }
+
+//func (m *messageCodec) get(db *gorm.DB) (protoreflect.Message, error) {
+//ptr := reflect.New(m.structType)
+//db.Table(m.tableName).First(ptr.Interface())
+//return m.decode(ptr.Elem())
+//}

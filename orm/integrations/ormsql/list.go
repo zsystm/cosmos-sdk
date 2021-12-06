@@ -33,7 +33,7 @@ func (l listCodec) encode(protoValue protoreflect.Value, goValue reflect.Value) 
 
 	bz, err := l.jsonMarshalOptions.Marshal(structList)
 	if err != nil {
-		return erro
+		return err
 	}
 
 	goValue.Set(reflect.ValueOf(datatypes.JSON(bz)))
@@ -47,9 +47,10 @@ func (l listCodec) decode(goValue reflect.Value) (protoreflect.Value, error) {
 		return protoreflect.Value{}, err
 	}
 
-	n := len(structList.Values)
-	values := make([]protoreflect.Value, n)
-	for i := 0; i < n; i++ {
-		values[n] = structList.Values[i].AsInterface()
-	}
+	//n := len(structList.Values)
+	//values := make([]protoreflect.Value, n)
+	//for i := 0; i < n; i++ {
+	//	values[n] = structList.Values[i].AsInterface()
+	//}
+	panic("TODO: structpb is lossy with int64's!")
 }

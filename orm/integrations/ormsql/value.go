@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"gorm.io/datatypes"
 )
@@ -15,13 +14,13 @@ type valueCodec interface {
 	decode(goValue reflect.Value) (protoreflect.Value, error)
 }
 
-func (b *builder) getValueCodec(descriptor protoreflect.FieldDescriptor) (valueCodec, error) {
+func (b *schema) getValueCodec(descriptor protoreflect.FieldDescriptor) (valueCodec, error) {
 	if descriptor.IsList() {
-		return listCodec{jsonMarshalOptions: b.jsonMarshalOptions}, nil
+		return nil, fmt.Errorf("TODO")
 	}
 
 	if descriptor.IsMap() {
-		return mapCodec{jsonMarshalOptions: b.jsonMarshalOptions}, nil
+		return nil, fmt.Errorf("TODO")
 	}
 
 	switch descriptor.Kind() {
@@ -52,7 +51,11 @@ func (b *builder) getValueCodec(descriptor protoreflect.FieldDescriptor) (valueC
 		case durationDesc.FullName():
 			return nil, fmt.Errorf("TODO")
 		default:
-			return messageValueCodec{jsonMarshalOptions: b.jsonMarshalOptions}, nil
+			typ, err := b.resolver.FindMessageByName(descriptor.Message().FullName())
+			if err != nil {
+				return nil, err
+			}
+			return newMessageValueCodec(b, typ), nil
 		}
 	default:
 		panic("TODO")
@@ -60,9 +63,12 @@ func (b *builder) getValueCodec(descriptor protoreflect.FieldDescriptor) (valueC
 }
 
 type messageValueCodec struct {
-	jsonMarshalOptions   protojson.MarshalOptions
-	jsonUnmarshalOptions protojson.UnmarshalOptions
-	protoType            protoreflect.MessageType
+	*schema
+	protoType protoreflect.MessageType
+}
+
+func newMessageValueCodec(builder *schema, protoType protoreflect.MessageType) *messageValueCodec {
+	return &messageValueCodec{schema: builder, protoType: protoType}
 }
 
 func (m messageValueCodec) goType() reflect.Type {
@@ -76,6 +82,7 @@ func (m messageValueCodec) encode(protoValue protoreflect.Value, goValue reflect
 	}
 
 	goValue.Set(reflect.ValueOf(datatypes.JSON(bz)))
+	return nil
 }
 
 func (m messageValueCodec) decode(goValue reflect.Value) (protoreflect.Value, error) {

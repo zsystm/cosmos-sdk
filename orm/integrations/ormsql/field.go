@@ -14,7 +14,7 @@ type fieldCodec struct {
 	protoField  protoreflect.FieldDescriptor
 }
 
-func (b *builder) makeFieldCodec(descriptor protoreflect.FieldDescriptor, isPrimaryKey bool) (*fieldCodec, error) {
+func (b *schema) makeFieldCodec(descriptor protoreflect.FieldDescriptor, isPrimaryKey bool) (*fieldCodec, error) {
 	valCdc, err := b.getValueCodec(descriptor)
 	if err != nil {
 		return nil, err
@@ -38,12 +38,22 @@ func (b *builder) makeFieldCodec(descriptor protoreflect.FieldDescriptor, isPrim
 	}, nil
 }
 
-func (f fieldCodec) encode(message protoreflect.Message, value reflect.Value) {
+func (f fieldCodec) encode(message protoreflect.Message, structValue reflect.Value) error {
 	if !message.Has(f.protoField) {
-		return
+		return nil
 	}
 
 	protoVal := message.Get(f.protoField)
-	goField := value.FieldByName(f.structField.Name)
-	f.valueCodec.encode(protoVal, goField)
+	goField := structValue.FieldByName(f.structField.Name)
+	return f.valueCodec.encode(protoVal, goField)
+}
+
+func (f fieldCodec) decode(structValue reflect.Value, message protoreflect.Message) error {
+	goField := structValue.FieldByName(f.structField.Name)
+	protoVal, err := f.valueCodec.decode(goField)
+	if err != nil {
+		return err
+	}
+	message.Set(f.protoField, protoVal)
+	return nil
 }
