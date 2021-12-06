@@ -4,37 +4,33 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	io "io"
+	"io"
 	"math"
 
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/reflect/protoregistry"
+	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 
-	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
+	"google.golang.org/protobuf/encoding/protojson"
+
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 
-	"github.com/cosmos/cosmos-sdk/orm/backend/kv"
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
-	"github.com/cosmos/cosmos-sdk/orm/model/ormindex"
+	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 )
 
 type TableImpl struct {
-	*ormindex.PrimaryKey
-	msgType               protoreflect.MessageType
-	indexers              []ormindex.Indexer
-	indexes               []ormindex.Index
-	indexesByFields       map[ormkv.Fields]ormindex.Index
-	uniqueIndexesByFields map[ormkv.Fields]ormindex.UniqueIndex
-	indexesById           map[uint32]ormindex.Index
+	*PrimaryKeyIndex
+	indexers              []Indexer
+	indexes               []Index
+	indexesByFields       map[FieldNames]concreteIndex
+	uniqueIndexesByFields map[FieldNames]UniqueIndex
+	indexesById           map[uint32]concreteIndex
 	tablePrefix           []byte
 	typeResolver          TypeResolver
-	customValidator       func(proto.Message) error
-}
-
-func (t TableImpl) MessageType() protoreflect.MessageType {
-	return t.msgType
+	customImportValidator func(message proto.Message) error
 }
 
 type TypeResolver interface {
@@ -42,9 +38,9 @@ type TypeResolver interface {
 	protoregistry.ExtensionTypeResolver
 }
 
-func (t TableImpl) Save(store kv.IndexCommitmentStore, message proto.Message, mode SaveMode) error {
+func (t TableImpl) Save(store kvstore.IndexCommitmentStore, message proto.Message, mode SaveMode) error {
 	mref := message.ProtoReflect()
-	pkValues, pk, err := t.EncodeFromMessage(mref)
+	pkValues, pk, err := t.EncodeKeyFromMessage(mref)
 	if err != nil {
 		return err
 	}
@@ -57,7 +53,7 @@ func (t TableImpl) Save(store kv.IndexCommitmentStore, message proto.Message, mo
 
 	if haveExisting {
 		if mode == SAVE_MODE_CREATE {
-			return ormerrors.PrimaryKeyConstraintViolation.Wrapf("%q", mref.Descriptor().FullName())
+			return sdkerrors.Wrapf(ormerrors.PrimaryKeyConstraintViolation, "%q", mref.Descriptor().FullName())
 		}
 	} else {
 		if mode == SAVE_MODE_UPDATE {
@@ -77,7 +73,7 @@ func (t TableImpl) Save(store kv.IndexCommitmentStore, message proto.Message, mo
 
 	// set primary key again
 
-	t.SetValues(mref, pkValues)
+	t.SetKeyValues(mref, pkValues)
 
 	// set indexes
 	indexStore := store.IndexStore()
@@ -102,13 +98,13 @@ func (t TableImpl) Save(store kv.IndexCommitmentStore, message proto.Message, mo
 	return nil
 }
 
-func (t TableImpl) Delete(store kv.IndexCommitmentStore, primaryKey []protoreflect.Value) error {
-	pk, err := t.Encode(primaryKey)
+func (t TableImpl) Delete(store kvstore.IndexCommitmentStore, primaryKey []protoreflect.Value) error {
+	pk, err := t.EncodeKey(primaryKey)
 	if err != nil {
 		return err
 	}
 
-	msg := t.Type.New().Interface()
+	msg := t.MessageType().New().Interface()
 	found, err := t.GetByKeyBytes(store, pk, primaryKey, msg)
 	if err != nil {
 		return err
@@ -137,15 +133,15 @@ func (t TableImpl) Delete(store kv.IndexCommitmentStore, primaryKey []protorefle
 	return nil
 }
 
-func (t TableImpl) GetIndex(fields ormkv.Fields) ormindex.Index {
+func (t TableImpl) GetIndex(fields FieldNames) Index {
 	return t.indexesByFields[fields]
 }
 
-func (t TableImpl) GetUniqueIndex(fields ormkv.Fields) ormindex.UniqueIndex {
+func (t TableImpl) GetUniqueIndex(fields FieldNames) UniqueIndex {
 	return t.uniqueIndexesByFields[fields]
 }
 
-func (t TableImpl) Indexes() []ormindex.Index {
+func (t TableImpl) Indexes() []Index {
 	return t.indexes
 }
 
@@ -171,7 +167,7 @@ func (t TableImpl) decodeJson(reader io.Reader, onMsg func(message proto.Message
 			return ormerrors.JSONImportError.Wrapf("%s", err)
 		}
 
-		msg := t.msgType.New().Interface()
+		msg := t.MessageType().New().Interface()
 		err = protojson.UnmarshalOptions{Resolver: t.typeResolver}.Unmarshal(rawJson, msg)
 		if err != nil {
 			return err
@@ -183,6 +179,11 @@ func (t TableImpl) decodeJson(reader io.Reader, onMsg func(message proto.Message
 		}
 	}
 
+	token, err = decoder.Token()
+	if err != nil {
+		return err
+	}
+
 	if token != json.Delim(']') {
 		return ormerrors.JSONImportError.Wrapf("expected ] got %s", token)
 	}
@@ -190,7 +191,7 @@ func (t TableImpl) decodeJson(reader io.Reader, onMsg func(message proto.Message
 	return nil
 }
 
-func DefaultValidator(message proto.Message) error {
+func DefaultImportValidator(message proto.Message) error {
 	if v, ok := message.(interface{ ValidateBasic() error }); ok {
 		err := v.ValidateBasic()
 		if err != nil {
@@ -210,53 +211,61 @@ func DefaultValidator(message proto.Message) error {
 
 func (t TableImpl) ValidateJSON(reader io.Reader) error {
 	return t.decodeJson(reader, func(message proto.Message) error {
-		if t.customValidator != nil {
-			return t.customValidator(message)
+		if t.customImportValidator != nil {
+			return t.customImportValidator(message)
 		} else {
-			return DefaultValidator(message)
+			return DefaultImportValidator(message)
 		}
 	})
 }
 
-func (t TableImpl) ImportJSON(store kv.IndexCommitmentStore, reader io.Reader) error {
+func (t TableImpl) ImportJSON(store kvstore.IndexCommitmentStore, reader io.Reader) error {
 	return t.decodeJson(reader, func(message proto.Message) error {
 		return t.Save(store, message, SAVE_MODE_DEFAULT)
 	})
 }
 
-func (t TableImpl) ExportJSON(store kv.IndexCommitmentReadStore, writer io.Writer) error {
-	encoder := json.NewEncoder(writer)
-	err := encoder.Encode(json.Delim('['))
+func (t TableImpl) ExportJSON(store kvstore.IndexCommitmentReadStore, writer io.Writer) error {
+	_, err := writer.Write([]byte("["))
 	if err != nil {
 		return err
 	}
 
-	it, _ := t.PrefixIterator(store, nil, ormindex.IteratorOptions{})
+	it, _ := t.PrefixIterator(store, nil, IteratorOptions{})
+	start := true
 	for {
 		found, err := it.Next()
 		if err != nil {
 			return err
 		}
 
-		if found {
-			err := encoder.Encode(json.Delim(']'))
+		if !found {
+			_, err = writer.Write([]byte("]"))
+			return err
+		} else if !start {
+			_, err = writer.Write([]byte(",\n"))
 			if err != nil {
 				return err
 			}
 		}
+		start = false
 
-		msg := t.msgType.New().Interface()
-		err = it.GetMessage(msg)
+		msg := t.MessageType().New().Interface()
+		err = it.UnmarshalMessage(msg)
 		if err != nil {
 			return err
 		}
 
 		bz, err := protojson.Marshal(msg)
-
-		err = encoder.Encode(json.RawMessage(bz))
 		if err != nil {
 			return err
 		}
+
+		_, err = writer.Write(bz)
+		if err != nil {
+			return err
+		}
+
 	}
 }
 
@@ -274,7 +283,7 @@ func (t TableImpl) DecodeKV(k, v []byte) (ormkv.Entry, error) {
 		}
 
 		if id == 0 {
-			return t.PrimaryKey.DecodeKV(k, v)
+			return t.PrimaryKeyCodec.DecodeEntry(k, v)
 		}
 
 		if id > math.MaxUint32 {
@@ -286,23 +295,23 @@ func (t TableImpl) DecodeKV(k, v []byte) (ormkv.Entry, error) {
 			return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("can't find field with id %d", id)
 		}
 
-		return idx.DecodeKV(k, v)
+		return idx.DecodeEntry(k, v)
 	} else {
 		return nil, ormerrors.UnexpectedDecodePrefix
 	}
 }
 
-func (t TableImpl) EncodeKV(entry ormkv.Entry) (k, v []byte, err error) {
+func (t TableImpl) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	switch entry := entry.(type) {
-	case ormkv.PrimaryKeyEntry:
-		return t.PrimaryKey.EncodeKV(entry)
-	case ormkv.IndexKeyEntry:
-		idx, ok := t.indexesByFields[entry.Fields]
+	case *ormkv.PrimaryKeyEntry:
+		return t.PrimaryKeyCodec.EncodeEntry(entry)
+	case *ormkv.IndexKeyEntry:
+		idx, ok := t.indexesByFields[FieldsFromNames(entry.Fields)]
 		if !ok {
 			return nil, nil, ormerrors.BadDecodeEntry.Wrapf("can't find index with fields %s", entry.Fields)
 		}
 
-		return idx.EncodeKV(entry)
+		return idx.EncodeEntry(entry)
 	default:
 		return nil, nil, ormerrors.BadDecodeEntry.Wrapf("%s", entry)
 	}

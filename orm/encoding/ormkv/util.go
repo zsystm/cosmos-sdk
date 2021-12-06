@@ -1,11 +1,17 @@
 package ormkv
 
-import "encoding/binary"
+import (
+	"bytes"
+	"io"
+)
 
-func AppendVarUint32(prefix []byte, id uint32) []byte {
-	nsPrefixLen := len(prefix)
-	res := make([]byte, nsPrefixLen+binary.MaxVarintLen32)
-	copy(res, prefix)
-	n := binary.PutUvarint(res[nsPrefixLen:], uint64(id))
-	return res[:nsPrefixLen+n]
+func SkipPrefix(r *bytes.Reader, prefix []byte) error {
+	n := len(prefix)
+	if n > 0 {
+		// we skip checking the prefix for performance reasons because we assume
+		// that it was checked by the caller
+		_, err := r.Seek(int64(n), io.SeekCurrent)
+		return err
+	}
+	return nil
 }

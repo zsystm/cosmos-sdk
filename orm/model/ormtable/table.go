@@ -9,27 +9,28 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/cosmos/cosmos-sdk/orm/backend/kv"
-	"github.com/cosmos/cosmos-sdk/orm/model/ormindex"
+	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 )
 
+type View interface {
+	UniqueIndex
+	GetIndex(fields FieldNames) Index
+	GetUniqueIndex(fields FieldNames) UniqueIndex
+	Indexes() []Index
+}
+
 type Table interface {
-	ormindex.UniqueIndex
-	ormkv.Codec
+	View
 
-	MessageType() protoreflect.MessageType
+	ormkv.EntryCodec
 
-	Save(store kv.IndexCommitmentStore, message proto.Message, mode SaveMode) error
-	Delete(store kv.IndexCommitmentStore, primaryKey []protoreflect.Value) error
-
-	GetIndex(fields ormkv.Fields) ormindex.Index
-	GetUniqueIndex(fields ormkv.Fields) ormindex.UniqueIndex
-	Indexes() []ormindex.Index
+	Save(store kvstore.IndexCommitmentStore, message proto.Message, mode SaveMode) error
+	Delete(store kvstore.IndexCommitmentStore, primaryKey []protoreflect.Value) error
 
 	DefaultJSON() json.RawMessage
 	ValidateJSON(io.Reader) error
-	ImportJSON(kv.IndexCommitmentStore, io.Reader) error
-	ExportJSON(kv.IndexCommitmentReadStore, io.Writer) error
+	ImportJSON(kvstore.IndexCommitmentStore, io.Reader) error
+	ExportJSON(kvstore.IndexCommitmentReadStore, io.Writer) error
 }
 
 type SaveMode int

@@ -4,14 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"google.golang.org/protobuf/testing/protocmp"
-
-	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"gotest.tools/v3/assert"
 	"pgregory.net/rapid"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormfield"
@@ -83,19 +79,23 @@ var TestFieldSpecs = []TestFieldSpec{
 	},
 	{
 		"ts",
-		rapid.ArrayOf(2, rapid.Int64()).Map(func(xs [2]int64) protoreflect.Message {
+		rapid.Custom(func(t *rapid.T) protoreflect.Message {
+			seconds := rapid.Int64Range(-9999999999, 9999999999).Draw(t, "seconds").(int64)
+			nanos := rapid.Int32Range(0, 999999999).Draw(t, "nanos").(int32)
 			return (&timestamppb.Timestamp{
-				Seconds: xs[0],
-				Nanos:   int32(xs[1]),
+				Seconds: seconds,
+				Nanos:   nanos,
 			}).ProtoReflect()
 		}),
 	},
 	{
 		"dur",
-		rapid.ArrayOf(2, rapid.Int64()).Map(func(xs [2]int64) protoreflect.Message {
+		rapid.Custom(func(t *rapid.T) protoreflect.Message {
+			seconds := rapid.Int64Range(0, 315576000000).Draw(t, "seconds").(int64)
+			nanos := rapid.Int32Range(0, 999999999).Draw(t, "nanos").(int32)
 			return (&durationpb.Duration{
-				Seconds: xs[0],
-				Nanos:   int32(xs[1]),
+				Seconds: seconds,
+				Nanos:   nanos,
 			}).ProtoReflect()
 		}),
 	},
@@ -125,31 +125,45 @@ type TestKeyCodec struct {
 	Codec    *ormkv.KeyCodec
 }
 
-var TestKeyCodecGen = rapid.Custom(func(t *rapid.T) TestKeyCodec {
-	xs := rapid.SliceOfNDistinct(rapid.IntRange(0, len(TestFieldSpecs)-1), 0, 5, func(i int) int { return i }).
-		Draw(t, "fieldSpecs").([]int)
+func TestFieldSpecsGen(minLen, maxLen int) *rapid.Generator {
+	return rapid.Custom(func(t *rapid.T) []TestFieldSpec {
+		xs := rapid.SliceOfNDistinct(rapid.IntRange(0, len(TestFieldSpecs)-1), minLen, maxLen, func(i int) int { return i }).
+			Draw(t, "fieldSpecIndexes").([]int)
 
-	var specs []TestFieldSpec
-	var fields []protoreflect.FieldDescriptor
+		var specs []TestFieldSpec
 
-	for _, x := range xs {
-		spec := TestFieldSpecs[x]
-		specs = append(specs, spec)
-		fields = append(fields, GetTestField(spec.FieldName))
-	}
+		for _, x := range xs {
+			spec := TestFieldSpecs[x]
+			specs = append(specs, spec)
+		}
 
-	prefix := rapid.SliceOfN(rapid.Byte(), 0, 5).Draw(t, "prefix").([]byte)
+		return specs
+	})
+}
 
-	cdc, err := ormkv.NewKeyCodec(prefix, fields)
-	if err != nil {
-		panic(err)
-	}
+func TestKeyCodecGen(minLen, maxLen int) *rapid.Generator {
+	return rapid.Custom(func(t *rapid.T) TestKeyCodec {
+		specs := TestFieldSpecsGen(minLen, maxLen).Draw(t, "fieldSpecs").([]TestFieldSpec)
 
-	return TestKeyCodec{
-		Codec:    cdc,
-		KeySpecs: specs,
-	}
-})
+		var fields []protoreflect.Name
+		for _, spec := range specs {
+			fields = append(fields, spec.FieldName)
+		}
+
+		prefix := rapid.SliceOfN(rapid.Byte(), 0, 5).Draw(t, "prefix").([]byte)
+
+		msgType := (&testpb.A{}).ProtoReflect().Type()
+		cdc, err := ormkv.NewKeyCodec(prefix, msgType, fields)
+		if err != nil {
+			panic(err)
+		}
+
+		return TestKeyCodec{
+			Codec:    cdc,
+			KeySpecs: specs,
+		}
+	})
+}
 
 func (k TestKeyCodec) Draw(t *rapid.T, id string) []protoreflect.Value {
 	n := len(k.KeySpecs)
@@ -160,42 +174,22 @@ func (k TestKeyCodec) Draw(t *rapid.T, id string) []protoreflect.Value {
 	return keyValues
 }
 
-func (k TestKeyCodec) RequireValuesEqual(t assert.TestingT, values, values2 []protoreflect.Value) {
-	for i := 0; i < len(values); i++ {
-		assert.Equal(t, 0, k.Codec.FieldCodecs[i].Compare(values[i], values2[i]),
-			"values[%d]: %v != %v", i, values[i].Interface(), values2[i].Interface())
+var GenA = rapid.Custom(func(t *rapid.T) *testpb.A {
+	a := &testpb.A{}
+	ref := a.ProtoReflect()
+	for _, spec := range TestFieldSpecs {
+		field := GetTestField(spec.FieldName)
+		value := spec.Gen.Draw(t, string(spec.FieldName))
+		ref.Set(field, protoreflect.ValueOf(value))
 	}
-}
-
-type TestKVCodec struct {
-	Codec    ormkv.Codec
-	EntryGen *rapid.Generator
-	Comparer cmp.Option
-}
-
-var TestPrimaryKeyCodecGen = rapid.Custom(func(t *rapid.T) TestKVCodec {
-	keyCodec := TestKeyCodecGen.Draw(t, "keyCodec").(TestKeyCodec)
-	pkCodec := &ormkv.PrimaryKeyCodec{
-		KeyCodec: keyCodec.Codec,
-		Type:     (&testpb.A{}).ProtoReflect().Type(),
-	}
-	entryGen := rapid.Custom(func(t *rapid.T) ormkv.Entry {
-		pk := keyCodec.Draw(t, "primaryKey")
-		return ormkv.PrimaryKeyEntry{
-			Key:   pk,
-			Value: &testpb.A{},
-		}
-	})
-	return TestKVCodec{
-		Codec:    pkCodec,
-		EntryGen: entryGen,
-		Comparer: cmp.Comparer(func(x, y ormkv.Entry) bool {
-			pk1 := x.(ormkv.PrimaryKeyEntry)
-			pk2 := y.(ormkv.PrimaryKeyEntry)
-			if pkCodec.CompareValues(pk1.Key, pk2.Key) != 0 {
-				return false
-			}
-			return cmp.Equal(pk1.Value, pk2.Value, protocmp.Transform())
-		}),
-	}
+	return a
 })
+
+func ValuesOf(values ...interface{}) []protoreflect.Value {
+	n := len(values)
+	res := make([]protoreflect.Value, n)
+	for i := 0; i < n; i++ {
+		res[i] = protoreflect.ValueOf(values[i])
+	}
+	return res
+}

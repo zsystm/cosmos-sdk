@@ -9,19 +9,21 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+// SeqCodec is the codec for auto-incrementing uint64 primary key sequences.
 type SeqCodec struct {
-	TableName protoreflect.FullName
-	Prefix    []byte
+	tableName protoreflect.FullName
+	prefix    []byte
 }
 
-func (s SeqCodec) EncodeValue(seq uint64) (v []byte) {
-	bz := make([]byte, binary.MaxVarintLen64)
-	n := binary.PutUvarint(bz, seq)
-	return bz[:n]
+// NewSeqCodec creates a new SeqCodec.
+func NewSeqCodec(tableName protoreflect.FullName, prefix []byte) *SeqCodec {
+	return &SeqCodec{tableName: tableName, prefix: prefix}
 }
 
-func (s SeqCodec) DecodeKV(k, v []byte) (Entry, error) {
-	if !bytes.Equal(k, s.Prefix) {
+var _ EntryCodec = &SeqCodec{}
+
+func (s SeqCodec) DecodeEntry(k, v []byte) (Entry, error) {
+	if !bytes.Equal(k, s.prefix) {
 		return nil, ormerrors.UnexpectedDecodePrefix
 	}
 
@@ -30,23 +32,33 @@ func (s SeqCodec) DecodeKV(k, v []byte) (Entry, error) {
 		return nil, err
 	}
 
-	return SeqEntry{
-		TableName: s.TableName,
+	return &SeqEntry{
+		TableName: s.tableName,
 		Value:     x,
 	}, nil
 }
 
-func (s SeqCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
-	seqEntry, ok := entry.(SeqEntry)
+func (s SeqCodec) EncodeEntry(entry Entry) (k, v []byte, err error) {
+	seqEntry, ok := entry.(*SeqEntry)
 	if !ok {
 		return nil, nil, ormerrors.BadDecodeEntry
 	}
 
-	if seqEntry.TableName != s.TableName {
+	if seqEntry.TableName != s.tableName {
 		return nil, nil, ormerrors.BadDecodeEntry
 	}
 
-	return s.Prefix, s.EncodeValue(seqEntry.Value), nil
+	return s.prefix, s.EncodeValue(seqEntry.Value), nil
+}
+
+func (s SeqCodec) Prefix() []byte {
+	return s.prefix
+}
+
+func (s SeqCodec) EncodeValue(seq uint64) (v []byte) {
+	bz := make([]byte, binary.MaxVarintLen64)
+	n := binary.PutUvarint(bz, seq)
+	return bz[:n]
 }
 
 func (s SeqCodec) DecodeValue(v []byte) (uint64, error) {

@@ -11,13 +11,30 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+// PrimaryKeyCodec is the codec for primary keys.
 type PrimaryKeyCodec struct {
 	*KeyCodec
-	Type protoreflect.MessageType
+	unmarshalOptions proto.UnmarshalOptions
 }
 
+// NewPrimaryKeyCodec creates a new PrimaryKeyCodec for the provided msg and
+// fields, with an optional prefix and unmarshal options.
+func NewPrimaryKeyCodec(prefix []byte, msgType protoreflect.MessageType, fieldNames []protoreflect.Name, unmarshalOptions proto.UnmarshalOptions) (*PrimaryKeyCodec, error) {
+	keyCodec, err := NewKeyCodec(prefix, msgType, fieldNames)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PrimaryKeyCodec{
+		KeyCodec:         keyCodec,
+		unmarshalOptions: unmarshalOptions,
+	}, nil
+}
+
+var _ IndexCodec = PrimaryKeyCodec{}
+
 func (p PrimaryKeyCodec) DecodeIndexKey(k, _ []byte) (indexFields, primaryKey []protoreflect.Value, err error) {
-	indexFields, err = p.Decode(bytes.NewReader(k))
+	indexFields, err = p.DecodeKey(bytes.NewReader(k))
 
 	// got prefix key
 	if err == io.EOF {
@@ -26,7 +43,7 @@ func (p PrimaryKeyCodec) DecodeIndexKey(k, _ []byte) (indexFields, primaryKey []
 		return nil, nil, err
 	}
 
-	if len(indexFields) == len(p.FieldCodecs) {
+	if len(indexFields) == len(p.fieldCodecs) {
 		// for primary keys the index fields are the primary key
 		// but only if we don't have a prefix key
 		primaryKey = indexFields
@@ -35,62 +52,84 @@ func (p PrimaryKeyCodec) DecodeIndexKey(k, _ []byte) (indexFields, primaryKey []
 
 }
 
-var _ IndexCodec = PrimaryKeyCodec{}
-
-func (p PrimaryKeyCodec) DecodeKV(k, v []byte) (Entry, error) {
-	values, err := p.Decode(bytes.NewReader(k))
+func (p PrimaryKeyCodec) DecodeEntry(k, v []byte) (Entry, error) {
+	values, err := p.DecodeKey(bytes.NewReader(k))
 	if err != nil {
 		return nil, err
 	}
 
-	msg := p.Type.New().Interface()
-	err = proto.Unmarshal(v, msg)
-	if err != nil {
-		return nil, err
-	}
+	msg := p.messageType.New().Interface()
+	err = p.Unmarshal(values, v, msg)
 
-	return PrimaryKeyEntry{
-		Key:   values,
-		Value: msg,
-	}, nil
+	return &PrimaryKeyEntry{
+		TableName: p.messageType.Descriptor().FullName(),
+		Key:       values,
+		Value:     msg,
+	}, err
 }
 
-func (p PrimaryKeyCodec) EncodeKV(entry Entry) (k, v []byte, err error) {
-	pkEntry, ok := entry.(PrimaryKeyEntry)
+func (p PrimaryKeyCodec) EncodeEntry(entry Entry) (k, v []byte, err error) {
+	pkEntry, ok := entry.(*PrimaryKeyEntry)
 	if !ok {
-		return nil, nil, ormerrors.BadDecodeEntry
+		return nil, nil, ormerrors.BadDecodeEntry.Wrapf("expected %T, got %T", &PrimaryKeyEntry{}, entry)
 	}
 
-	if pkEntry.Value.ProtoReflect().Descriptor().FullName() != p.Type.Descriptor().FullName() {
-		return nil, nil, ormerrors.BadDecodeEntry
+	if pkEntry.TableName != p.messageType.Descriptor().FullName() {
+		return nil, nil, ormerrors.BadDecodeEntry.Wrapf(
+			"wrong table name, got %s, expected %s",
+			pkEntry.TableName,
+			p.messageType.Descriptor().FullName(),
+		)
 	}
 
-	bz, err := p.KeyCodec.Encode(pkEntry.Key)
+	k, err = p.KeyCodec.EncodeKey(pkEntry.Key)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	v, err = proto.MarshalOptions{Deterministic: true}.Marshal(pkEntry.Value)
+	v, err = p.marshal(pkEntry.Key, pkEntry.Value)
+	return k, v, err
+}
+
+func (p PrimaryKeyCodec) marshal(key []protoreflect.Value, message proto.Message) (v []byte, err error) {
+	// first clear the priamry key values because these are already stored in
+	// the key so we don't need to store them again in the value
+	p.ClearValues(message.ProtoReflect())
+
+	v, err = proto.MarshalOptions{Deterministic: true}.Marshal(message)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return bz, v, nil
+	// set the primary key values again returning the message to its original state
+	p.SetKeyValues(message.ProtoReflect(), key)
+
+	return v, nil
 }
 
 func (p *PrimaryKeyCodec) ClearValues(message protoreflect.Message) {
-	for _, f := range p.FieldDescriptors {
+	for _, f := range p.fieldDescriptors {
 		message.Clear(f)
 	}
 }
 
 func (p *PrimaryKeyCodec) Unmarshal(key []protoreflect.Value, value []byte, message proto.Message) error {
-	err := proto.Unmarshal(value, message)
+	err := p.unmarshalOptions.Unmarshal(value, message)
 	if err != nil {
 		return err
 	}
 
 	// rehydrate primary key
-	p.SetValues(message.ProtoReflect(), key)
+	p.SetKeyValues(message.ProtoReflect(), key)
 	return nil
+}
+
+func (p PrimaryKeyCodec) EncodeKVFromMessage(message protoreflect.Message) (k, v []byte, err error) {
+	ks, k, err := p.KeyCodec.EncodeKeyFromMessage(message)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	v, err = p.marshal(ks, message.Interface())
+	return k, v, err
 }
