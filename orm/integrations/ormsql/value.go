@@ -6,21 +6,14 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/datatypes"
 )
 
 type valueCodec interface {
 	goType() reflect.Type
-	encode(protoValue protoreflect.Value, goValue reflect.Value)
+	encode(protoValue protoreflect.Value, goValue reflect.Value) error
+	decode(goValue reflect.Value) (protoreflect.Value, error)
 }
-
-var (
-	timestampDesc = (&timestamppb.Timestamp{}).ProtoReflect().Descriptor()
-	durationDesc  = (&durationpb.Duration{}).ProtoReflect().Descriptor()
-)
 
 func (b *builder) getValueCodec(descriptor protoreflect.FieldDescriptor) (valueCodec, error) {
 	if descriptor.IsList() {
@@ -66,92 +59,32 @@ func (b *builder) getValueCodec(descriptor protoreflect.FieldDescriptor) (valueC
 	}
 }
 
-type int32Codec struct{}
-
-func (i int32Codec) goType() reflect.Type { return reflect.TypeOf(int32(0)) }
-
-func (i int32Codec) encode(protoValue protoreflect.Value, goValue reflect.Value) {
-	goValue.SetInt(protoValue.Int())
-}
-
-type uint32Codec struct{}
-
-func (u uint32Codec) goType() reflect.Type { return reflect.TypeOf(uint32(0)) }
-
-func (u uint32Codec) encode(protoValue protoreflect.Value, goValue reflect.Value) {
-	goValue.SetUint(protoValue.Uint())
-}
-
 type messageValueCodec struct {
-	jsonMarshalOptions protojson.MarshalOptions
+	jsonMarshalOptions   protojson.MarshalOptions
+	jsonUnmarshalOptions protojson.UnmarshalOptions
+	protoType            protoreflect.MessageType
 }
 
 func (m messageValueCodec) goType() reflect.Type {
 	return reflect.TypeOf(datatypes.JSON{})
 }
 
-func (m messageValueCodec) encode(protoValue protoreflect.Value, goValue reflect.Value) {
+func (m messageValueCodec) encode(protoValue protoreflect.Value, goValue reflect.Value) error {
 	bz, err := m.jsonMarshalOptions.Marshal(protoValue.Message().Interface())
 	if err != nil {
-		return
+		return err
 	}
 
 	goValue.Set(reflect.ValueOf(datatypes.JSON(bz)))
 }
 
-type listCodec struct {
-	jsonMarshalOptions protojson.MarshalOptions
-}
-
-func (l listCodec) goType() reflect.Type {
-	return reflect.TypeOf(datatypes.JSON{})
-}
-
-func (l listCodec) encode(protoValue protoreflect.Value, goValue reflect.Value) {
-	list := protoValue.List()
-	n := list.Len()
-	values := make([]interface{}, n)
-	for i := 0; i < n; i++ {
-		values[i] = list.Get(i).Interface()
-	}
-	structList, err := structpb.NewList(values)
+func (m messageValueCodec) decode(goValue reflect.Value) (protoreflect.Value, error) {
+	j := goValue.Interface().(datatypes.JSON)
+	msg := m.protoType.New()
+	err := m.jsonUnmarshalOptions.Unmarshal(j, msg.Interface())
 	if err != nil {
-		return
+		return protoreflect.Value{}, err
 	}
 
-	bz, err := l.jsonMarshalOptions.Marshal(structList)
-	if err != nil {
-		return
-	}
-
-	goValue.Set(reflect.ValueOf(datatypes.JSON(bz)))
-}
-
-type mapCodec struct {
-	jsonMarshalOptions protojson.MarshalOptions
-}
-
-func (m mapCodec) goType() reflect.Type {
-	return reflect.TypeOf(datatypes.JSON{})
-}
-
-func (m mapCodec) encode(protoValue protoreflect.Value, goValue reflect.Value) {
-	protoMap := protoValue.Map()
-	goMap := map[string]interface{}{}
-	protoMap.Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
-		goMap[key.String()] = value.Interface()
-		return true
-	})
-
-	protoStruct, err := structpb.NewStruct(goMap)
-	if err != nil {
-		return
-	}
-
-	bz, err := m.jsonMarshalOptions.Marshal(protoStruct)
-	if err != nil {
-		return
-	}
-
-	goValue.Set(reflect.ValueOf(datatypes.JSON(bz)))
+	return protoreflect.ValueOfMessage(msg), nil
 }
