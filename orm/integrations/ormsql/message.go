@@ -2,11 +2,10 @@ package ormsql
 
 import (
 	"fmt"
-	"google.golang.org/protobuf/proto"
 	"reflect"
 	"strings"
 
-	"gorm.io/gorm"
+	"google.golang.org/protobuf/proto"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -74,22 +73,20 @@ func (b *schema) makeMessageCodec(messageType protoreflect.MessageType, tableDes
 		structType:  reflect.StructOf(structFields),
 	}
 
-	err := msgCdc.autoMigrate(b.gormDb)
-	if err != nil {
-		return nil, err
-	}
-
 	b.messageCodecs[messageType.Descriptor().FullName()] = msgCdc
 	return msgCdc, nil
 }
 
-func (m *messageCodec) encode(message protoreflect.Message) reflect.Value {
+func (m *messageCodec) encode(message protoreflect.Message) (reflect.Value, error) {
 	ptr := reflect.New(m.structType)
 	val := ptr.Elem()
 	for _, codec := range m.fieldCodecs {
-		codec.encode(message, val)
+		err := codec.encode(message, val)
+		if err != nil {
+			return reflect.Value{}, err
+		}
 	}
-	return ptr
+	return ptr, nil
 }
 
 func (m messageCodec) decode(value reflect.Value, msg protoreflect.Message) error {
@@ -101,19 +98,3 @@ func (m messageCodec) decode(value reflect.Value, msg protoreflect.Message) erro
 	}
 	return nil
 }
-
-func (m *messageCodec) autoMigrate(db *gorm.DB) error {
-	val := m.encode(m.msgType.New())
-	return db.Table(m.tableName).AutoMigrate(val.Interface())
-}
-
-func (m *messageCodec) save(db *gorm.DB, message protoreflect.Message) {
-	val := m.encode(message)
-	db.Table(m.tableName).Save(val.Interface())
-}
-
-//func (m *messageCodec) get(db *gorm.DB) (protoreflect.Message, error) {
-//ptr := reflect.New(m.structType)
-//db.Table(m.tableName).First(ptr.Interface())
-//return m.decode(ptr.Elem())
-//}

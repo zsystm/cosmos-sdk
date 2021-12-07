@@ -2,64 +2,81 @@ package ormsql
 
 import (
 	"fmt"
-	"google.golang.org/protobuf/proto"
 	"reflect"
+
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"gorm.io/gorm"
 )
 
-func (s *schema) Save(message proto.Message) error {
-	cdc, err := s.getMessageCodec(message)
+type db struct {
+	gormDb            *gorm.DB
+	schema            *schema
+	migratedMsgCodecs map[protoreflect.FullName]*messageCodec
+}
+
+func (d db) Save(message proto.Message) db {
+	cdc, err := d.schema.getMessageCodec(message)
 	if err != nil {
-		return err
+		d.gormDb.Error = err
+		return d
 	}
-	cdc.save(s.gormDb, message.ProtoReflect())
-	return nil
+	val, err := cdc.encode(message.ProtoReflect())
+	if err != nil {
+		d.gormDb.Error = err
+		return d
+	}
+	d.gormDb = d.gormDb.Table(cdc.tableName).Save(val.Interface())
+	return d
 }
 
 var protoMessageType = reflect.TypeOf((*proto.Message)(nil)).Elem()
 
-func (s *schema) Where(query interface{}, args ...interface{}) *schema {
+func (d db) Where(query interface{}, args ...interface{}) db {
 	if protoMsg, ok := query.(proto.Message); ok {
-		cdc, err := s.getMessageCodec(protoMsg)
+		cdc, err := d.schema.getMessageCodec(protoMsg)
 		if err != nil {
-			s.Error = err
-			return s
+			d.gormDb.Error = err
+			return d
 		}
 
-		val := cdc.encode(protoMsg.ProtoReflect())
+		val, err := cdc.encode(protoMsg.ProtoReflect())
+		if err != nil {
+			d.gormDb.Error = err
+			return d
+		}
 		query = val.Interface()
+		d.gormDb = d.gormDb.Table(cdc.tableName)
 	}
-	s.gormDb.Where(query, args)
-	if s.gormDb.Error != nil {
-		s.Error = s.gormDb.Error
-	}
-	return s
+	d.gormDb = d.gormDb.Where(query, args)
+	return d
 }
 
-func (s *schema) Find(dest interface{}) *schema {
+func (d db) Find(dest interface{}, args ...interface{}) db {
 	typ := reflect.TypeOf(dest).Elem()
 	if typ.Kind() != reflect.Slice {
-		s.Error = fmt.Errorf("expected a slice, got %T", dest)
-		return s
+		d.gormDb.Error = fmt.Errorf("expected a slice, got %T", dest)
+		return d
 	}
 
 	elem := typ.Elem()
 	if !elem.AssignableTo(protoMessageType) {
-		s.Error = fmt.Errorf("expected a proto.Message slice type, got %T", dest)
-		return s
+		d.gormDb.Error = fmt.Errorf("expected a proto.Message slice type, got %T", dest)
+		return d
 	}
 
 	msg := reflect.Zero(elem).Interface().(proto.Message)
-	cdc, err := s.getMessageCodec(msg)
+	cdc, err := d.schema.getMessageCodec(msg)
 	if err != nil {
-		s.Error = err
-		return s
+		d.gormDb.Error = err
+		return d
 	}
 
 	structSliceType := reflect.SliceOf(cdc.structType)
 	structSlicePtr := reflect.New(structSliceType)
-	s.gormDb.Table(cdc.tableName).Find(structSlicePtr.Interface())
-	if s.gormDb.Error != nil {
-		s.Error = s.gormDb.Error
+	d.gormDb = d.gormDb.Table(cdc.tableName).Find(structSlicePtr.Interface(), args...)
+	if d.gormDb.Error != nil {
+		return d
 	}
 	structSlice := structSlicePtr.Elem()
 	n := structSlice.Len()
@@ -70,32 +87,50 @@ func (s *schema) Find(dest interface{}) *schema {
 		msg := cdc.msgType.New()
 		err = cdc.decode(structSlice.Index(i), msg)
 		if err != nil {
-			s.Error = err
-			return s
+			d.gormDb.Error = err
+			return d
 		}
 		resSlice.Index(i).Set(reflect.ValueOf(msg.Interface()))
 	}
-	return s
+	return d
 }
 
-func (s *schema) First(message proto.Message) *schema {
-	msgCdc, err := s.messageCodecForType(message.ProtoReflect().Type())
+func (d db) First(message proto.Message) db {
+	msgCdc, err := d.schema.messageCodecForType(message.ProtoReflect().Type())
 	if err != nil {
-		s.Error = err
-		return s
+		d.gormDb.Error = err
+		return d
 	}
 
 	ptr := reflect.New(msgCdc.structType)
-	s.gormDb.Table(msgCdc.tableName).First(ptr.Interface())
-	if s.gormDb.Error != nil {
-		s.Error = s.gormDb.Error
-		return s
+	d.gormDb = d.gormDb.Table(msgCdc.tableName).First(ptr.Interface())
+	if d.gormDb.Error != nil {
+		return d
 	}
 
-	err = msgCdc.decode(ptr.Elem(), message.ProtoReflect())
+	d.gormDb.Error = msgCdc.decode(ptr.Elem(), message.ProtoReflect())
+	return d
+}
+
+func (d db) Error() error {
+	return d.gormDb.Error
+}
+
+func (d db) getMessageCodec(message proto.Message) (*messageCodec, error) {
+	if cdc, ok := d.migratedMsgCodecs[message.ProtoReflect().Descriptor().FullName()]; ok {
+		return cdc, nil
+	}
+
+	cdc, err := d.schema.getMessageCodec(message)
 	if err != nil {
-		s.Error = err
+		return nil, err
 	}
 
-	return s
+	val, err := cdc.encode(message.ProtoReflect())
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.gormDb.Table(cdc.tableName).AutoMigrate(val.Interface())
+	return cdc, err
 }
