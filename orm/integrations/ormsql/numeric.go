@@ -31,3 +31,16 @@ func (u uint32Codec) encode(protoValue protoreflect.Value, goValue reflect.Value
 func (u uint32Codec) decode(goValue reflect.Value) (protoreflect.Value, error) {
 	return protoreflect.ValueOfUint32(uint32(goValue.Uint())), nil
 }
+
+type int64Codec struct{}
+
+func (i int64Codec) goType() reflect.Type { return reflect.TypeOf(int64(0)) }
+
+func (i int64Codec) encode(protoValue protoreflect.Value, goValue reflect.Value) error {
+	goValue.SetInt(protoValue.Int())
+	return nil
+}
+
+func (i int64Codec) decode(goValue reflect.Value) (protoreflect.Value, error) {
+	return protoreflect.ValueOfInt64(goValue.Int()), nil
+}

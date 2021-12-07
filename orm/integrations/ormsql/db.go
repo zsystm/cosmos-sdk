@@ -15,8 +15,8 @@ type db struct {
 	migratedMsgCodecs map[protoreflect.FullName]*messageCodec
 }
 
-func (d db) Save(message proto.Message) db {
-	cdc, err := d.schema.getMessageCodec(message)
+func (d db) save(message proto.Message) db {
+	cdc, err := d.getMessageCodec(message)
 	if err != nil {
 		d.gormDb.Error = err
 		return d
@@ -34,7 +34,7 @@ var protoMessageType = reflect.TypeOf((*proto.Message)(nil)).Elem()
 
 func (d db) Where(query interface{}, args ...interface{}) db {
 	if protoMsg, ok := query.(proto.Message); ok {
-		cdc, err := d.schema.getMessageCodec(protoMsg)
+		cdc, err := d.getMessageCodec(protoMsg)
 		if err != nil {
 			d.gormDb.Error = err
 			return d
@@ -66,7 +66,7 @@ func (d db) Find(dest interface{}, args ...interface{}) db {
 	}
 
 	msg := reflect.Zero(elem).Interface().(proto.Message)
-	cdc, err := d.schema.getMessageCodec(msg)
+	cdc, err := d.getMessageCodec(msg)
 	if err != nil {
 		d.gormDb.Error = err
 		return d
@@ -126,11 +126,34 @@ func (d db) getMessageCodec(message proto.Message) (*messageCodec, error) {
 		return nil, err
 	}
 
-	val, err := cdc.encode(message.ProtoReflect())
+	// use a new instance because message may be nil
+	newMsg := cdc.msgType.New()
+
+	val, err := cdc.encode(newMsg)
 	if err != nil {
 		return nil, err
 	}
 
 	err = d.gormDb.Table(cdc.tableName).AutoMigrate(val.Interface())
 	return cdc, err
+}
+
+func (d db) Index(key []protoreflect.Value, value proto.Message, deleted bool) error {
+	if !deleted {
+		d.save(value)
+		return d.gormDb.Error
+	} else {
+		cdc, err := d.getMessageCodec(value)
+		if err != nil {
+			return err
+		}
+
+		cond, err := cdc.deletionClause(key)
+		if err != nil {
+			return err
+		}
+
+		d.gormDb.Table(cdc.tableName).Where(cond).Delete(value)
+		return d.gormDb.Error
+	}
 }

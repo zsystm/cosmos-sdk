@@ -29,7 +29,7 @@ func (b *schema) getValueCodec(descriptor protoreflect.FieldDescriptor) (valueCo
 	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
 		return uint32Codec{}, nil
 	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		return nil, fmt.Errorf("TODO")
+		return int64Codec{}, nil
 	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
 		return nil, fmt.Errorf("TODO")
 	case protoreflect.BoolKind:
@@ -43,7 +43,7 @@ func (b *schema) getValueCodec(descriptor protoreflect.FieldDescriptor) (valueCo
 	case protoreflect.BytesKind:
 		return nil, fmt.Errorf("TODO")
 	case protoreflect.StringKind:
-		return nil, fmt.Errorf("TODO")
+		return stringCodec{}, nil
 	case protoreflect.MessageKind:
 		switch descriptor.Message().FullName() {
 		case timestampDesc.FullName():

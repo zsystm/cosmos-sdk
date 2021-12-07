@@ -12,6 +12,7 @@ type fieldCodec struct {
 	valueCodec
 	structField reflect.StructField
 	protoField  protoreflect.FieldDescriptor
+	name        string
 }
 
 func (b *schema) makeFieldCodec(descriptor protoreflect.FieldDescriptor, isPrimaryKey bool) (*fieldCodec, error) {
@@ -20,11 +21,12 @@ func (b *schema) makeFieldCodec(descriptor protoreflect.FieldDescriptor, isPrima
 		return nil, err
 	}
 
-	tag := fmt.Sprintf(`gorm:"column:%s`, descriptor.Name())
+	name := descriptor.Name()
+	tag := fmt.Sprintf(`gorm:"column:%s`, name)
 	if isPrimaryKey {
 		tag = tag + fmt.Sprintf(`;primaryKey;autoIncrement:false`)
 	}
-	var fieldName = strings.ToTitle(string(descriptor.Name()))
+	var fieldName = strings.ToTitle(string(name))
 	structField := reflect.StructField{
 		Name: fieldName,
 		Type: valCdc.goType(),
@@ -35,6 +37,7 @@ func (b *schema) makeFieldCodec(descriptor protoreflect.FieldDescriptor, isPrima
 		valueCodec:  valCdc,
 		structField: structField,
 		protoField:  descriptor,
+		name:        string(name),
 	}, nil
 }
 

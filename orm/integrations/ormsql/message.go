@@ -13,10 +13,11 @@ import (
 )
 
 type messageCodec struct {
-	tableName   string
-	msgType     protoreflect.MessageType
-	structType  reflect.Type
-	fieldCodecs []*fieldCodec
+	tableName             string
+	msgType               protoreflect.MessageType
+	structType            reflect.Type
+	fieldCodecs           []*fieldCodec
+	primaryKeyFieldCodecs []*fieldCodec
 }
 
 func (b *schema) getMessageCodec(message proto.Message) (*messageCodec, error) {
@@ -52,25 +53,30 @@ func (b *schema) makeMessageCodec(messageType protoreflect.MessageType, tableDes
 	n := fieldDescriptors.Len()
 	var fieldCodecs []*fieldCodec
 	var structFields []reflect.StructField
+	var primaryKeyFieldCodecs []*fieldCodec
 	for i := 0; i < n; i++ {
 		field := fieldDescriptors.Get(i)
-		fieldCodec, err := b.makeFieldCodec(field, pkFieldMap[string(field.Name())])
+		isInPk := pkFieldMap[string(field.Name())]
+		fieldCodec, err := b.makeFieldCodec(field, isInPk)
 		if err != nil {
-			// TODO: return nil, err
-			// for now:
+			fmt.Printf("TODO: %v\n", err)
 			continue
 		}
 		fieldCodecs = append(fieldCodecs, fieldCodec)
 		structFields = append(structFields, fieldCodec.structField)
+		if isInPk {
+			primaryKeyFieldCodecs = append(primaryKeyFieldCodecs, fieldCodec)
+		}
 	}
 
 	tableName := strings.ReplaceAll(string(messageType.Descriptor().FullName()), ".", "_")
 
 	msgCdc := &messageCodec{
-		tableName:   tableName,
-		msgType:     messageType,
-		fieldCodecs: fieldCodecs,
-		structType:  reflect.StructOf(structFields),
+		tableName:             tableName,
+		msgType:               messageType,
+		fieldCodecs:           fieldCodecs,
+		structType:            reflect.StructOf(structFields),
+		primaryKeyFieldCodecs: primaryKeyFieldCodecs,
 	}
 
 	b.messageCodecs[messageType.Descriptor().FullName()] = msgCdc
@@ -97,4 +103,17 @@ func (m messageCodec) decode(value reflect.Value, msg protoreflect.Message) erro
 		}
 	}
 	return nil
+}
+
+func (m messageCodec) deletionClause(primaryKey []protoreflect.Value) (interface{}, error) {
+	cond := map[string]interface{}{}
+	for i, cdc := range m.primaryKeyFieldCodecs {
+		var val reflect.Value
+		err := cdc.valueCodec.encode(primaryKey[i], val)
+		if err != nil {
+			return nil, err
+		}
+		cond[cdc.name] = val.Interface()
+	}
+	return cond, nil
 }

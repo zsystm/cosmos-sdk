@@ -32,20 +32,21 @@ func TestMessageCodec(t *testing.T) {
 		Map:      map[string]uint32{"abc": 4},
 		Msg:      &testpb.B{X: "foo"},
 		Repeated: []uint32{1, 2, 4, 7, 9},
-		Sum:      &testpb.A_Oneof{Oneof: 3},
+		Sum:      &testpb.A_Oneof{Oneof: 47},
+		Str:      "boo",
 	}
 	y := &testpb.A{U32: 12, I32: 8,
 		Map:      map[string]uint32{"wah": 37},
 		Msg:      &testpb.B{X: "bar"},
 		Repeated: []uint32{2, 4, 7, 9, 1},
-		Sum:      &testpb.A_Oneof{Oneof: 12},
+		Sum:      &testpb.A_Oneof{Oneof: 3},
 	}
 	origJson, err := protojson.Marshal(x)
 	t.Logf("orig:%s", origJson)
 
-	sch.Save(x)
+	sch.save(x)
 	assert.NilError(t, sch.Error())
-	sch.Save(y)
+	sch.save(y)
 	assert.NilError(t, sch.Error())
 
 	var x2 testpb.A
