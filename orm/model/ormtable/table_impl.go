@@ -10,35 +10,36 @@ import (
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 
 	"google.golang.org/protobuf/encoding/protojson"
-
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
+	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-type TableImpl struct {
+// tableImpl implements Table.
+type tableImpl struct {
 	*PrimaryKeyIndex
-	indexers              []Indexer
+	indexers              []indexer
 	indexes               []Index
 	indexesByFields       map[FieldNames]concreteIndex
 	uniqueIndexesByFields map[FieldNames]UniqueIndex
-	indexesById           map[uint32]concreteIndex
+	entryCodecsById       map[uint32]ormkv.EntryCodec
 	tablePrefix           []byte
 	typeResolver          TypeResolver
-	customImportValidator func(message proto.Message) error
+	customJSONValidator   func(message proto.Message) error
 }
 
-type TypeResolver interface {
-	protoregistry.MessageTypeResolver
-	protoregistry.ExtensionTypeResolver
+func (t tableImpl) Save(store kvstore.IndexCommitmentStore, message proto.Message, mode SaveMode) error {
+	writer := store.NewWriter()
+	defer writer.Close()
+	hooks, _ := store.(Hooks)
+	return t.doSave(writer, hooks, message, mode)
 }
 
-func (t TableImpl) Save(store kvstore.IndexCommitmentStore, message proto.Message, mode SaveMode) error {
+func (t tableImpl) doSave(writer kvstore.IndexCommitmentStoreWriter, hooks Hooks, message proto.Message, mode SaveMode) error {
 	mref := message.ProtoReflect()
 	pkValues, pk, err := t.EncodeKeyFromMessage(mref)
 	if err != nil {
@@ -46,18 +47,32 @@ func (t TableImpl) Save(store kvstore.IndexCommitmentStore, message proto.Messag
 	}
 
 	existing := mref.New().Interface()
-	haveExisting, err := t.GetByKeyBytes(store, pk, pkValues, existing)
+	haveExisting, err := t.GetByKeyBytes(writer, pk, pkValues, existing)
 	if err != nil {
 		return err
 	}
 
 	if haveExisting {
-		if mode == SAVE_MODE_CREATE {
-			return sdkerrors.Wrapf(ormerrors.PrimaryKeyConstraintViolation, "%q", mref.Descriptor().FullName())
+		if mode == SAVE_MODE_INSERT {
+			return sdkerrors.Wrapf(ormerrors.PrimaryKeyConstraintViolation, "%q:%+v", mref.Descriptor().FullName(), pkValues)
+		}
+
+		if hooks != nil {
+			err = hooks.OnUpdate(existing, message)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		if mode == SAVE_MODE_UPDATE {
 			return ormerrors.NotFoundOnUpdate.Wrapf("%q", mref.Descriptor().FullName())
+		}
+
+		if hooks != nil {
+			err = hooks.OnInsert(message)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -66,20 +81,19 @@ func (t TableImpl) Save(store kvstore.IndexCommitmentStore, message proto.Messag
 
 	// store object
 	bz, err := proto.MarshalOptions{Deterministic: true}.Marshal(message)
-	err = store.CommitmentStore().Set(pk, bz)
+	err = writer.CommitmentStoreWriter().Set(pk, bz)
 	if err != nil {
 		return err
 	}
 
 	// set primary key again
-
 	t.SetKeyValues(mref, pkValues)
 
 	// set indexes
-	indexStore := store.IndexStore()
+	indexStoreWriter := writer.IndexStoreWriter()
 	if !haveExisting {
 		for _, idx := range t.indexers {
-			err = idx.OnCreate(indexStore, mref)
+			err = idx.onInsert(indexStoreWriter, mref)
 			if err != nil {
 				return err
 			}
@@ -88,17 +102,17 @@ func (t TableImpl) Save(store kvstore.IndexCommitmentStore, message proto.Messag
 	} else {
 		existingMref := existing.ProtoReflect()
 		for _, idx := range t.indexers {
-			err = idx.OnUpdate(indexStore, mref, existingMref)
+			err = idx.onUpdate(indexStoreWriter, mref, existingMref)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	return nil
+	return writer.Write()
 }
 
-func (t TableImpl) Delete(store kvstore.IndexCommitmentStore, primaryKey []protoreflect.Value) error {
+func (t tableImpl) Delete(store kvstore.IndexCommitmentStore, primaryKey []protoreflect.Value) error {
 	pk, err := t.EncodeKey(primaryKey)
 	if err != nil {
 		return err
@@ -114,61 +128,99 @@ func (t TableImpl) Delete(store kvstore.IndexCommitmentStore, primaryKey []proto
 		return nil
 	}
 
+	if hooks, ok := store.(Hooks); ok {
+		err = hooks.OnDelete(msg)
+		if err != nil {
+			return err
+		}
+	}
+
 	// delete object
-	err = store.CommitmentStore().Delete(pk)
+	writer := store.NewWriter()
+	defer writer.Close()
+	err = writer.CommitmentStoreWriter().Delete(pk)
 	if err != nil {
 		return err
 	}
 
 	// clear indexes
 	mref := msg.ProtoReflect()
-	indexStore := store.IndexStore()
+	indexStoreWriter := writer.IndexStoreWriter()
 	for _, idx := range t.indexers {
-		err := idx.OnDelete(indexStore, mref)
+		err := idx.onDelete(indexStoreWriter, mref)
 		if err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return writer.Write()
 }
 
-func (t TableImpl) GetIndex(fields FieldNames) Index {
+func (t tableImpl) GetIndex(fields FieldNames) Index {
 	return t.indexesByFields[fields]
 }
 
-func (t TableImpl) GetUniqueIndex(fields FieldNames) UniqueIndex {
+func (t tableImpl) GetUniqueIndex(fields FieldNames) UniqueIndex {
 	return t.uniqueIndexesByFields[fields]
 }
 
-func (t TableImpl) Indexes() []Index {
+func (t tableImpl) Indexes() []Index {
 	return t.indexes
 }
 
-func (t TableImpl) DefaultJSON() json.RawMessage {
+func (t tableImpl) DefaultJSON() json.RawMessage {
 	return json.RawMessage("[]")
 }
 
-func (t TableImpl) decodeJson(reader io.Reader, onMsg func(message proto.Message) error) error {
-	decoder := json.NewDecoder(reader)
-	token, err := decoder.Token()
+func (t tableImpl) decodeJson(reader io.Reader, onMsg func(message proto.Message) error) error {
+	decoder, err := t.startDecodeJson(reader)
 	if err != nil {
 		return err
 	}
 
-	if token != json.Delim('[') {
-		return ormerrors.JSONImportError.Wrapf("expected [ got %s", token)
+	return t.doDecodeJson(decoder, nil, onMsg)
+}
+
+func (t tableImpl) startDecodeJson(reader io.Reader) (*json.Decoder, error) {
+	decoder := json.NewDecoder(reader)
+	token, err := decoder.Token()
+	if err != nil {
+		return nil, err
 	}
 
+	if token != json.Delim('[') {
+		return nil, ormerrors.JSONImportError.Wrapf("expected [ got %s", token)
+	}
+
+	return decoder, nil
+}
+
+// onFirst is called on the first RawMessage and used for auto-increment tables
+// to decode the sequence in which case it should return true.
+// onMsg is called on every decoded message
+func (t tableImpl) doDecodeJson(decoder *json.Decoder, onFirst func(message json.RawMessage) bool, onMsg func(message proto.Message) error) error {
+	unmarshalOptions := protojson.UnmarshalOptions{Resolver: t.typeResolver}
+
+	first := true
 	for decoder.More() {
 		var rawJson json.RawMessage
-		err = decoder.Decode(&rawJson)
+		err := decoder.Decode(&rawJson)
 		if err != nil {
 			return ormerrors.JSONImportError.Wrapf("%s", err)
 		}
 
+		if first {
+			first = false
+			if onFirst != nil {
+				if onFirst(rawJson) {
+					// if onFirst handled this, skip decoding into a proto message
+					continue
+				}
+			}
+		}
+
 		msg := t.MessageType().New().Interface()
-		err = protojson.UnmarshalOptions{Resolver: t.typeResolver}.Unmarshal(rawJson, msg)
+		err = unmarshalOptions.Unmarshal(rawJson, msg)
 		if err != nil {
 			return err
 		}
@@ -179,7 +231,7 @@ func (t TableImpl) decodeJson(reader io.Reader, onMsg func(message proto.Message
 		}
 	}
 
-	token, err = decoder.Token()
+	token, err := decoder.Token()
 	if err != nil {
 		return err
 	}
@@ -191,7 +243,10 @@ func (t TableImpl) decodeJson(reader io.Reader, onMsg func(message proto.Message
 	return nil
 }
 
-func DefaultImportValidator(message proto.Message) error {
+// DefaultJSONValidator is the default validator used when calling
+// Table.ValidateJSON(). It will call methods with the signature `ValidateBasic() error`
+// and/or `Validate() error` to validate the message.
+func DefaultJSONValidator(message proto.Message) error {
 	if v, ok := message.(interface{ ValidateBasic() error }); ok {
 		err := v.ValidateBasic()
 		if err != nil {
@@ -209,35 +264,42 @@ func DefaultImportValidator(message proto.Message) error {
 	return nil
 }
 
-func (t TableImpl) ValidateJSON(reader io.Reader) error {
+func (t tableImpl) ValidateJSON(reader io.Reader) error {
 	return t.decodeJson(reader, func(message proto.Message) error {
-		if t.customImportValidator != nil {
-			return t.customImportValidator(message)
+		if t.customJSONValidator != nil {
+			return t.customJSONValidator(message)
 		} else {
-			return DefaultImportValidator(message)
+			return DefaultJSONValidator(message)
 		}
 	})
 }
 
-func (t TableImpl) ImportJSON(store kvstore.IndexCommitmentStore, reader io.Reader) error {
+func (t tableImpl) ImportJSON(store kvstore.IndexCommitmentStore, reader io.Reader) error {
 	return t.decodeJson(reader, func(message proto.Message) error {
 		return t.Save(store, message, SAVE_MODE_DEFAULT)
 	})
 }
 
-func (t TableImpl) ExportJSON(store kvstore.IndexCommitmentReadStore, writer io.Writer) error {
+func (t tableImpl) ExportJSON(store kvstore.IndexCommitmentReadStore, writer io.Writer) error {
 	_, err := writer.Write([]byte("["))
 	if err != nil {
 		return err
 	}
 
+	return t.doExportJSON(store, writer)
+}
+
+func (t tableImpl) doExportJSON(store kvstore.IndexCommitmentReadStore, writer io.Writer) error {
+	marshalOptions := protojson.MarshalOptions{
+		UseProtoNames: true,
+		Resolver:      t.typeResolver,
+	}
+
+	var err error
 	it, _ := t.PrefixIterator(store, nil, IteratorOptions{})
 	start := true
 	for {
-		found, err := it.Next()
-		if err != nil {
-			return err
-		}
+		found := it.Next()
 
 		if !found {
 			_, err = writer.Write([]byte("]"))
@@ -256,7 +318,7 @@ func (t TableImpl) ExportJSON(store kvstore.IndexCommitmentReadStore, writer io.
 			return err
 		}
 
-		bz, err := protojson.Marshal(msg)
+		bz, err := marshalOptions.Marshal(msg)
 		if err != nil {
 			return err
 		}
@@ -269,7 +331,7 @@ func (t TableImpl) ExportJSON(store kvstore.IndexCommitmentReadStore, writer io.
 	}
 }
 
-func (t TableImpl) DecodeKV(k, v []byte) (ormkv.Entry, error) {
+func (t tableImpl) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 	r := bytes.NewReader(k)
 	if bytes.HasPrefix(k, t.tablePrefix) {
 		err := ormkv.SkipPrefix(r, t.tablePrefix)
@@ -290,7 +352,7 @@ func (t TableImpl) DecodeKV(k, v []byte) (ormkv.Entry, error) {
 			return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("uint32 varint id out of range %d", id)
 		}
 
-		idx, ok := t.indexesById[uint32(id)]
+		idx, ok := t.entryCodecsById[uint32(id)]
 		if !ok {
 			return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("can't find field with id %d", id)
 		}
@@ -301,7 +363,7 @@ func (t TableImpl) DecodeKV(k, v []byte) (ormkv.Entry, error) {
 	}
 }
 
-func (t TableImpl) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
+func (t tableImpl) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	switch entry := entry.(type) {
 	case *ormkv.PrimaryKeyEntry:
 		return t.PrimaryKeyCodec.EncodeEntry(entry)
@@ -317,4 +379,4 @@ func (t TableImpl) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	}
 }
 
-var _ Table = &TableImpl{}
+var _ Table = &tableImpl{}

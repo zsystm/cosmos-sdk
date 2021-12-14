@@ -24,7 +24,7 @@ func (u UniqueKeyIndex) PrefixIterator(store kvstore.IndexCommitmentReadStore, p
 		return nil, err
 	}
 
-	return prefixIterator(store.ReadIndexStore(), store, u, prefixBz, options)
+	return prefixIterator(store.IndexStoreReader(), store, u, prefixBz, options)
 }
 
 func (u UniqueKeyIndex) RangeIterator(store kvstore.IndexCommitmentReadStore, start, end []protoreflect.Value, options IteratorOptions) (Iterator, error) {
@@ -44,7 +44,9 @@ func (u UniqueKeyIndex) RangeIterator(store kvstore.IndexCommitmentReadStore, st
 		return nil, err
 	}
 
-	return rangeIterator(store.ReadIndexStore(), store, u, startBz, endBz, options)
+	fullEndKey := len(keyCodec.GetFieldNames()) == len(end)
+
+	return rangeIterator(store.IndexStoreReader(), store, u, startBz, endBz, fullEndKey, options)
 }
 
 func (u UniqueKeyIndex) doNotImplement() {}
@@ -55,7 +57,7 @@ func (u UniqueKeyIndex) Has(store kvstore.IndexCommitmentReadStore, keyValues []
 		return false, err
 	}
 
-	return store.ReadIndexStore().Has(key)
+	return store.IndexStoreReader().Has(key)
 }
 
 func (u UniqueKeyIndex) Get(store kvstore.IndexCommitmentReadStore, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {
@@ -64,7 +66,7 @@ func (u UniqueKeyIndex) Get(store kvstore.IndexCommitmentReadStore, keyValues []
 		return false, err
 	}
 
-	value, err := store.ReadIndexStore().Get(key)
+	value, err := store.IndexStoreReader().Get(key)
 	if err != nil {
 		return false, err
 	}
@@ -82,7 +84,7 @@ func (u UniqueKeyIndex) Get(store kvstore.IndexCommitmentReadStore, keyValues []
 	return u.primaryKey.Get(store, pk, message)
 }
 
-func (u UniqueKeyIndex) OnCreate(store kvstore.Store, message protoreflect.Message) error {
+func (u UniqueKeyIndex) onInsert(store kvstore.Writer, message protoreflect.Message) error {
 	k, v, err := u.EncodeKVFromMessage(message)
 	if err != nil {
 		return err
@@ -100,7 +102,7 @@ func (u UniqueKeyIndex) OnCreate(store kvstore.Store, message protoreflect.Messa
 	return store.Set(k, v)
 }
 
-func (u UniqueKeyIndex) OnUpdate(store kvstore.Store, new, existing protoreflect.Message) error {
+func (u UniqueKeyIndex) onUpdate(store kvstore.Writer, new, existing protoreflect.Message) error {
 	keyCodec := u.GetKeyCodec()
 	newValues := keyCodec.GetKeyValues(new)
 	existingValues := keyCodec.GetKeyValues(existing)
@@ -140,7 +142,7 @@ func (u UniqueKeyIndex) OnUpdate(store kvstore.Store, new, existing protoreflect
 	return store.Set(newKey, value)
 }
 
-func (u UniqueKeyIndex) OnDelete(store kvstore.Store, message protoreflect.Message) error {
+func (u UniqueKeyIndex) onDelete(store kvstore.Writer, message protoreflect.Message) error {
 	_, key, err := u.GetKeyCodec().EncodeKeyFromMessage(message)
 	if err != nil {
 		return err
@@ -149,7 +151,7 @@ func (u UniqueKeyIndex) OnDelete(store kvstore.Store, message protoreflect.Messa
 	return store.Delete(key)
 }
 
-func (u UniqueKeyIndex) ReadValueFromIndexKey(store kvstore.IndexCommitmentReadStore, primaryKey []protoreflect.Value, _ []byte, message proto.Message) error {
+func (u UniqueKeyIndex) readValueFromIndexKey(store kvstore.IndexCommitmentReadStore, primaryKey []protoreflect.Value, _ []byte, message proto.Message) error {
 	found, err := u.primaryKey.Get(store, primaryKey, message)
 	if err != nil {
 		return err
@@ -162,5 +164,23 @@ func (u UniqueKeyIndex) ReadValueFromIndexKey(store kvstore.IndexCommitmentReadS
 	return nil
 }
 
-var _ Indexer = &UniqueKeyIndex{}
+var _ indexer = &UniqueKeyIndex{}
 var _ UniqueIndex = &UniqueKeyIndex{}
+
+// isNonTrivialUniqueKey checks if unique key fields are non-trivial, meaning that they
+// don't contain the full primary key. If they contain the full primary key, then
+// we can just use a regular index because there is no new unique constraint.
+func isNonTrivialUniqueKey(fields []protoreflect.Name, primaryKeyFields []protoreflect.Name) bool {
+	have := map[protoreflect.Name]bool{}
+	for _, field := range fields {
+		have[field] = true
+	}
+
+	for _, field := range primaryKeyFields {
+		if !have[field] {
+			return true
+		}
+	}
+
+	return false
+}
