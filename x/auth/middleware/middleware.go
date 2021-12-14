@@ -83,6 +83,8 @@ func NewDefaultTxHandler(options TxHandlerOptions) (tx.Handler, error) {
 		// that reads the GasMeter. In our case, the Recovery middleware reads
 		// the GasMeter to populate GasInfo.
 		GasTxMiddleware,
+		// Branch out MultiStore in DeliverTx and commit if no error returned.
+		PersistTxMiddleware,
 		// Recover from panics. Panics outside of this middleware won't be
 		// caught, be careful!
 		RecoveryTxMiddleware,
