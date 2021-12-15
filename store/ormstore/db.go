@@ -3,36 +3,46 @@ package ormstore
 import (
 	"context"
 
+	"google.golang.org/protobuf/reflect/protoreflect"
+
 	"github.com/cosmos/cosmos-sdk/orm"
+	"github.com/cosmos/cosmos-sdk/orm/model/ormschema"
 	"github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type StoreKeyDB struct {
 	key    *types.KVStoreKey
-	schema orm.Schema
+	schema ormschema.Schema
 }
 
-func (s StoreKeyDB) OpenRead(ctx context.Context) (*orm.ReadClient, error) {
+func NewStoreKeyDB(key *types.KVStoreKey, prefix []byte, fileDescriptors []protoreflect.FileDescriptor) (*StoreKeyDB, error) {
+	schema, err := ormschema.NewModuleSchema(fileDescriptors, ormschema.ModuleSchemaOptions{
+		Prefix: prefix,
+	})
+	return &StoreKeyDB{key: key, schema: schema}, err
+}
+
+func (s StoreKeyDB) OpenRead(ctx context.Context) (*orm.ReadDB, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := sdkCtx.KVStore(s.key)
 	wrapper := &kvStoreBackend{
 		store: store,
 	}
-	return &orm.ReadClient{
+	return &orm.ReadDB{
 		Schema:      s.schema,
 		ReadBackend: wrapper,
 	}, nil
 }
 
-func (s StoreKeyDB) Open(ctx context.Context) (*orm.Client, error) {
+func (s StoreKeyDB) Open(ctx context.Context) (*orm.DB, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := sdkCtx.KVStore(s.key)
 	wrapper := &kvStoreBackend{
 		store: store,
 	}
-	return &orm.Client{
-		ReadClient: &orm.ReadClient{
+	return &orm.DB{
+		ReadDB: &orm.ReadDB{
 			Schema:      s.schema,
 			ReadBackend: wrapper,
 		},
@@ -40,4 +50,4 @@ func (s StoreKeyDB) Open(ctx context.Context) (*orm.Client, error) {
 	}, nil
 }
 
-var _ orm.DB = StoreKeyDB{}
+var _ orm.DBConnection = StoreKeyDB{}

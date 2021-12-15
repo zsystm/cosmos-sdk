@@ -218,7 +218,7 @@ func (x *QueryGroupAccountInfoResponse) GetInfo() *GroupAccountInfo {
 	return nil
 }
 
-// QueryGroupMembersRequest is the Query/GroupMembersRequest request type.
+// QueryGroupMembersRequest is the Query/GroupMembers request type.
 type QueryGroupMembersRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -334,7 +334,7 @@ func (x *QueryGroupMembersResponse) GetPagination() *v1beta1.PageResponse {
 	return nil
 }
 
-// QueryGroupsByAdminRequest is the Query/GroupsByAdminRequest request type.
+// QueryGroupsByAdminRequest is the Query/GroupsByAdmin request type.
 type QueryGroupsByAdminRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -896,7 +896,7 @@ func (x *QueryProposalsByGroupAccountResponse) GetPagination() *v1beta1.PageResp
 	return nil
 }
 
-// QueryVoteByProposalVoterResponse is the Query/VoteByProposalVoter request type.
+// QueryVoteByProposalVoterRequest is the Query/VoteByProposalVoter request type.
 type QueryVoteByProposalVoterRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1003,7 +1003,7 @@ func (x *QueryVoteByProposalVoterResponse) GetVote() *Vote {
 	return nil
 }
 
-// QueryVotesByProposalResponse is the Query/VotesByProposal request type.
+// QueryVotesByProposalRequest is the Query/VotesByProposal request type.
 type QueryVotesByProposalRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1119,7 +1119,7 @@ func (x *QueryVotesByProposalResponse) GetPagination() *v1beta1.PageResponse {
 	return nil
 }
 
-// QueryVotesByVoterResponse is the Query/VotesByVoter request type.
+// QueryVotesByVoterRequest is the Query/VotesByVoter request type.
 type QueryVotesByVoterRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

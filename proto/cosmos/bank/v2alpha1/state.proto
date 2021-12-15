@@ -1,0 +1,26 @@
+syntax = "proto3";
+package cosmos.bank.v2alpha1;
+
+import "cosmos/orm/v1alpha1/orm.proto";
+
+message Balance {
+  option (orm.v1alpha1.table) = {
+    id: 1;
+    primary_key:{ fields: "address,denom" }
+    index: { id: 1 fields: "denom" }
+  };
+
+  bytes address = 1;
+  string denom = 2;
+  string amount = 3;
+}
+
+message Supply {
+  option (orm.v1alpha1.table) = {
+    id: 1;
+    primary_key:{ fields: "denom" }
+  };
+
+  string denom = 1;
+  string supply = 2;
+}

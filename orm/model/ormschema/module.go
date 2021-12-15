@@ -3,6 +3,7 @@ package ormschema
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"math"
 	"sort"
 
@@ -10,13 +11,15 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 
-	ormv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/v1alpha1"
 	"google.golang.org/protobuf/proto"
+
+	ormv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/v1alpha1"
+
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type ModuleSchema struct {
@@ -191,4 +194,15 @@ func (m ModuleSchema) AutoMigrate(store kvstore.Backend) error {
 	return nil
 }
 
+func (m ModuleSchema) GetTable(message proto.Message) (ormtable.Table, error) {
+	tableName := message.ProtoReflect().Descriptor().FullName()
+	table, ok := m.tablesByName[tableName]
+	if !ok {
+		return nil, fmt.Errorf("table %T not found", tableName)
+	}
+
+	return table, nil
+}
+
 var _ ormkv.EntryCodec = &ModuleSchema{}
+var _ Schema = &ModuleSchema{}

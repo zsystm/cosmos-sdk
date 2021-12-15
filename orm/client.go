@@ -3,6 +3,8 @@ package orm
 import (
 	"google.golang.org/protobuf/proto"
 
+	"github.com/cosmos/cosmos-sdk/orm/model/ormschema"
+
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormlist"
@@ -10,21 +12,17 @@ import (
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 )
 
-type ReadClient struct {
-	Schema      Schema
+type ReadDB struct {
+	Schema      ormschema.Schema
 	ReadBackend kvstore.ReadBackend
 }
 
-type Client struct {
-	*ReadClient
+type DB struct {
+	*ReadDB
 	Backend kvstore.Backend
 }
 
-type Schema interface {
-	GetTable(message proto.Message) (ormtable.Table, error)
-}
-
-func (c ReadClient) Get(message proto.Message, fieldNames ormtable.FieldNames, fields ...interface{}) (found bool, err error) {
+func (c ReadDB) Get(message proto.Message, fieldNames ormtable.FieldNames, fields ...interface{}) (found bool, err error) {
 	table, err := c.Schema.GetTable(message)
 	if err != nil {
 		return false, err
@@ -42,7 +40,7 @@ func (c ReadClient) Get(message proto.Message, fieldNames ormtable.FieldNames, f
 	return index.Get(c.ReadBackend, encodeutil.ValuesOf(fields...), message)
 }
 
-func (c ReadClient) Has(message proto.Message, fieldNames ormtable.FieldNames, fields ...interface{}) (found bool, err error) {
+func (c ReadDB) Has(message proto.Message, fieldNames ormtable.FieldNames, fields ...interface{}) (found bool, err error) {
 	table, err := c.Schema.GetTable(message)
 	if err != nil {
 		return false, err
@@ -60,7 +58,7 @@ func (c ReadClient) Has(message proto.Message, fieldNames ormtable.FieldNames, f
 	return index.Has(c.ReadBackend, encodeutil.ValuesOf(fields...))
 }
 
-func (c Client) Save(message proto.Message) error {
+func (c DB) Save(message proto.Message) error {
 	table, err := c.Schema.GetTable(message)
 	if err != nil {
 		return err
@@ -69,7 +67,7 @@ func (c Client) Save(message proto.Message) error {
 	return table.Save(c.Backend, message, ormtable.SAVE_MODE_DEFAULT)
 }
 
-func (c Client) Insert(message proto.Message) error {
+func (c DB) Insert(message proto.Message) error {
 	table, err := c.Schema.GetTable(message)
 	if err != nil {
 		return err
@@ -78,7 +76,7 @@ func (c Client) Insert(message proto.Message) error {
 	return table.Save(c.Backend, message, ormtable.SAVE_MODE_INSERT)
 }
 
-func (c Client) Update(message proto.Message) error {
+func (c DB) Update(message proto.Message) error {
 	table, err := c.Schema.GetTable(message)
 	if err != nil {
 		return err
@@ -87,7 +85,7 @@ func (c Client) Update(message proto.Message) error {
 	return table.Save(c.Backend, message, ormtable.SAVE_MODE_UPDATE)
 }
 
-func (c Client) Delete(message proto.Message) error {
+func (c DB) Delete(message proto.Message) error {
 	table, err := c.Schema.GetTable(message)
 	if err != nil {
 		return err
@@ -96,7 +94,7 @@ func (c Client) Delete(message proto.Message) error {
 	return table.DeleteMessage(c.Backend, message)
 }
 
-func (c ReadClient) List(message proto.Message, options ...ormlist.Option) (ormtable.Iterator, error) {
+func (c ReadDB) List(message proto.Message, options ...ormlist.Option) (ormtable.Iterator, error) {
 	table, err := c.Schema.GetTable(message)
 	if err != nil {
 		return nil, err
