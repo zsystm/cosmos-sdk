@@ -379,4 +379,8 @@ func (t tableImpl) ID() uint32 {
 	return t.tableId
 }
 
+func (t tableImpl) AutoMigrate(kvstore.Backend) error {
+	return nil
+}
+
 var _ Table = &tableImpl{}

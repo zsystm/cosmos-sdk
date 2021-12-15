@@ -105,6 +105,8 @@ type Table interface {
 
 	// ID is the ID of this table within the schema of its FileDescriptor.
 	ID() uint32
+
+	AutoMigrate(kvstore.Backend) error
 }
 
 // SaveMode defines the save mode for the Table.Save() method.

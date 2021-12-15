@@ -6,6 +6,8 @@ import (
 	"math"
 	"sort"
 
+	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
+
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 
 	ormv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/v1alpha1"
@@ -46,7 +48,7 @@ func NewModuleSchema(fileDescriptors []protoreflect.FileDescriptor, options Modu
 
 	// the schema subspace is a private part of the store used for storing
 	// important schema information for migrations and introspection
-	schemaPrefix := ormtable.AppendVarUInt32(prefix, schemaSubspaceId)
+	schemaPrefix := encodeutil.AppendVarUInt32(prefix, schemaSubspaceId)
 	schemaSubspace, err := NewFileDescriptorSchema(ormv1alpha1.File_cosmos_orm_v1alpha1_schema_proto, FileDescriptorSchemaOptions{
 		Prefix:       schemaPrefix,
 		ID:           1,
@@ -96,7 +98,7 @@ func NewModuleSchema(fileDescriptors []protoreflect.FileDescriptor, options Modu
 
 func (m ModuleSchema) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 	r := bytes.NewReader(k)
-	err := ormkv.SkipPrefix(r, m.prefix)
+	err := encodeutil.SkipPrefix(r, m.prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +138,7 @@ func (m ModuleSchema) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	return table.EncodeEntry(entry)
 }
 
-func (m ModuleSchema) AutoMigrate(store kvstore.IndexCommitmentStore) error {
+func (m ModuleSchema) AutoMigrate(store kvstore.Backend) error {
 	moduleFileTable := m.schemaSubspace.GetTable(&ormv1alpha1.ModuleFileTable{})
 	if moduleFileTable == nil {
 		return ormerrors.UnexpectedError.Wrapf("missing ModuleFileTable")
@@ -153,7 +155,7 @@ func (m ModuleSchema) AutoMigrate(store kvstore.IndexCommitmentStore) error {
 		file := m.filesById[id]
 
 		var existing ormv1alpha1.ModuleFileTable
-		found, err := moduleFileTable.Get(store, ormkv.ValuesOf(id), &existing)
+		found, err := moduleFileTable.Get(store, encodeutil.ValuesOf(id), &existing)
 		if err != nil {
 			return err
 		}

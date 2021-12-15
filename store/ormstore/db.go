@@ -20,8 +20,8 @@ func (s StoreKeyDB) OpenRead(ctx context.Context) (*orm.ReadClient, error) {
 		store: store,
 	}
 	return &orm.ReadClient{
-		Schema: s.schema,
-		Store:  wrapper,
+		Schema:      s.schema,
+		ReadBackend: wrapper,
 	}, nil
 }
 
@@ -33,10 +33,10 @@ func (s StoreKeyDB) Open(ctx context.Context) (*orm.Client, error) {
 	}
 	return &orm.Client{
 		ReadClient: &orm.ReadClient{
-			Schema: s.schema,
-			Store:  wrapper,
+			Schema:      s.schema,
+			ReadBackend: wrapper,
 		},
-		Store: wrapper,
+		Backend: wrapper,
 	}, nil
 }
 

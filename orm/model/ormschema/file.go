@@ -7,6 +7,8 @@ import (
 	"math"
 	"sort"
 
+	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
+
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
@@ -49,7 +51,7 @@ func NewFileDescriptorSchema(fileDescriptor protoreflect.FileDescriptor, options
 		}
 	}
 
-	prefix := ormtable.AppendVarUInt32(options.Prefix, moduleFileId)
+	prefix := encodeutil.AppendVarUInt32(options.Prefix, moduleFileId)
 
 	schema := &FileDescriptorSchema{
 		id:             moduleFileId,
@@ -87,7 +89,7 @@ func NewFileDescriptorSchema(fileDescriptor protoreflect.FileDescriptor, options
 
 func (f FileDescriptorSchema) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 	r := bytes.NewReader(k)
-	err := ormkv.SkipPrefix(r, f.prefix)
+	err := encodeutil.SkipPrefix(r, f.prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +125,7 @@ func (f FileDescriptorSchema) GetTable(message proto.Message) ormtable.Table {
 	return table
 }
 
-func (f FileDescriptorSchema) AutoMigrate(store kvstore.IndexCommitmentStore) error {
+func (f FileDescriptorSchema) AutoMigrate(store kvstore.Backend) error {
 	var sortedIds []int
 	for id := range f.tablesById {
 		sortedIds = append(sortedIds, int(id))

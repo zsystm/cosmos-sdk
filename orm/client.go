@@ -3,21 +3,21 @@ package orm
 import (
 	"google.golang.org/protobuf/proto"
 
-	"github.com/cosmos/cosmos-sdk/orm/client/list"
-	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
+	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
+	"github.com/cosmos/cosmos-sdk/orm/model/ormlist"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 )
 
 type ReadClient struct {
-	Schema Schema
-	Store  kvstore.IndexCommitmentReadStore
+	Schema      Schema
+	ReadBackend kvstore.ReadBackend
 }
 
 type Client struct {
 	*ReadClient
-	Store kvstore.IndexCommitmentStore
+	Backend kvstore.Backend
 }
 
 type Schema interface {
@@ -39,7 +39,7 @@ func (c ReadClient) Get(message proto.Message, fieldNames ormtable.FieldNames, f
 		)
 	}
 
-	return index.Get(c.Store, ormkv.ValuesOf(fields...), message)
+	return index.Get(c.ReadBackend, encodeutil.ValuesOf(fields...), message)
 }
 
 func (c ReadClient) Has(message proto.Message, fieldNames ormtable.FieldNames, fields ...interface{}) (found bool, err error) {
@@ -57,7 +57,7 @@ func (c ReadClient) Has(message proto.Message, fieldNames ormtable.FieldNames, f
 		)
 	}
 
-	return index.Has(c.Store, ormkv.ValuesOf(fields...))
+	return index.Has(c.ReadBackend, encodeutil.ValuesOf(fields...))
 }
 
 func (c Client) Save(message proto.Message) error {
@@ -66,7 +66,7 @@ func (c Client) Save(message proto.Message) error {
 		return err
 	}
 
-	return table.Save(c.Store, message, ormtable.SAVE_MODE_DEFAULT)
+	return table.Save(c.Backend, message, ormtable.SAVE_MODE_DEFAULT)
 }
 
 func (c Client) Insert(message proto.Message) error {
@@ -75,7 +75,7 @@ func (c Client) Insert(message proto.Message) error {
 		return err
 	}
 
-	return table.Save(c.Store, message, ormtable.SAVE_MODE_INSERT)
+	return table.Save(c.Backend, message, ormtable.SAVE_MODE_INSERT)
 }
 
 func (c Client) Update(message proto.Message) error {
@@ -84,7 +84,7 @@ func (c Client) Update(message proto.Message) error {
 		return err
 	}
 
-	return table.Save(c.Store, message, ormtable.SAVE_MODE_UPDATE)
+	return table.Save(c.Backend, message, ormtable.SAVE_MODE_UPDATE)
 }
 
 func (c Client) Delete(message proto.Message) error {
@@ -93,14 +93,14 @@ func (c Client) Delete(message proto.Message) error {
 		return err
 	}
 
-	return table.DeleteMessage(c.Store, message)
+	return table.DeleteMessage(c.Backend, message)
 }
 
-func (c ReadClient) List(message proto.Message, options ...list.Option) (ormtable.Iterator, error) {
+func (c ReadClient) List(message proto.Message, options ...ormlist.Option) (ormtable.Iterator, error) {
 	table, err := c.Schema.GetTable(message)
 	if err != nil {
 		return nil, err
 	}
 
-	return list.Iterator(c.Store, table, options...)
+	return ormlist.Iterator(c.ReadBackend, table, options...)
 }
