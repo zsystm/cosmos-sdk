@@ -31,7 +31,7 @@ func TestScenario(t *testing.T) {
 	assert.NilError(t, err)
 
 	// first run tests with a split index-commitment store
-	runTestScenario(t, table, testkv.NewSplitMemIndexCommitmentStore())
+	runTestScenario(t, table, testkv.NewSplitMemBackend())
 
 	// now run tests with a shared index-commitment store
 
@@ -40,8 +40,8 @@ func TestScenario(t *testing.T) {
 	// test. the golden file can be used for fine-grained debugging of kv-store
 	// layout
 	debugBuf := &strings.Builder{}
-	sharedStore := testkv.NewSharedMemIndexCommitmentStore()
-	store := testkv.NewDebugIndexCommitmentStore(
+	sharedStore := testkv.NewSharedMemBackend()
+	store := testkv.NewDebugBackend(
 		sharedStore,
 		&testkv.EntryCodecDebugger{
 			EntryCodec: table,
@@ -76,7 +76,7 @@ func checkEncodeDecodeEntries(t *testing.T, table Table, store kvstore.Reader) {
 	}
 }
 
-func runTestScenario(t *testing.T, table Table, store kvstore.IndexCommitmentStore) {
+func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	// let's create 10 data items we'll use later and give them indexes
 	data := []*testpb.ExampleTable{
 		{U32: 4, I64: -2, Str: "abc", U64: 7},  // 0
@@ -127,24 +127,24 @@ func runTestScenario(t *testing.T, table Table, store kvstore.IndexCommitmentSto
 	}
 
 	// let's do a prefix query on the primary key
-	it, err = table.PrefixIterator(store, ormkv.ValuesOf(uint32(8)), IteratorOptions{})
+	it, err = table.PrefixIterator(store, testutil.ValuesOf(uint32(8)), IteratorOptions{})
 	assert.NilError(t, err)
 	assertIteratorItems(it, 7, 8, 9)
 
 	// let's try a reverse prefix query
-	it, err = table.PrefixIterator(store, ormkv.ValuesOf(uint32(4)), IteratorOptions{Reverse: true})
+	it, err = table.PrefixIterator(store, testutil.ValuesOf(uint32(4)), IteratorOptions{Reverse: true})
 	defer it.Close()
 	assert.NilError(t, err)
 	assertIteratorItems(it, 2, 1, 0)
 
 	// let's try a range query
-	it, err = table.RangeIterator(store, ormkv.ValuesOf(uint32(4), int64(-1)), ormkv.ValuesOf(uint32(7)), IteratorOptions{})
+	it, err = table.RangeIterator(store, testutil.ValuesOf(uint32(4), int64(-1)), testutil.ValuesOf(uint32(7)), IteratorOptions{})
 	defer it.Close()
 	assert.NilError(t, err)
 	assertIteratorItems(it, 2, 3, 4, 5, 6)
 
 	// and another range query
-	it, err = table.RangeIterator(store, ormkv.ValuesOf(uint32(5), int64(-3)), ormkv.ValuesOf(uint32(8), int64(1), "abc"), IteratorOptions{})
+	it, err = table.RangeIterator(store, testutil.ValuesOf(uint32(5), int64(-3)), testutil.ValuesOf(uint32(8), int64(1), "abc"), IteratorOptions{})
 	defer it.Close()
 	assert.NilError(t, err)
 	assertIteratorItems(it, 3, 4, 5, 6, 7, 8)
@@ -154,14 +154,14 @@ func runTestScenario(t *testing.T, table Table, store kvstore.IndexCommitmentSto
 	assert.NilError(t, err)
 	strU32Index := table.GetIndex(strU32Fields)
 	assert.Assert(t, strU32Index != nil)
-	it, err = strU32Index.RangeIterator(store, ormkv.ValuesOf("abc"), ormkv.ValuesOf("abd"), IteratorOptions{Reverse: true})
+	it, err = strU32Index.RangeIterator(store, testutil.ValuesOf("abc"), testutil.ValuesOf("abd"), IteratorOptions{Reverse: true})
 	assertIteratorItems(it, 9, 3, 1, 8, 7, 2, 0)
 
 	// another prefix query forwards
-	it, err = strU32Index.PrefixIterator(store, ormkv.ValuesOf("abe", uint32(7)), IteratorOptions{})
+	it, err = strU32Index.PrefixIterator(store, testutil.ValuesOf("abe", uint32(7)), IteratorOptions{})
 	assertIteratorItems(it, 5, 6)
 	// and backwards
-	it, err = strU32Index.PrefixIterator(store, ormkv.ValuesOf("abc", uint32(4)), IteratorOptions{Reverse: true})
+	it, err = strU32Index.PrefixIterator(store, testutil.ValuesOf("abc", uint32(4)), IteratorOptions{Reverse: true})
 	assertIteratorItems(it, 2, 0)
 
 	// try an unique index
@@ -169,11 +169,11 @@ func runTestScenario(t *testing.T, table Table, store kvstore.IndexCommitmentSto
 	assert.NilError(t, err)
 	u64StrIndex := table.GetUniqueIndex(u64StrFields)
 	assert.Assert(t, u64StrIndex != nil)
-	found, err := u64StrIndex.Has(store, ormkv.ValuesOf(uint64(12), "abc"))
+	found, err := u64StrIndex.Has(store, testutil.ValuesOf(uint64(12), "abc"))
 	assert.NilError(t, err)
 	assert.Assert(t, found)
 	var a testpb.ExampleTable
-	found, err = u64StrIndex.Get(store, ormkv.ValuesOf(uint64(12), "abc"), &a)
+	found, err = u64StrIndex.Get(store, testutil.ValuesOf(uint64(12), "abc"), &a)
 	assert.NilError(t, err)
 	assert.Assert(t, found)
 	assert.DeepEqual(t, data[8], &a, protocmp.Transform())
@@ -270,8 +270,8 @@ func runTestScenario(t *testing.T, table Table, store kvstore.IndexCommitmentSto
 		PageRequest: &query.PageRequest{
 			Limit: 10,
 		},
-		Start: ormkv.ValuesOf(uint32(4), int64(-1), "abc"),
-		End:   ormkv.ValuesOf(uint32(7), int64(-2), "abe"),
+		Start: testutil.ValuesOf(uint32(4), int64(-1), "abc"),
+		End:   testutil.ValuesOf(uint32(7), int64(-2), "abe"),
 	})
 	assert.NilError(t, err)
 	assert.Assert(t, res != nil)
@@ -354,14 +354,14 @@ func runTestScenario(t *testing.T, table Table, store kvstore.IndexCommitmentSto
 	data = append(data, &testpb.ExampleTable{U32: 9})
 	err = table.Save(store, data[10], SAVE_MODE_DEFAULT)
 	assert.NilError(t, err)
-	found, err = table.Get(store, ormkv.ValuesOf(uint32(9), int64(0), ""), &a)
+	found, err = table.Get(store, testutil.ValuesOf(uint32(9), int64(0), ""), &a)
 	assert.NilError(t, err)
 	assert.Assert(t, found)
 	assert.DeepEqual(t, data[10], &a, protocmp.Transform())
 	// and update it
 	data[10].B = true
 	assert.NilError(t, table.Save(store, data[10], SAVE_MODE_DEFAULT))
-	found, err = table.Get(store, ormkv.ValuesOf(uint32(9), int64(0), ""), &a)
+	found, err = table.Get(store, testutil.ValuesOf(uint32(9), int64(0), ""), &a)
 	assert.NilError(t, err)
 	assert.Assert(t, found)
 	assert.DeepEqual(t, data[10], &a, protocmp.Transform())
@@ -374,12 +374,12 @@ func runTestScenario(t *testing.T, table Table, store kvstore.IndexCommitmentSto
 	buf := &bytes.Buffer{}
 	assert.NilError(t, table.ExportJSON(store, buf))
 	assert.NilError(t, table.ValidateJSON(bytes.NewReader(buf.Bytes())))
-	store2 := testkv.NewSplitMemIndexCommitmentStore()
+	store2 := testkv.NewSplitMemBackend()
 	assert.NilError(t, table.ImportJSON(store2, bytes.NewReader(buf.Bytes())))
 	assertTablesEqual(t, table, store, store2)
 
 	// let's delete item 5
-	key5 := ormkv.ValuesOf(uint32(7), int64(-2), "abe")
+	key5 := testutil.ValuesOf(uint32(7), int64(-2), "abe")
 	err = table.Delete(store, key5)
 	assert.NilError(t, err)
 	// it should be gone
@@ -532,7 +532,7 @@ func TableDataGen(elemGen *rapid.Generator, n int) *rapid.Generator {
 		}
 
 		data := make([]proto.Message, n)
-		store := testkv.NewSplitMemIndexCommitmentStore()
+		store := testkv.NewSplitMemBackend()
 
 		for i := 0; i < n; {
 			message = elemGen.Draw(t, fmt.Sprintf("message[%d]", i)).(proto.Message)
@@ -557,7 +557,7 @@ func TableDataGen(elemGen *rapid.Generator, n int) *rapid.Generator {
 type TableData struct {
 	table Table
 	data  []proto.Message
-	store kvstore.IndexCommitmentStore
+	store kvstore.Backend
 }
 
 type IndexModel struct {
@@ -594,7 +594,7 @@ func TestJSONExportImport(t *testing.T) {
 		MessageType: (&testpb.ExampleTable{}).ProtoReflect().Type(),
 	})
 	assert.NilError(t, err)
-	store := testkv.NewSplitMemIndexCommitmentStore()
+	store := testkv.NewSplitMemBackend()
 
 	for i := 0; i < 100; {
 		x := testutil.GenA.Example().(proto.Message)
@@ -612,13 +612,13 @@ func TestJSONExportImport(t *testing.T) {
 
 	assert.NilError(t, table.ValidateJSON(bytes.NewReader(buf.Bytes())))
 
-	store2 := testkv.NewSplitMemIndexCommitmentStore()
+	store2 := testkv.NewSplitMemBackend()
 	assert.NilError(t, table.ImportJSON(store2, bytes.NewReader(buf.Bytes())))
 
 	assertTablesEqual(t, table, store, store2)
 }
 
-func assertTablesEqual(t assert.TestingT, table Table, store, store2 kvstore.IndexCommitmentReadStore) {
+func assertTablesEqual(t assert.TestingT, table Table, store, store2 kvstore.ReadBackend) {
 	it, err := table.PrefixIterator(store, nil, IteratorOptions{})
 	assert.NilError(t, err)
 	it2, err := table.PrefixIterator(store2, nil, IteratorOptions{})
@@ -639,71 +639,4 @@ func assertTablesEqual(t assert.TestingT, table Table, store, store2 kvstore.Ind
 
 		assert.DeepEqual(t, msg1, msg2, protocmp.Transform())
 	}
-}
-
-func TestHooks(t *testing.T) {
-	table, err := Build(Options{
-		MessageType: (&testpb.ExampleTable{}).ProtoReflect().Type(),
-	})
-	assert.NilError(t, err)
-
-	store := testkv.NewSharedMemIndexCommitmentStore()
-	storeWithHooks := &testHooks{
-		IndexCommitmentStore: store,
-	}
-
-	a := &testpb.ExampleTable{U32: 10, I64: -1, Str: "foo"}
-	a2 := &testpb.ExampleTable{U32: 10, I64: -1, Str: "foo", E: testpb.Enum_ENUM_FIVE}
-
-	assert.NilError(t, table.Save(storeWithHooks, a, SAVE_MODE_INSERT))
-	assert.NilError(t, table.Save(storeWithHooks, a2, SAVE_MODE_UPDATE))
-	assert.NilError(t, table.Delete(storeWithHooks, ormkv.ValuesOf(uint32(10), int64(-1), "foo")))
-
-	events := storeWithHooks.events
-	assert.Equal(t, 3, len(events))
-	assert.Equal(t, "insert", events[0].event)
-	assert.DeepEqual(t, a, events[0].message, protocmp.Transform())
-	assert.Equal(t, "update", events[1].event)
-	assert.DeepEqual(t, a, events[1].existing, protocmp.Transform())
-	assert.DeepEqual(t, a2, events[1].message, protocmp.Transform())
-	assert.Equal(t, "delete", events[2].event)
-	assert.DeepEqual(t, a2, events[2].message, protocmp.Transform())
-}
-
-type testHooks struct {
-	kvstore.IndexCommitmentStore
-	events []*testEvent
-}
-
-func (t *testHooks) OnInsert(message proto.Message) error {
-	t.events = append(t.events, &testEvent{
-		event:   "insert",
-		message: message,
-	})
-	return nil
-}
-
-func (t *testHooks) OnUpdate(existing, new proto.Message) error {
-	t.events = append(t.events, &testEvent{
-		event:    "update",
-		message:  new,
-		existing: existing,
-	})
-	return nil
-}
-
-func (t *testHooks) OnDelete(message proto.Message) error {
-	t.events = append(t.events, &testEvent{
-		event:   "delete",
-		message: message,
-	})
-	return nil
-}
-
-var _ Hooks = &testHooks{}
-
-type testEvent struct {
-	event    string
-	message  proto.Message
-	existing proto.Message
 }

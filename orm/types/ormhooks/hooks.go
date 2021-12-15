@@ -1,4 +1,4 @@
-package ormtable
+package ormhooks
 
 import "google.golang.org/protobuf/proto"
 

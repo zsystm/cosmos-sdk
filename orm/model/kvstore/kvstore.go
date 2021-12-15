@@ -1,6 +1,10 @@
 package kvstore
 
-import dbm "github.com/tendermint/tm-db"
+import (
+	dbm "github.com/tendermint/tm-db"
+
+	"github.com/cosmos/cosmos-sdk/orm/types/ormhooks"
+)
 
 // Reader is an interface for readonly access to a kv-store.
 type Reader interface {
@@ -29,9 +33,10 @@ type Reader interface {
 	ReverseIterator(start, end []byte) (Iterator, error)
 }
 
-// Writer is an interface for writing to a kv-store. It shouldn't be assumed
-// the writes are automatically readable with this interface, but instead
-// that writes are batched and must be committed.
+// Iterator aliases github.com/tendermint/tm-db.Iterator.
+type Iterator = dbm.Iterator
+
+// Writer is an interface for writing to a kv-store.
 type Writer interface {
 	Reader
 
@@ -44,51 +49,38 @@ type Writer interface {
 	Delete(key []byte) error
 }
 
-// IndexCommitmentReadStore is a read-only version of IndexCommitmentStore.
-type IndexCommitmentReadStore interface {
+// Store combines reader and writer.
+type Store interface {
+	Reader
+	Writer
+}
+
+// ReadBackend is the kv-store backend that the ORM uses for readonly operations.
+type ReadBackend interface {
 	CommitmentStoreReader() Reader
 	IndexStoreReader() Reader
 }
 
-// IndexCommitmentStore is a wrapper around two stores - an index store
+// Backend is the kv-store backend that the ORM uses for state mutations.
+//
+// It is primarily a wrapper around two stores - an index store
 // which does not need to be back by a merkle-tree and a commitment store
 // which should be backed by a merkle-tree if possible. This abstraction allows
 // the ORM access the two stores as a single data layer, storing all secondary
 // index data in the index layer for efficiency and only storing primary records
 // in the commitment store.
-type IndexCommitmentStore interface {
-	IndexCommitmentReadStore
+//
+// Backend can optionally contain hooks to listen to ORM operations directly.
+type Backend interface {
+	ReadBackend
 
-	// NewWriter returns a new IndexCommitmentStoreWriter. It is expected that
-	// each writer represents a batch of writes that will be written atomically
-	// to the underlying store when the writer's Write method is called. This
-	// should usually be done with a batching layer on top of any
-	// transaction-level isolation as writes do not need to be readable until
-	// after the writer is done.
-	NewWriter() IndexCommitmentStoreWriter
+	// CommitmentStore returns the merklized commitment store.
+	CommitmentStore() Store
+
+	// IndexStore returns the index store if a separate one exists,
+	// otherwise it the commitment store.
+	IndexStore() Store
+
+	// ORMHooks returns a Hooks instance or nil.
+	ORMHooks() ormhooks.Hooks
 }
-
-// IndexCommitmentStoreWriter is an interface which allows writing to the
-// commitment and index stores and committing them in a unified way.
-type IndexCommitmentStoreWriter interface {
-	IndexCommitmentReadStore
-
-	// CommitmentStoreWriter returns a writer for the merklized commitment store.
-	CommitmentStoreWriter() Writer
-
-	// IndexStoreWriter returns a writer for the index store if a separate one exists,
-	// otherwise it returns a writer for commitment store.
-	IndexStoreWriter() Writer
-
-	// Write flushes pending writes to the underlying store. Reads will not
-	// be available in the underlying store until after Write has been called.
-	// Close should be the only method called on this writer after Write is called.
-	Write() error
-
-	// Close should be called whenever the caller is done with this writer.
-	// If Write was not called beforehand, the write batch is discarded.
-	Close()
-}
-
-// Iterator aliases github.com/tendermint/tm-db.Iterator.
-type Iterator = dbm.Iterator
