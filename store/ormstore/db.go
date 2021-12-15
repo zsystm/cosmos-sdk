@@ -16,7 +16,7 @@ type StoreKeyDB struct {
 func (s StoreKeyDB) OpenRead(ctx context.Context) (*orm.ReadClient, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := sdkCtx.KVStore(s.key)
-	wrapper := &kvStoreStore{
+	wrapper := &kvStoreBackend{
 		store: store,
 	}
 	return &orm.ReadClient{
@@ -28,7 +28,7 @@ func (s StoreKeyDB) OpenRead(ctx context.Context) (*orm.ReadClient, error) {
 func (s StoreKeyDB) Open(ctx context.Context) (*orm.Client, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := sdkCtx.KVStore(s.key)
-	wrapper := &kvStoreStore{
+	wrapper := &kvStoreBackend{
 		store: store,
 	}
 	return &orm.Client{

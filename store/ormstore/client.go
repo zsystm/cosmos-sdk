@@ -2,99 +2,63 @@ package ormstore
 
 import (
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
+	"github.com/cosmos/cosmos-sdk/orm/types/ormhooks"
 	"github.com/cosmos/cosmos-sdk/store/types"
 )
 
-type kvStoreStore struct {
+type kvStoreBackend struct {
 	store types.KVStore
 }
 
-type kvStoreWriter struct {
-	*kvStoreStore
-	batch []*writeEntry
-}
-
-func (k kvStoreWriter) Set(key, value []byte) error {
-	k.batch = append(k.batch, &writeEntry{
-		key:   key,
-		value: value,
-	})
+func (k kvStoreBackend) Set(key, value []byte) error {
+	k.store.Set(key, value)
 	return nil
 }
 
-func (k kvStoreWriter) Delete(key []byte) error {
-	k.batch = append(k.batch, &writeEntry{
-		key:    key,
-		delete: true,
-	})
+func (k kvStoreBackend) Delete(key []byte) error {
+	k.store.Delete(key)
 	return nil
 }
 
-func (k kvStoreWriter) CommitmentStoreWriter() kvstore.Writer {
+func (k kvStoreBackend) CommitmentStore() kvstore.Store {
 	return k
 }
 
-func (k kvStoreWriter) IndexStoreWriter() kvstore.Writer {
+func (k kvStoreBackend) IndexStore() kvstore.Store {
 	return k
 }
 
-func (k *kvStoreWriter) Write() error {
-	for _, entry := range k.batch {
-		if entry.delete {
-			k.store.Delete(entry.key)
-		} else {
-			k.store.Set(entry.key, entry.value)
-		}
-	}
-	k.batch = nil
-	return nil
+func (k kvStoreBackend) ORMHooks() ormhooks.Hooks {
+	//TODO implement me
+	panic("implement me")
 }
 
-func (k kvStoreWriter) Close() {
-	k.batch = nil
-}
-
-type writeEntry struct {
-	key    []byte
-	value  []byte
-	delete bool
-}
-
-func (k kvStoreStore) CommitmentStoreReader() kvstore.Reader {
+func (k kvStoreBackend) CommitmentStoreReader() kvstore.Reader {
 	return k
 }
 
-func (k kvStoreStore) IndexStoreReader() kvstore.Reader {
+func (k kvStoreBackend) IndexStoreReader() kvstore.Reader {
 	return k
 }
 
-func (k *kvStoreStore) NewWriter() kvstore.IndexCommitmentStoreWriter {
-	entries := make([]*writeEntry, 0, 16) // default capacity of 16 for index key updates
-	return &kvStoreWriter{
-		kvStoreStore: k,
-		batch:        entries,
-	}
-}
-
-func (k kvStoreStore) Get(key []byte) ([]byte, error) {
+func (k kvStoreBackend) Get(key []byte) ([]byte, error) {
 	x := k.store.Get(key)
 	return x, nil
 }
 
-func (k kvStoreStore) Has(key []byte) (bool, error) {
+func (k kvStoreBackend) Has(key []byte) (bool, error) {
 	x := k.store.Has(key)
 	return x, nil
 }
 
-func (k kvStoreStore) Iterator(start, end []byte) (kvstore.Iterator, error) {
+func (k kvStoreBackend) Iterator(start, end []byte) (kvstore.Iterator, error) {
 	x := k.store.Iterator(start, end)
 	return x, nil
 }
 
-func (k kvStoreStore) ReverseIterator(start, end []byte) (kvstore.Iterator, error) {
+func (k kvStoreBackend) ReverseIterator(start, end []byte) (kvstore.Iterator, error) {
 	x := k.store.ReverseIterator(start, end)
 	return x, nil
 }
 
-var _ kvstore.Reader = &kvStoreStore{}
-var _ kvstore.IndexCommitmentStore = &kvStoreStore{}
+var _ kvstore.Backend = &kvStoreBackend{}
