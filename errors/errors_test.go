@@ -29,12 +29,12 @@ func (s *errorsTestSuite) TestCause() {
 		root error
 	}{
 		"Errors are self-causing": {
-			err:  ErrUnauthorized,
-			root: ErrUnauthorized,
+			err:  errUnauthorized,
+			root: errUnauthorized,
 		},
 		"Wrap reveals root cause": {
-			err:  Wrap(ErrUnauthorized, "foo"),
-			root: ErrUnauthorized,
+			err:  Wrap(errUnauthorized, "foo"),
+			root: errUnauthorized,
 		},
 		"Cause works for stderr as root": {
 			err:  Wrap(std, "Some helpful text"),
@@ -54,32 +54,32 @@ func (s *errorsTestSuite) TestErrorIs() {
 		wantIs bool
 	}{
 		"instance of the same error": {
-			a:      ErrUnauthorized,
-			b:      ErrUnauthorized,
+			a:      errUnauthorized,
+			b:      errUnauthorized,
 			wantIs: true,
 		},
 		"two different coded errors": {
-			a:      ErrUnauthorized,
-			b:      ErrOutOfGas,
+			a:      errUnauthorized,
+			b:      errOutOfGas,
 			wantIs: false,
 		},
 		"successful comparison to a wrapped error": {
-			a:      ErrUnauthorized,
-			b:      errors.Wrap(ErrUnauthorized, "gone"),
+			a:      errUnauthorized,
+			b:      errors.Wrap(errUnauthorized, "gone"),
 			wantIs: true,
 		},
 		"unsuccessful comparison to a wrapped error": {
-			a:      ErrUnauthorized,
-			b:      errors.Wrap(ErrInsufficientFee, "too big"),
+			a:      errUnauthorized,
+			b:      errors.Wrap(errInsufficientFee, "too big"),
 			wantIs: false,
 		},
 		"not equal to stdlib error": {
-			a:      ErrUnauthorized,
+			a:      errUnauthorized,
 			b:      fmt.Errorf("stdlib error"),
 			wantIs: false,
 		},
 		"not equal to a wrapped stdlib error": {
-			a:      ErrUnauthorized,
+			a:      errUnauthorized,
 			b:      errors.Wrap(fmt.Errorf("stdlib error"), "wrapped"),
 			wantIs: false,
 		},
@@ -95,54 +95,14 @@ func (s *errorsTestSuite) TestErrorIs() {
 		},
 		"nil is not not-nil": {
 			a:      nil,
-			b:      ErrUnauthorized,
+			b:      errUnauthorized,
 			wantIs: false,
 		},
 		"not-nil is not nil": {
-			a:      ErrUnauthorized,
+			a:      errUnauthorized,
 			b:      nil,
 			wantIs: false,
 		},
-		// "multierr with the same error": {
-		// 	a:      ErrUnauthorized,
-		// 	b:      Append(ErrUnauthorized, ErrState),
-		// 	wantIs: true,
-		// },
-		// "multierr with random order": {
-		// 	a:      ErrUnauthorized,
-		// 	b:      Append(ErrState, ErrUnauthorized),
-		// 	wantIs: true,
-		// },
-		// "multierr with wrapped err": {
-		// 	a:      ErrUnauthorized,
-		// 	b:      Append(ErrState, Wrap(ErrUnauthorized, "test")),
-		// 	wantIs: true,
-		// },
-		// "multierr with nil error": {
-		// 	a:      ErrUnauthorized,
-		// 	b:      Append(nil, nil),
-		// 	wantIs: false,
-		// },
-		// "multierr with different error": {
-		// 	a:      ErrUnauthorized,
-		// 	b:      Append(ErrState, nil),
-		// 	wantIs: false,
-		// },
-		// "multierr from nil": {
-		// 	a:      nil,
-		// 	b:      Append(ErrState, ErrUnauthorized),
-		// 	wantIs: false,
-		// },
-		// "field error wrapper": {
-		// 	a:      ErrEmpty,
-		// 	b:      Field("name", ErrEmpty, "name is required"),
-		// 	wantIs: true,
-		// },
-		// "nil field error wrapper": {
-		// 	a:      nil,
-		// 	b:      Field("name", nil, "name is required"),
-		// 	wantIs: true,
-		// },
 	}
 	for testName, tc := range cases {
 		s.Require().Equal(tc.wantIs, tc.a.Is(tc.b), testName)
@@ -153,7 +113,7 @@ func (s *errorsTestSuite) TestIsOf() {
 	require := s.Require()
 
 	var errNil *Error
-	var err = ErrInvalidAddress
+	var err = errInvalidAddress
 	var errW = Wrap(ErrLogic, "more info")
 
 	require.False(IsOf(errNil), "nil error should always have no causer")
@@ -192,7 +152,7 @@ func (s *errorsTestSuite) TestWrappedIs() {
 	err = Wrap(err, "even more context")
 	require.True(stdlib.Is(err, ErrTxTooLarge))
 
-	err = Wrap(ErrInsufficientFee, "...")
+	err = Wrap(errInsufficientFee, "...")
 	require.False(stdlib.Is(err, ErrTxTooLarge))
 
 	errs := stdlib.New("other")
@@ -201,10 +161,10 @@ func (s *errorsTestSuite) TestWrappedIs() {
 	errw := &wrappedError{"msg", errs}
 	require.True(errw.Is(errw), "should match itself")
 
-	require.True(stdlib.Is(ErrInsufficientFee.Wrap("wrapped"), ErrInsufficientFee))
-	require.True(IsOf(ErrInsufficientFee.Wrap("wrapped"), ErrInsufficientFee))
-	require.True(stdlib.Is(ErrInsufficientFee.Wrapf("wrapped"), ErrInsufficientFee))
-	require.True(IsOf(ErrInsufficientFee.Wrapf("wrapped"), ErrInsufficientFee))
+	require.True(stdlib.Is(errInsufficientFee.Wrap("wrapped"), errInsufficientFee))
+	require.True(IsOf(errInsufficientFee.Wrap("wrapped"), errInsufficientFee))
+	require.True(stdlib.Is(errInsufficientFee.Wrapf("wrapped"), errInsufficientFee))
+	require.True(IsOf(errInsufficientFee.Wrapf("wrapped"), errInsufficientFee))
 }
 
 func (s *errorsTestSuite) TestWrappedIsMultiple() {
@@ -242,13 +202,13 @@ func (s *errorsTestSuite) TestWrappedUnwrapFail() {
 }
 
 func (s *errorsTestSuite) TestABCIError() {
-	s.Require().Equal("custom: tx parse error", ABCIError(RootCodespace, 2, "custom").Error())
+	s.Require().Equal("custom: tx parse error", ABCIError(testCodespace, 2, "custom").Error())
 	s.Require().Equal("custom: unknown", ABCIError("unknown", 1, "custom").Error())
 }
 
 func ExampleWrap() {
-	err1 := Wrap(ErrInsufficientFunds, "90 is smaller than 100")
-	err2 := errors.Wrap(ErrInsufficientFunds, "90 is smaller than 100")
+	err1 := Wrap(errInsufficientFunds, "90 is smaller than 100")
+	err2 := errors.Wrap(errInsufficientFunds, "90 is smaller than 100")
 	fmt.Println(err1.Error())
 	fmt.Println(err2.Error())
 	// Output:
@@ -257,8 +217,8 @@ func ExampleWrap() {
 }
 
 func ExampleWrapf() {
-	err1 := Wrap(ErrInsufficientFunds, "90 is smaller than 100")
-	err2 := errors.Wrap(ErrInsufficientFunds, "90 is smaller than 100")
+	err1 := Wrap(errInsufficientFunds, "90 is smaller than 100")
+	err2 := errors.Wrap(errInsufficientFunds, "90 is smaller than 100")
 	fmt.Println(err1.Error())
 	fmt.Println(err2.Error())
 	// Output:
