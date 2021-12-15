@@ -4,6 +4,15 @@ package cosmos.orm.v1alpha1;
 
 import "google/protobuf/descriptor.proto";
 
+extend google.protobuf.FileOptions {
+  // module_file_id assigns an ID to a .proto file which should be unique
+  // within the scope of a module's .proto files. It will be used as the default
+  // value in assigning IDs to FileDescriptor's used in the ORM's schema and
+  // can be overridden manually in case there is any conflict or the value is
+  // missing.
+  uint32 module_file_id = 104503792;
+}
+
 extend google.protobuf.MessageOptions {
 
   // table specifies that this message will be used as an ORM table. It cannot

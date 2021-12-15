@@ -3,6 +3,8 @@ package ormkv
 import (
 	"bytes"
 	"io"
+
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // SkipPrefix skips the provided prefix in the reader or returns an error.
@@ -16,4 +18,13 @@ func SkipPrefix(r *bytes.Reader, prefix []byte) error {
 		return err
 	}
 	return nil
+}
+
+func ValuesOf(values ...interface{}) []protoreflect.Value {
+	n := len(values)
+	res := make([]protoreflect.Value, n)
+	for i := 0; i < n; i++ {
+		res[i] = protoreflect.ValueOf(values[i])
+	}
+	return res
 }

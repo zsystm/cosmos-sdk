@@ -3,6 +3,7 @@ syntax = "proto3";
 package cosmos.orm.v1alpha1;
 
 import "google/protobuf/descriptor.proto";
+import "cosmos/orm/v1alpha1/orm.proto";
 
 // SchemaDescriptor describes an ORM schema that contains all the information
 // needed for a dynamic client to decode the stored data.
@@ -36,8 +37,25 @@ message SchemaDescriptor {
     // table keys specified in the file's tables.
     uint32 id = 1;
 
-    // file_name is the name of a file in the FileDescriptor set that contains
+    // file_name is the name of a file in the FileDescriptorSet that contains
     // table definitions.
     string file_name = 2;
   }
+}
+
+// ModuleFileTable defines a table that is stored internally in each module
+// to track the files in the schema and the IDs they are assigned.
+message ModuleFileTable {
+  option (table) = {
+    id: 1
+    primary_key: { fields: "id" }
+    index:{ id: 1 fields: "file_name" unique: true }
+  };
+
+  // id is the id of this FileDescriptor in
+  uint32 id = 1;
+
+  // file_name is the name of a file in the FileDescriptorSet that contains
+  // table definitions.
+  string file_name = 2;
 }

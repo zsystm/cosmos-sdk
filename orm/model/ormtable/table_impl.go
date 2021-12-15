@@ -14,7 +14,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
-	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -28,6 +27,7 @@ type tableImpl struct {
 	uniqueIndexesByFields map[FieldNames]UniqueIndex
 	entryCodecsById       map[uint32]ormkv.EntryCodec
 	tablePrefix           []byte
+	tableId               uint32
 	typeResolver          TypeResolver
 	customJSONValidator   func(message proto.Message) error
 }
@@ -333,34 +333,26 @@ func (t tableImpl) doExportJSON(store kvstore.IndexCommitmentReadStore, writer i
 
 func (t tableImpl) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 	r := bytes.NewReader(k)
-	if bytes.HasPrefix(k, t.tablePrefix) {
-		err := ormkv.SkipPrefix(r, t.tablePrefix)
-		if err != nil {
-			return nil, err
-		}
-
-		id, err := binary.ReadUvarint(r)
-		if err != nil {
-			return nil, err
-		}
-
-		if id == 0 {
-			return t.PrimaryKeyCodec.DecodeEntry(k, v)
-		}
-
-		if id > math.MaxUint32 {
-			return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("uint32 varint id out of range %d", id)
-		}
-
-		idx, ok := t.entryCodecsById[uint32(id)]
-		if !ok {
-			return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("can't find field with id %d", id)
-		}
-
-		return idx.DecodeEntry(k, v)
-	} else {
-		return nil, ormerrors.UnexpectedDecodePrefix
+	err := ormkv.SkipPrefix(r, t.tablePrefix)
+	if err != nil {
+		return nil, err
 	}
+
+	id, err := binary.ReadUvarint(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if id > math.MaxUint32 {
+		return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("uint32 varint id out of range %d", id)
+	}
+
+	idx, ok := t.entryCodecsById[uint32(id)]
+	if !ok {
+		return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("can't find field with id %d", id)
+	}
+
+	return idx.DecodeEntry(k, v)
 }
 
 func (t tableImpl) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
@@ -377,6 +369,10 @@ func (t tableImpl) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	default:
 		return nil, nil, ormerrors.BadDecodeEntry.Wrapf("%s", entry)
 	}
+}
+
+func (t tableImpl) ID() uint32 {
+	return t.tableId
 }
 
 var _ Table = &tableImpl{}

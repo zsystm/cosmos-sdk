@@ -3,7 +3,6 @@ package ormfield
 import (
 	"encoding/binary"
 	io "io"
-	"math"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -15,14 +14,16 @@ type Int64Codec struct{}
 
 var int64Codec = Int64Codec{}
 
+const int64Max = 9223372036854775807
+
 func (i Int64Codec) Decode(r Reader) (protoreflect.Value, error) {
 	var x uint64
 	err := binary.Read(r, binary.BigEndian, &x)
-	if x >= math.MaxInt64 {
-		x = x - math.MaxInt64 - 1
+	if x >= int64Max {
+		x = x - int64Max - 1
 		return protoreflect.ValueOfInt64(int64(x)), err
 	} else {
-		y := int64(x) - math.MaxInt64 - 1
+		y := int64(x) - int64Max - 1
 		return protoreflect.ValueOfInt64(y), err
 	}
 }
@@ -30,10 +31,10 @@ func (i Int64Codec) Decode(r Reader) (protoreflect.Value, error) {
 func (i Int64Codec) Encode(value protoreflect.Value, w io.Writer) error {
 	x := value.Int()
 	if x >= -1 {
-		y := uint64(x) + math.MaxInt64 + 1
+		y := uint64(x) + int64Max + 1
 		return binary.Write(w, binary.BigEndian, y)
 	} else {
-		x += math.MaxInt64
+		x += int64Max
 		x += 1
 		return binary.Write(w, binary.BigEndian, uint64(x))
 	}

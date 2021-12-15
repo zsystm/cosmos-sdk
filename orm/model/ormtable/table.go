@@ -93,6 +93,11 @@ type Table interface {
 	// Auto-incrementing tables will export the last sequence number as the
 	// first element in the JSON array.
 	ExportJSON(kvstore.IndexCommitmentReadStore, io.Writer) error
+
+	AutoMigrate(kvstore.IndexCommitmentStore) error
+
+	// ID is the ID of this table within the schema of its FileDescriptor.
+	ID() uint32
 }
 
 // SaveMode defines the save mode for the Table.Save() method.
