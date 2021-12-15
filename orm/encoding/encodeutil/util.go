@@ -1,7 +1,8 @@
-package ormkv
+package encodeutil
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -20,6 +21,17 @@ func SkipPrefix(r *bytes.Reader, prefix []byte) error {
 	return nil
 }
 
+// AppendVarUInt32 creates a new key prefix, by encoding and appending a
+// var-uint32 to the provided prefix.
+func AppendVarUInt32(prefix []byte, x uint32) []byte {
+	prefixLen := len(prefix)
+	res := make([]byte, prefixLen+binary.MaxVarintLen32)
+	copy(res, prefix)
+	n := binary.PutUvarint(res[prefixLen:], uint64(x))
+	return res[:prefixLen+n]
+}
+
+// ValuesOf takes the arguments and converts them to protoreflect.Value's.
 func ValuesOf(values ...interface{}) []protoreflect.Value {
 	n := len(values)
 	res := make([]protoreflect.Value, n)
