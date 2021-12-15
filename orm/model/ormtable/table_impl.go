@@ -160,6 +160,11 @@ func (t tableImpl) Delete(store kvstore.IndexCommitmentStore, primaryKey []proto
 	return writer.Write()
 }
 
+func (t tableImpl) DeleteMessage(store kvstore.IndexCommitmentStore, message proto.Message) error {
+	pk := t.PrimaryKeyCodec.GetKeyValues(message.ProtoReflect())
+	return t.Delete(store, pk)
+}
+
 func (t tableImpl) GetIndex(fields FieldNames) Index {
 	return t.indexesByFields[fields]
 }

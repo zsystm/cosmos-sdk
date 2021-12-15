@@ -8,10 +8,10 @@ import (
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
+	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 )
 
-func fieldsCamelCase(fields ormkv.Fields) {
+func fieldsCamelCase(fields ormtable.FieldNames) {
 	strcase.ToCamel(fields.String())
 }
 

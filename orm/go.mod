@@ -4,10 +4,16 @@ go 1.17
 
 require (
 	github.com/cosmos/cosmos-proto v1.0.0-alpha4
+	github.com/cosmos/cosmos-sdk v0.44.5
 	github.com/cosmos/cosmos-sdk/api v0.1.0-alpha1
 	github.com/cosmos/cosmos-sdk/errors v0.0.0
+	github.com/graphql-go/graphql v0.8.0
+	github.com/iancoleman/strcase v0.2.0
 	github.com/tendermint/tm-db v0.6.4
 	google.golang.org/protobuf v1.27.1
+	gorm.io/datatypes v1.0.4
+	gorm.io/driver/sqlite v1.2.6
+	gorm.io/gorm v1.22.4
 	gotest.tools/v3 v3.0.3
 	pgregory.net/rapid v0.4.7
 )
@@ -30,11 +36,10 @@ require (
 	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/go-cmp v0.5.5 // indirect
-	github.com/graphql-go/graphql v0.8.0 // indirect
-	github.com/iancoleman/strcase v0.2.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.3 // indirect
 	github.com/jmhodges/levigo v1.0.0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.9 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sasha-s/go-deadlock v0.2.1-0.20190427202633-1595213edefa // indirect
@@ -48,12 +53,10 @@ require (
 	golang.org/x/sys v0.0.0-20210903071746-97244b99971b // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/genproto v0.0.0-20210828152312-66f60bf46e71 // indirect
+	google.golang.org/genproto v0.0.0-20211129164237-f09f9a12af12 // indirect
 	google.golang.org/grpc v1.42.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gorm.io/datatypes v1.0.4 // indirect
 	gorm.io/driver/mysql v1.2.1 // indirect
-	gorm.io/gorm v1.22.4 // indirect
 )
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1

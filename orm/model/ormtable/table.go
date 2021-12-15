@@ -57,6 +57,9 @@ type Table interface {
 	// be called.
 	Delete(store kvstore.IndexCommitmentStore, primaryKey []protoreflect.Value) error
 
+	// DeleteMessage calls delete with the primary key extracted from the provided message.
+	DeleteMessage(store kvstore.IndexCommitmentStore, message proto.Message) error
+
 	// DefaultJSON returns default JSON that can be used as a template for
 	// genesis files.
 	//
