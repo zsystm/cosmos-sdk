@@ -3,8 +3,6 @@ package ormgraphql
 import (
 	"github.com/graphql-go/graphql"
 	"google.golang.org/protobuf/reflect/protoreflect"
-
-	"github.com/cosmos/cosmos-sdk/orm/backend/kv"
 )
 
 type Builder struct {
@@ -52,13 +50,13 @@ func (b *Builder) Build() (graphql.Schema, error) {
 	})
 }
 
-func Execute(schema graphql.Schema, store kv.ReadMultiStore, requestString string) {
-	graphql.Do(graphql.Params{
-		Schema:         schema,
-		RequestString:  "",
-		RootObject:     nil,
-		VariableValues: nil,
-		OperationName:  "",
-		Context:        nil,
-	})
-}
+//func Execute(schema graphql.Schema, store kv.ReadMultiStore, requestString string) {
+//	graphql.Do(graphql.Params{
+//		Schema:         schema,
+//		RequestString:  "",
+//		RootObject:     nil,
+//		VariableValues: nil,
+//		OperationName:  "",
+//		Context:        nil,
+//	})
+//}

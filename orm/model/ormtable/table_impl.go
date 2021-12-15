@@ -15,7 +15,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // tableImpl implements Table.
@@ -30,6 +29,11 @@ type tableImpl struct {
 	tableId               uint32
 	typeResolver          TypeResolver
 	customJSONValidator   func(message proto.Message) error
+}
+
+func (t tableImpl) AutoMigrate(store kvstore.IndexCommitmentStore) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (t tableImpl) Save(store kvstore.IndexCommitmentStore, message proto.Message, mode SaveMode) error {
@@ -54,7 +58,7 @@ func (t tableImpl) doSave(writer kvstore.IndexCommitmentStoreWriter, hooks Hooks
 
 	if haveExisting {
 		if mode == SAVE_MODE_INSERT {
-			return sdkerrors.Wrapf(ormerrors.PrimaryKeyConstraintViolation, "%q:%+v", mref.Descriptor().FullName(), pkValues)
+			return ormerrors.PrimaryKeyConstraintViolation.Wrapf("%q:%+v", mref.Descriptor().FullName(), pkValues)
 		}
 
 		if hooks != nil {
