@@ -366,3 +366,11 @@ func (t tableImpl) ID() uint32 {
 }
 
 var _ Table = &tableImpl{}
+
+type saveMode int
+
+const (
+	saveModeDefault saveMode = iota
+	saveModeInsert
+	saveModeUpdate
+)

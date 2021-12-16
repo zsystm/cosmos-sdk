@@ -105,20 +105,3 @@ type Table interface {
 	// ID is the ID of this table within the schema of its FileDescriptor.
 	ID() uint32
 }
-
-// saveMode defines the save mode for the Table.Save() method.
-type saveMode int
-
-const (
-	// saveModeDefault instructs Table.Save() to insert or update the
-	// entry depending on whether or not the entry already exists in the store.
-	saveModeDefault saveMode = iota
-
-	// saveModeInsert instructs Table.Save() to insert the entry or return
-	// an error if an entry with the same primary key already exists.
-	saveModeInsert
-
-	// saveModeUpdate instructs Table.Save() to update the entry or return
-	// an error if an entry with the same primary key does not already exist.
-	saveModeUpdate
-)
