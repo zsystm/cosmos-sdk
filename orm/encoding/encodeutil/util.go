@@ -33,12 +33,6 @@ func AppendVarUInt32(prefix []byte, x uint32) []byte {
 
 // ValuesOf takes the arguments and converts them to protoreflect.Value's.
 func ValuesOf(values ...interface{}) []protoreflect.Value {
-	if len(values) == 1 {
-		if refValues, ok := values[0].([]protoreflect.Value); ok {
-			return refValues
-		}
-	}
-
 	n := len(values)
 	res := make([]protoreflect.Value, n)
 	for i := 0; i < n; i++ {

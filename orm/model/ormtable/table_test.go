@@ -384,11 +384,11 @@ func runTestScenario(t *testing.T, table ormtable.Table, ctx context.Context) {
 	assertTablesEqual(t, table, ctx, store2)
 
 	// let's delete item 5
-	key5 := encodeutil.ValuesOf(uint32(7), int64(-2), "abe")
-	err = table.Delete(ctx, key5)
+	key5 := []interface{}{uint32(7), int64(-2), "abe"}
+	err = table.Delete(ctx, key5...)
 	assert.NilError(t, err)
 	// it should be gone
-	found, err = table.Has(ctx, key5)
+	found, err = table.Has(ctx, key5...)
 	assert.NilError(t, err)
 	assert.Assert(t, !found)
 	// and missing from the iterator
@@ -423,12 +423,17 @@ func testUniqueIndex(t *testing.T, model *IndexModel) {
 		ks, _, err := index.(ormkv.IndexCodec).EncodeKeyFromMessage(x.ProtoReflect())
 		assert.NilError(t, err)
 
-		found, err := index.Has(model.context, ks)
+		values := make([]interface{}, len(ks))
+		for i := 0; i < len(ks); i++ {
+			values[i] = ks[i].Interface()
+		}
+
+		found, err := index.Has(model.context, values...)
 		assert.NilError(t, err)
 		assert.Assert(t, found)
 
 		msg := model.table.MessageType().New().Interface()
-		found, err = index.Get(model.context, msg, ks)
+		found, err = index.Get(model.context, msg, values...)
 		assert.NilError(t, err)
 		assert.Assert(t, found)
 		assert.DeepEqual(t, x, msg, protocmp.Transform())

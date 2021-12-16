@@ -10,7 +10,6 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
@@ -139,19 +138,21 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 	return writer.Write()
 }
 
-func (t tableImpl) Delete(context context.Context, primaryKey []protoreflect.Value) error {
+func (t tableImpl) Delete(context context.Context, primaryKeyValues ...interface{}) error {
 	ctx, err := t.getBackend(context)
 	if err != nil {
 		return err
 	}
 
-	pk, err := t.EncodeKey(primaryKey)
+	values := encodeutil.ValuesOf(primaryKeyValues...)
+
+	pk, err := t.EncodeKey(values)
 	if err != nil {
 		return err
 	}
 
 	msg := t.MessageType().New().Interface()
-	found, err := t.getByKeyBytes(ctx, pk, primaryKey, msg)
+	found, err := t.getByKeyBytes(ctx, pk, values, msg)
 	if err != nil {
 		return err
 	}

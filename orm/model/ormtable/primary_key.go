@@ -83,13 +83,12 @@ func (p primaryKeyIndex) Get(context context.Context, message proto.Message, val
 }
 
 func (p primaryKeyIndex) get(backend ReadBackend, message proto.Message, values []protoreflect.Value) (found bool, err error) {
-	keyValues := encodeutil.ValuesOf(values)
-	key, err := p.EncodeKey(keyValues)
+	key, err := p.EncodeKey(values)
 	if err != nil {
 		return false, err
 	}
 
-	return p.getByKeyBytes(backend, key, keyValues, message)
+	return p.getByKeyBytes(backend, key, values, message)
 }
 
 func (p primaryKeyIndex) getByKeyBytes(store ReadBackend, key []byte, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {

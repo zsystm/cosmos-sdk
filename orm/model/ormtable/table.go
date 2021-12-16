@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
 )
@@ -64,7 +63,7 @@ type Table interface {
 	// Delete attempts to be atomic with respect to the underlying store,
 	// meaning that either the full save operation is written or the store is
 	// left unchanged, unless there is an error with the underlying store.
-	Delete(context context.Context, primaryKey []protoreflect.Value) error
+	Delete(context context.Context, primaryKeyValues ...interface{}) error
 
 	// DeleteMessage calls delete with the primary key extracted from the provided message.
 	DeleteMessage(context context.Context, message proto.Message) error
