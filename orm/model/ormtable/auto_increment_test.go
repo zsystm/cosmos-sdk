@@ -1,4 +1,4 @@
-package ormtable
+package ormtable_test
 
 import (
 	"bytes"
@@ -6,18 +6,17 @@ import (
 	"strings"
 	"testing"
 
-	"gotest.tools/v3/golden"
+	dbm "github.com/tendermint/tm-db"
 
 	"github.com/cosmos/cosmos-sdk/orm/internal/testkv"
-	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
-
-	"gotest.tools/v3/assert"
-
 	"github.com/cosmos/cosmos-sdk/orm/internal/testpb"
+	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/golden"
 )
 
 func TestAutoIncrementScenario(t *testing.T) {
-	table, err := Build(Options{
+	table, err := ormtable.Build(ormtable.Options{
 		MessageType: (&testpb.ExampleAutoIncrementTable{}).ProtoReflect().Type(),
 	})
 	assert.NilError(t, err)
@@ -27,9 +26,8 @@ func TestAutoIncrementScenario(t *testing.T) {
 
 	// now run with shared store and debugging
 	debugBuf := &strings.Builder{}
-	sharedStore := testkv.NewSharedMemBackend()
 	store := testkv.NewDebugBackend(
-		sharedStore,
+		ormtable.ContextOptions{CommitmentStore: dbm.NewMemDB()},
 		&testkv.EntryCodecDebugger{
 			EntryCodec: table,
 			Print:      func(s string) { debugBuf.WriteString(s + "\n") },
@@ -41,26 +39,26 @@ func TestAutoIncrementScenario(t *testing.T) {
 	checkEncodeDecodeEntries(t, table, store.IndexStoreReader())
 }
 
-func runAutoIncrementScenario(t *testing.T, table Table, store kvstore.Backend) {
-	err := table.Save(store, &testpb.ExampleAutoIncrementTable{Id: 5}, SAVE_MODE_DEFAULT)
+func runAutoIncrementScenario(t *testing.T, table ormtable.Table, context ormtable.Context) {
+	err := table.Save(context, &testpb.ExampleAutoIncrementTable{Id: 5}, ormtable.SAVE_MODE_DEFAULT)
 	assert.ErrorContains(t, err, "update")
 
 	ex1 := &testpb.ExampleAutoIncrementTable{X: "foo", Y: 5}
-	assert.NilError(t, table.Save(store, ex1, SAVE_MODE_DEFAULT))
+	assert.NilError(t, table.Save(context, ex1, ormtable.SAVE_MODE_DEFAULT))
 	assert.Equal(t, uint64(1), ex1.Id)
 
 	buf := &bytes.Buffer{}
-	assert.NilError(t, table.ExportJSON(store, buf))
+	assert.NilError(t, table.ExportJSON(context, buf))
 	golden.Assert(t, string(buf.Bytes()), "auto_inc_json.golden")
 
 	assert.NilError(t, table.ValidateJSON(bytes.NewReader(buf.Bytes())))
 	store2 := testkv.NewSplitMemBackend()
 	assert.NilError(t, table.ImportJSON(store2, bytes.NewReader(buf.Bytes())))
-	assertTablesEqual(t, table, store, store2)
+	assertTablesEqual(t, table, context, store2)
 }
 
 func TestBadJSON(t *testing.T) {
-	table, err := Build(Options{
+	table, err := ormtable.Build(ormtable.Options{
 		MessageType: (&testpb.ExampleAutoIncrementTable{}).ProtoReflect().Type(),
 	})
 	assert.NilError(t, err)

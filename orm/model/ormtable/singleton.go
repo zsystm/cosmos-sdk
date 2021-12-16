@@ -5,8 +5,6 @@ import (
 	"io"
 
 	"google.golang.org/protobuf/encoding/protojson"
-
-	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 )
 
 // singleton implements a Table instance for singletons.
@@ -42,7 +40,7 @@ func (t singleton) ValidateJSON(reader io.Reader) error {
 	}
 }
 
-func (t singleton) ImportJSON(store kvstore.Backend, reader io.Reader) error {
+func (t singleton) ImportJSON(store Context, reader io.Reader) error {
 	bz, err := io.ReadAll(reader)
 	if err != nil {
 		return err
@@ -57,7 +55,7 @@ func (t singleton) ImportJSON(store kvstore.Backend, reader io.Reader) error {
 	return t.Save(store, msg, SAVE_MODE_DEFAULT)
 }
 
-func (t singleton) ExportJSON(store kvstore.ReadBackend, writer io.Writer) error {
+func (t singleton) ExportJSON(store ReadContext, writer io.Writer) error {
 	msg := t.MessageType().New().Interface()
 	found, err := t.Get(store, nil, msg)
 	if err != nil {

@@ -13,7 +13,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
-	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -32,7 +31,7 @@ type tableImpl struct {
 	customJSONValidator   func(message proto.Message) error
 }
 
-func (t tableImpl) Save(store kvstore.Backend, message proto.Message, mode SaveMode) error {
+func (t tableImpl) Save(store Context, message proto.Message, mode SaveMode) error {
 	writer := newBatchIndexCommitmentWriter(store)
 	defer writer.Close()
 	return t.doSave(writer, message, mode)
@@ -56,7 +55,7 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 			return sdkerrors.Wrapf(ormerrors.PrimaryKeyConstraintViolation, "%q:%+v", mref.Descriptor().FullName(), pkValues)
 		}
 
-		if hooks := writer.ORMHooks(); hooks != nil {
+		if hooks := writer.getHooks(); hooks != nil {
 			err = hooks.OnUpdate(existing, message)
 			if err != nil {
 				return err
@@ -67,7 +66,7 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 			return ormerrors.NotFoundOnUpdate.Wrapf("%q", mref.Descriptor().FullName())
 		}
 
-		if hooks := writer.ORMHooks(); hooks != nil {
+		if hooks := writer.getHooks(); hooks != nil {
 			err = hooks.OnInsert(message)
 			if err != nil {
 				return err
@@ -80,7 +79,7 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 
 	// store object
 	bz, err := proto.MarshalOptions{Deterministic: true}.Marshal(message)
-	err = writer.CommitmentStore().Set(pk, bz)
+	err = writer.getCommitmentStore().Set(pk, bz)
 	if err != nil {
 		return err
 	}
@@ -89,7 +88,7 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 	t.SetKeyValues(mref, pkValues)
 
 	// set indexes
-	indexStoreWriter := writer.IndexStore()
+	indexStoreWriter := writer.getIndexStore()
 	if !haveExisting {
 		for _, idx := range t.indexers {
 			err = idx.onInsert(indexStoreWriter, mref)
@@ -111,7 +110,7 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 	return writer.Write()
 }
 
-func (t tableImpl) Delete(store kvstore.Backend, primaryKey []protoreflect.Value) error {
+func (t tableImpl) Delete(store Context, primaryKey []protoreflect.Value) error {
 	pk, err := t.EncodeKey(primaryKey)
 	if err != nil {
 		return err
@@ -127,7 +126,7 @@ func (t tableImpl) Delete(store kvstore.Backend, primaryKey []protoreflect.Value
 		return nil
 	}
 
-	if hooks := store.ORMHooks(); hooks != nil {
+	if hooks := store.getHooks(); hooks != nil {
 		err = hooks.OnDelete(msg)
 		if err != nil {
 			return err
@@ -137,14 +136,14 @@ func (t tableImpl) Delete(store kvstore.Backend, primaryKey []protoreflect.Value
 	// delete object
 	writer := newBatchIndexCommitmentWriter(store)
 	defer writer.Close()
-	err = writer.CommitmentStore().Delete(pk)
+	err = writer.getCommitmentStore().Delete(pk)
 	if err != nil {
 		return err
 	}
 
 	// clear indexes
 	mref := msg.ProtoReflect()
-	indexStoreWriter := writer.IndexStore()
+	indexStoreWriter := writer.getIndexStore()
 	for _, idx := range t.indexers {
 		err := idx.onDelete(indexStoreWriter, mref)
 		if err != nil {
@@ -155,7 +154,7 @@ func (t tableImpl) Delete(store kvstore.Backend, primaryKey []protoreflect.Value
 	return writer.Write()
 }
 
-func (t tableImpl) DeleteMessage(store kvstore.Backend, message proto.Message) error {
+func (t tableImpl) DeleteMessage(store Context, message proto.Message) error {
 	pk := t.PrimaryKeyCodec.GetKeyValues(message.ProtoReflect())
 	return t.Delete(store, pk)
 }
@@ -278,13 +277,13 @@ func (t tableImpl) ValidateJSON(reader io.Reader) error {
 	})
 }
 
-func (t tableImpl) ImportJSON(store kvstore.Backend, reader io.Reader) error {
+func (t tableImpl) ImportJSON(store Context, reader io.Reader) error {
 	return t.decodeJson(reader, func(message proto.Message) error {
 		return t.Save(store, message, SAVE_MODE_DEFAULT)
 	})
 }
 
-func (t tableImpl) ExportJSON(store kvstore.ReadBackend, writer io.Writer) error {
+func (t tableImpl) ExportJSON(store ReadContext, writer io.Writer) error {
 	_, err := writer.Write([]byte("["))
 	if err != nil {
 		return err
@@ -293,7 +292,7 @@ func (t tableImpl) ExportJSON(store kvstore.ReadBackend, writer io.Writer) error
 	return t.doExportJSON(store, writer)
 }
 
-func (t tableImpl) doExportJSON(store kvstore.ReadBackend, writer io.Writer) error {
+func (t tableImpl) doExportJSON(store ReadContext, writer io.Writer) error {
 	marshalOptions := protojson.MarshalOptions{
 		UseProtoNames: true,
 		Resolver:      t.typeResolver,

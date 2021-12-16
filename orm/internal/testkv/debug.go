@@ -3,6 +3,8 @@ package testkv
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
+
 	"google.golang.org/protobuf/proto"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
@@ -20,12 +22,16 @@ type Debugger interface {
 }
 
 // NewDebugBackend wraps both stores from a Backend with a debugger.
-func NewDebugBackend(store kvstore.Backend, debugger Debugger) kvstore.Backend {
-	return &backend{
-		commitment: NewDebugStore(store.CommitmentStore(), debugger, "commit"),
-		index:      NewDebugStore(store.IndexStore(), debugger, "index"),
-		hooks:      debugHooks{debugger},
+func NewDebugBackend(options ormtable.ContextOptions, debugger Debugger) ormtable.Context {
+	indexStore := options.IndexStore
+	if indexStore == nil {
+		indexStore = options.CommitmentStore
 	}
+	return ormtable.NewContext(ormtable.ContextOptions{
+		CommitmentStore: NewDebugStore(options.CommitmentStore, debugger, "commit"),
+		IndexStore:      NewDebugStore(indexStore, debugger, "index"),
+		Hooks:           debugHooks{debugger: debugger, hooks: options.Hooks},
+	})
 }
 
 type debugStore struct {
@@ -205,6 +211,7 @@ func (d *EntryCodecDebugger) Decode(key, value []byte) string {
 
 type debugHooks struct {
 	debugger Debugger
+	hooks    ormtable.Hooks
 }
 
 func (d debugHooks) OnInsert(message proto.Message) error {
@@ -213,6 +220,9 @@ func (d debugHooks) OnInsert(message proto.Message) error {
 		message.ProtoReflect().Descriptor().FullName(),
 		message,
 	))
+	if d.hooks != nil {
+		return d.hooks.OnInsert(message)
+	}
 	return nil
 }
 
@@ -223,6 +233,9 @@ func (d debugHooks) OnUpdate(existing, new proto.Message) error {
 		existing,
 		new,
 	))
+	if d.hooks != nil {
+		return d.hooks.OnUpdate(existing, new)
+	}
 	return nil
 }
 
@@ -232,5 +245,8 @@ func (d debugHooks) OnDelete(message proto.Message) error {
 		message.ProtoReflect().Descriptor().FullName(),
 		message,
 	))
+	if d.hooks != nil {
+		return d.hooks.OnDelete(message)
+	}
 	return nil
 }

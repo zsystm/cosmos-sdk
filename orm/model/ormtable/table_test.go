@@ -1,4 +1,4 @@
-package ormtable
+package ormtable_test
 
 import (
 	"bytes"
@@ -6,6 +6,10 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	dbm "github.com/tendermint/tm-db"
+
+	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
 
@@ -26,7 +30,7 @@ import (
 )
 
 func TestScenario(t *testing.T) {
-	table, err := Build(Options{
+	table, err := ormtable.Build(ormtable.Options{
 		MessageType: (&testpb.ExampleTable{}).ProtoReflect().Type(),
 	})
 	assert.NilError(t, err)
@@ -41,9 +45,8 @@ func TestScenario(t *testing.T) {
 	// test. the golden file can be used for fine-grained debugging of kv-store
 	// layout
 	debugBuf := &strings.Builder{}
-	sharedStore := testkv.NewSharedMemBackend()
 	store := testkv.NewDebugBackend(
-		sharedStore,
+		ormtable.ContextOptions{CommitmentStore: dbm.NewMemDB()},
 		&testkv.EntryCodecDebugger{
 			EntryCodec: table,
 			Print:      func(s string) { debugBuf.WriteString(s + "\n") },
@@ -62,7 +65,7 @@ func TestScenario(t *testing.T) {
 }
 
 // check that the ormkv.Entry's decode and encode to the same bytes
-func checkEncodeDecodeEntries(t *testing.T, table Table, store kvstore.Reader) {
+func checkEncodeDecodeEntries(t *testing.T, table ormtable.Table, store kvstore.Reader) {
 	it, err := store.Iterator(nil, nil)
 	assert.NilError(t, err)
 	for it.Valid() {
@@ -77,7 +80,7 @@ func checkEncodeDecodeEntries(t *testing.T, table Table, store kvstore.Reader) {
 	}
 }
 
-func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
+func runTestScenario(t *testing.T, table ormtable.Table, store ormtable.Context) {
 	// let's create 10 data items we'll use later and give them indexes
 	data := []*testpb.ExampleTable{
 		{U32: 4, I64: -2, Str: "abc", U64: 7},  // 0
@@ -94,7 +97,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 
 	// let's make a function to match what's in our iterator with what we
 	// expect using indexes in the data array above
-	assertIteratorItems := func(it Iterator, xs ...int) {
+	assertIteratorItems := func(it ormtable.Iterator, xs ...int) {
 		for _, i := range xs {
 			assert.Assert(t, it.Next())
 			msg, err := it.GetMessage()
@@ -107,66 +110,66 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	}
 
 	// insert one record
-	err := table.Save(store, data[0], SAVE_MODE_INSERT)
+	err := table.Save(store, data[0], ormtable.SAVE_MODE_INSERT)
 	// trivial prefix query has one record
-	it, err := table.PrefixIterator(store, nil, IteratorOptions{})
+	it, err := table.PrefixIterator(store, nil, ormtable.IteratorOptions{})
 	assert.NilError(t, err)
 	assertIteratorItems(it, 0)
 
 	// insert one record
-	err = table.Save(store, data[1], SAVE_MODE_INSERT)
+	err = table.Save(store, data[1], ormtable.SAVE_MODE_INSERT)
 	// trivial prefix query has two records
-	it, err = table.PrefixIterator(store, nil, IteratorOptions{})
+	it, err = table.PrefixIterator(store, nil, ormtable.IteratorOptions{})
 	assert.NilError(t, err)
 	assertIteratorItems(it, 0, 1)
 
 	// insert the other records
 	assert.NilError(t, err)
 	for i := 2; i < len(data); i++ {
-		err = table.Save(store, data[i], SAVE_MODE_INSERT)
+		err = table.Save(store, data[i], ormtable.SAVE_MODE_INSERT)
 		assert.NilError(t, err)
 	}
 
 	// let's do a prefix query on the primary key
-	it, err = table.PrefixIterator(store, encodeutil.ValuesOf(uint32(8)), IteratorOptions{})
+	it, err = table.PrefixIterator(store, encodeutil.ValuesOf(uint32(8)), ormtable.IteratorOptions{})
 	assert.NilError(t, err)
 	assertIteratorItems(it, 7, 8, 9)
 
 	// let's try a reverse prefix query
-	it, err = table.PrefixIterator(store, encodeutil.ValuesOf(uint32(4)), IteratorOptions{Reverse: true})
+	it, err = table.PrefixIterator(store, encodeutil.ValuesOf(uint32(4)), ormtable.IteratorOptions{Reverse: true})
 	defer it.Close()
 	assert.NilError(t, err)
 	assertIteratorItems(it, 2, 1, 0)
 
 	// let's try a range query
-	it, err = table.RangeIterator(store, encodeutil.ValuesOf(uint32(4), int64(-1)), encodeutil.ValuesOf(uint32(7)), IteratorOptions{})
+	it, err = table.RangeIterator(store, encodeutil.ValuesOf(uint32(4), int64(-1)), encodeutil.ValuesOf(uint32(7)), ormtable.IteratorOptions{})
 	defer it.Close()
 	assert.NilError(t, err)
 	assertIteratorItems(it, 2, 3, 4, 5, 6)
 
 	// and another range query
-	it, err = table.RangeIterator(store, encodeutil.ValuesOf(uint32(5), int64(-3)), encodeutil.ValuesOf(uint32(8), int64(1), "abc"), IteratorOptions{})
+	it, err = table.RangeIterator(store, encodeutil.ValuesOf(uint32(5), int64(-3)), encodeutil.ValuesOf(uint32(8), int64(1), "abc"), ormtable.IteratorOptions{})
 	defer it.Close()
 	assert.NilError(t, err)
 	assertIteratorItems(it, 3, 4, 5, 6, 7, 8)
 
 	// now a reverse range query on a different index
-	strU32Fields, err := CommaSeparatedFieldNames("str,u32")
+	strU32Fields, err := ormtable.CommaSeparatedFieldNames("str,u32")
 	assert.NilError(t, err)
 	strU32Index := table.GetIndex(strU32Fields)
 	assert.Assert(t, strU32Index != nil)
-	it, err = strU32Index.RangeIterator(store, encodeutil.ValuesOf("abc"), encodeutil.ValuesOf("abd"), IteratorOptions{Reverse: true})
+	it, err = strU32Index.RangeIterator(store, encodeutil.ValuesOf("abc"), encodeutil.ValuesOf("abd"), ormtable.IteratorOptions{Reverse: true})
 	assertIteratorItems(it, 9, 3, 1, 8, 7, 2, 0)
 
 	// another prefix query forwards
-	it, err = strU32Index.PrefixIterator(store, encodeutil.ValuesOf("abe", uint32(7)), IteratorOptions{})
+	it, err = strU32Index.PrefixIterator(store, encodeutil.ValuesOf("abe", uint32(7)), ormtable.IteratorOptions{})
 	assertIteratorItems(it, 5, 6)
 	// and backwards
-	it, err = strU32Index.PrefixIterator(store, encodeutil.ValuesOf("abc", uint32(4)), IteratorOptions{Reverse: true})
+	it, err = strU32Index.PrefixIterator(store, encodeutil.ValuesOf("abc", uint32(4)), ormtable.IteratorOptions{Reverse: true})
 	assertIteratorItems(it, 2, 0)
 
 	// try an unique index
-	u64StrFields, err := CommaSeparatedFieldNames("u64,str")
+	u64StrFields, err := ormtable.CommaSeparatedFieldNames("u64,str")
 	assert.NilError(t, err)
 	u64StrIndex := table.GetUniqueIndex(u64StrFields)
 	assert.Assert(t, u64StrIndex != nil)
@@ -193,7 +196,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	}
 
 	// now do some pagination
-	res, err := Paginate(table, store, &PaginationRequest{
+	res, err := ormtable.Paginate(table, store, &ormtable.PaginationRequest{
 		PageRequest: &query.PageRequest{
 			Limit:      4,
 			CountTotal: true,
@@ -208,7 +211,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assertGotItems(res.Items, 0, 1, 2, 3)
 
 	// read another page
-	res, err = Paginate(table, store, &PaginationRequest{
+	res, err = ormtable.Paginate(table, store, &ormtable.PaginationRequest{
 		PageRequest: &query.PageRequest{
 			Key:   res.NextKey,
 			Limit: 4,
@@ -222,7 +225,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assertGotItems(res.Items, 4, 5, 6, 7)
 
 	// and the last page
-	res, err = Paginate(table, store, &PaginationRequest{
+	res, err = ormtable.Paginate(table, store, &ormtable.PaginationRequest{
 		PageRequest: &query.PageRequest{
 			Key:   res.NextKey,
 			Limit: 4,
@@ -236,7 +239,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assertGotItems(res.Items, 8, 9)
 
 	// let's go backwards
-	res, err = Paginate(table, store, &PaginationRequest{
+	res, err = ormtable.Paginate(table, store, &ormtable.PaginationRequest{
 		PageRequest: &query.PageRequest{
 			Limit:      2,
 			CountTotal: true,
@@ -252,7 +255,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assertGotItems(res.Items, 9, 8)
 
 	// a bit more
-	res, err = Paginate(table, store, &PaginationRequest{
+	res, err = ormtable.Paginate(table, store, &ormtable.PaginationRequest{
 		PageRequest: &query.PageRequest{
 			Key:     res.NextKey,
 			Limit:   2,
@@ -267,7 +270,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assertGotItems(res.Items, 7, 6)
 
 	// range query
-	res, err = Paginate(table, store, &PaginationRequest{
+	res, err = ormtable.Paginate(table, store, &ormtable.PaginationRequest{
 		PageRequest: &query.PageRequest{
 			Limit: 10,
 		},
@@ -281,7 +284,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assertGotItems(res.Items, 2, 3, 4, 5)
 
 	// let's try an offset
-	res, err = Paginate(table, store, &PaginationRequest{
+	res, err = ormtable.Paginate(table, store, &ormtable.PaginationRequest{
 		PageRequest: &query.PageRequest{
 			Limit:      2,
 			CountTotal: true,
@@ -297,7 +300,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assertGotItems(res.Items, 3, 4)
 
 	// and reverse
-	res, err = Paginate(table, store, &PaginationRequest{
+	res, err = ormtable.Paginate(table, store, &ormtable.PaginationRequest{
 		PageRequest: &query.PageRequest{
 			Limit:      3,
 			CountTotal: true,
@@ -314,7 +317,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assertGotItems(res.Items, 4, 3, 2)
 
 	// now an offset that's slightly too big
-	res, err = Paginate(table, store, &PaginationRequest{
+	res, err = ormtable.Paginate(table, store, &ormtable.PaginationRequest{
 		PageRequest: &query.PageRequest{
 			Limit:      1,
 			CountTotal: true,
@@ -327,7 +330,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assert.Equal(t, uint64(10), res.Total)
 
 	// another offset that's too big
-	res, err = Paginate(table, store, &PaginationRequest{
+	res, err = ormtable.Paginate(table, store, &ormtable.PaginationRequest{
 		PageRequest: &query.PageRequest{
 			Limit:      1,
 			CountTotal: true,
@@ -343,17 +346,17 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	for i := 0; i < 5; i++ {
 		data[i].U64 = data[i].U64 * 2
 		data[i].Bz = []byte(data[i].Str)
-		err = table.Save(store, data[i], SAVE_MODE_UPDATE)
+		err = table.Save(store, data[i], ormtable.SAVE_MODE_UPDATE)
 		assert.NilError(t, err)
 	}
-	it, err = table.PrefixIterator(store, nil, IteratorOptions{})
+	it, err = table.PrefixIterator(store, nil, ormtable.IteratorOptions{})
 	assert.NilError(t, err)
 	// we should still get everything in the same order
 	assertIteratorItems(it, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 
 	// let's use SAVE_MODE_DEFAULT and add something
 	data = append(data, &testpb.ExampleTable{U32: 9})
-	err = table.Save(store, data[10], SAVE_MODE_DEFAULT)
+	err = table.Save(store, data[10], ormtable.SAVE_MODE_DEFAULT)
 	assert.NilError(t, err)
 	found, err = table.Get(store, encodeutil.ValuesOf(uint32(9), int64(0), ""), &a)
 	assert.NilError(t, err)
@@ -361,13 +364,13 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assert.DeepEqual(t, data[10], &a, protocmp.Transform())
 	// and update it
 	data[10].B = true
-	assert.NilError(t, table.Save(store, data[10], SAVE_MODE_DEFAULT))
+	assert.NilError(t, table.Save(store, data[10], ormtable.SAVE_MODE_DEFAULT))
 	found, err = table.Get(store, encodeutil.ValuesOf(uint32(9), int64(0), ""), &a)
 	assert.NilError(t, err)
 	assert.Assert(t, found)
 	assert.DeepEqual(t, data[10], &a, protocmp.Transform())
 	// and iterate
-	it, err = table.PrefixIterator(store, nil, IteratorOptions{})
+	it, err = table.PrefixIterator(store, nil, ormtable.IteratorOptions{})
 	assert.NilError(t, err)
 	assertIteratorItems(it, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 
@@ -388,7 +391,7 @@ func runTestScenario(t *testing.T, table Table, store kvstore.Backend) {
 	assert.NilError(t, err)
 	assert.Assert(t, !found)
 	// and missing from the iterator
-	it, err = table.PrefixIterator(store, nil, IteratorOptions{})
+	it, err = table.PrefixIterator(store, nil, ormtable.IteratorOptions{})
 	assert.NilError(t, err)
 	assertIteratorItems(it, 0, 1, 2, 3, 4, 6, 7, 8, 9, 10)
 }
@@ -404,7 +407,7 @@ func testTable(t *testing.T, tableData *TableData) {
 			index:     index,
 		}
 		sort.Sort(indexModel)
-		if _, ok := index.(UniqueIndex); ok {
+		if _, ok := index.(ormtable.UniqueIndex); ok {
 			testUniqueIndex(t, indexModel)
 		}
 		testIndex(t, indexModel)
@@ -412,19 +415,19 @@ func testTable(t *testing.T, tableData *TableData) {
 }
 
 func testUniqueIndex(t *testing.T, model *IndexModel) {
-	index := model.index.(UniqueIndex)
+	index := model.index.(ormtable.UniqueIndex)
 	t.Logf("testing unique index %T %s", index, index.GetFieldNames())
 	for i := 0; i < len(model.data); i++ {
 		x := model.data[i]
 		ks, _, err := index.(ormkv.IndexCodec).EncodeKeyFromMessage(x.ProtoReflect())
 		assert.NilError(t, err)
 
-		found, err := index.Has(model.store, ks)
+		found, err := index.Has(model.context, ks)
 		assert.NilError(t, err)
 		assert.Assert(t, found)
 
 		msg := model.table.MessageType().New().Interface()
-		found, err = index.Get(model.store, ks, msg)
+		found, err = index.Get(model.context, ks, msg)
 		assert.NilError(t, err)
 		assert.Assert(t, found)
 		assert.DeepEqual(t, x, msg, protocmp.Transform())
@@ -436,11 +439,11 @@ func testIndex(t *testing.T, model *IndexModel) {
 	if index.IsFullyOrdered() {
 		t.Logf("testing index %T %s", index, index.GetFieldNames())
 
-		it, err := model.index.PrefixIterator(model.store, nil, IteratorOptions{})
+		it, err := model.index.PrefixIterator(model.context, nil, ormtable.IteratorOptions{})
 		assert.NilError(t, err)
 		checkIteratorAgainstSlice(t, it, model.data)
 
-		it, err = model.index.PrefixIterator(model.store, nil, IteratorOptions{Reverse: true})
+		it, err = model.index.PrefixIterator(model.context, nil, ormtable.IteratorOptions{Reverse: true})
 		assert.NilError(t, err)
 		checkIteratorAgainstSlice(t, it, reverseData(model.data))
 
@@ -453,11 +456,11 @@ func testIndex(t *testing.T, model *IndexModel) {
 			end, _, err := model.index.(ormkv.IndexCodec).EncodeKeyFromMessage(model.data[j].ProtoReflect())
 			assert.NilError(t, err)
 
-			it, err = model.index.RangeIterator(model.store, start, end, IteratorOptions{})
+			it, err = model.index.RangeIterator(model.context, start, end, ormtable.IteratorOptions{})
 			assert.NilError(t, err)
 			checkIteratorAgainstSlice(t, it, model.data[i:j+1])
 
-			it, err = model.index.RangeIterator(model.store, start, end, IteratorOptions{Reverse: true})
+			it, err = model.index.RangeIterator(model.context, start, end, ormtable.IteratorOptions{Reverse: true})
 			assert.NilError(t, err)
 			checkIteratorAgainstSlice(t, it, reverseData(model.data[i:j+1]))
 		})
@@ -465,7 +468,7 @@ func testIndex(t *testing.T, model *IndexModel) {
 		t.Logf("testing unordered index %T %s", index, index.GetFieldNames())
 
 		// get all the data
-		it, err := model.index.PrefixIterator(model.store, nil, IteratorOptions{})
+		it, err := model.index.PrefixIterator(model.context, nil, ormtable.IteratorOptions{})
 		assert.NilError(t, err)
 		var data2 []proto.Message
 		for it.Next() {
@@ -478,9 +481,9 @@ func testIndex(t *testing.T, model *IndexModel) {
 		// sort it
 		model2 := &IndexModel{
 			TableData: &TableData{
-				table: model.table,
-				data:  data2,
-				store: model.store,
+				table:   model.table,
+				data:    data2,
+				context: model.context,
 			},
 			index: model.index,
 		}
@@ -503,7 +506,7 @@ func reverseData(data []proto.Message) []proto.Message {
 	return reverse
 }
 
-func checkIteratorAgainstSlice(t assert.TestingT, iterator Iterator, data []proto.Message) {
+func checkIteratorAgainstSlice(t assert.TestingT, iterator ormtable.Iterator, data []proto.Message) {
 	i := 0
 	for iterator.Next() {
 		if i >= len(data) {
@@ -524,7 +527,7 @@ func TableDataGen(elemGen *rapid.Generator, n int) *rapid.Generator {
 	return rapid.Custom(func(t *rapid.T) *TableData {
 		prefix := rapid.SliceOfN(rapid.Byte(), 0, 5).Draw(t, "prefix").([]byte)
 		message := elemGen.Draw(t, "message").(proto.Message)
-		table, err := Build(Options{
+		table, err := ormtable.Build(ormtable.Options{
 			Prefix:      prefix,
 			MessageType: message.ProtoReflect().Type(),
 		})
@@ -537,7 +540,7 @@ func TableDataGen(elemGen *rapid.Generator, n int) *rapid.Generator {
 
 		for i := 0; i < n; {
 			message = elemGen.Draw(t, fmt.Sprintf("message[%d]", i)).(proto.Message)
-			err := table.Save(store, message, SAVE_MODE_INSERT)
+			err := table.Save(store, message, ormtable.SAVE_MODE_INSERT)
 			if sdkerrors.IsOf(err, ormerrors.PrimaryKeyConstraintViolation, ormerrors.UniqueKeyViolation) {
 				continue
 			} else if err != nil {
@@ -548,22 +551,22 @@ func TableDataGen(elemGen *rapid.Generator, n int) *rapid.Generator {
 		}
 
 		return &TableData{
-			data:  data,
-			table: table,
-			store: store,
+			data:    data,
+			table:   table,
+			context: store,
 		}
 	})
 }
 
 type TableData struct {
-	table Table
-	data  []proto.Message
-	store kvstore.Backend
+	table   ormtable.Table
+	data    []proto.Message
+	context ormtable.Context
 }
 
 type IndexModel struct {
 	*TableData
-	index Index
+	index ormtable.Index
 }
 
 func (m *IndexModel) Len() int {
@@ -591,7 +594,7 @@ func (m *IndexModel) Swap(i, j int) {
 var _ sort.Interface = &IndexModel{}
 
 func TestJSONExportImport(t *testing.T) {
-	table, err := Build(Options{
+	table, err := ormtable.Build(ormtable.Options{
 		MessageType: (&testpb.ExampleTable{}).ProtoReflect().Type(),
 	})
 	assert.NilError(t, err)
@@ -599,7 +602,7 @@ func TestJSONExportImport(t *testing.T) {
 
 	for i := 0; i < 100; {
 		x := testutil.GenA.Example().(proto.Message)
-		err = table.Save(store, x, SAVE_MODE_INSERT)
+		err = table.Save(store, x, ormtable.SAVE_MODE_INSERT)
 		if sdkerrors.IsOf(err, ormerrors.PrimaryKeyConstraintViolation, ormerrors.UniqueKeyViolation) {
 			continue
 		} else {
@@ -619,10 +622,10 @@ func TestJSONExportImport(t *testing.T) {
 	assertTablesEqual(t, table, store, store2)
 }
 
-func assertTablesEqual(t assert.TestingT, table Table, store, store2 kvstore.ReadBackend) {
-	it, err := table.PrefixIterator(store, nil, IteratorOptions{})
+func assertTablesEqual(t assert.TestingT, table ormtable.Table, store, store2 ormtable.ReadContext) {
+	it, err := table.PrefixIterator(store, nil, ormtable.IteratorOptions{})
 	assert.NilError(t, err)
-	it2, err := table.PrefixIterator(store2, nil, IteratorOptions{})
+	it2, err := table.PrefixIterator(store2, nil, ormtable.IteratorOptions{})
 	assert.NilError(t, err)
 
 	for {

@@ -5,7 +5,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
-	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 )
 
 // PrimaryKeyIndex defines an UniqueIndex for the primary key.
@@ -18,7 +17,7 @@ func NewPrimaryKeyIndex(primaryKeyCodec *ormkv.PrimaryKeyCodec) *PrimaryKeyIndex
 	return &PrimaryKeyIndex{PrimaryKeyCodec: primaryKeyCodec}
 }
 
-func (p PrimaryKeyIndex) PrefixIterator(store kvstore.ReadBackend, prefix []protoreflect.Value, options IteratorOptions) (Iterator, error) {
+func (p PrimaryKeyIndex) PrefixIterator(store ReadContext, prefix []protoreflect.Value, options IteratorOptions) (Iterator, error) {
 	prefixBz, err := p.EncodeKey(prefix)
 	if err != nil {
 		return nil, err
@@ -27,7 +26,7 @@ func (p PrimaryKeyIndex) PrefixIterator(store kvstore.ReadBackend, prefix []prot
 	return prefixIterator(store.CommitmentStoreReader(), store, p, prefixBz, options)
 }
 
-func (p PrimaryKeyIndex) RangeIterator(store kvstore.ReadBackend, start, end []protoreflect.Value, options IteratorOptions) (Iterator, error) {
+func (p PrimaryKeyIndex) RangeIterator(store ReadContext, start, end []protoreflect.Value, options IteratorOptions) (Iterator, error) {
 	err := p.CheckValidRangeIterationKeys(start, end)
 	if err != nil {
 		return nil, err
@@ -50,7 +49,7 @@ func (p PrimaryKeyIndex) RangeIterator(store kvstore.ReadBackend, start, end []p
 
 func (p PrimaryKeyIndex) doNotImplement() {}
 
-func (p PrimaryKeyIndex) Has(store kvstore.ReadBackend, key []protoreflect.Value) (found bool, err error) {
+func (p PrimaryKeyIndex) Has(store ReadContext, key []protoreflect.Value) (found bool, err error) {
 	keyBz, err := p.EncodeKey(key)
 	if err != nil {
 		return false, err
@@ -59,7 +58,7 @@ func (p PrimaryKeyIndex) Has(store kvstore.ReadBackend, key []protoreflect.Value
 	return store.CommitmentStoreReader().Has(keyBz)
 }
 
-func (p PrimaryKeyIndex) Get(store kvstore.ReadBackend, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {
+func (p PrimaryKeyIndex) Get(store ReadContext, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {
 	key, err := p.EncodeKey(keyValues)
 	if err != nil {
 		return false, err
@@ -68,7 +67,7 @@ func (p PrimaryKeyIndex) Get(store kvstore.ReadBackend, keyValues []protoreflect
 	return p.GetByKeyBytes(store, key, keyValues, message)
 }
 
-func (p PrimaryKeyIndex) GetByKeyBytes(store kvstore.ReadBackend, key []byte, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {
+func (p PrimaryKeyIndex) GetByKeyBytes(store ReadContext, key []byte, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {
 	bz, err := store.CommitmentStoreReader().Get(key)
 	if err != nil {
 		return false, err
@@ -81,7 +80,7 @@ func (p PrimaryKeyIndex) GetByKeyBytes(store kvstore.ReadBackend, key []byte, ke
 	return true, p.Unmarshal(keyValues, bz, message)
 }
 
-func (p PrimaryKeyIndex) readValueFromIndexKey(_ kvstore.ReadBackend, primaryKey []protoreflect.Value, value []byte, message proto.Message) error {
+func (p PrimaryKeyIndex) readValueFromIndexKey(_ ReadContext, primaryKey []protoreflect.Value, value []byte, message proto.Message) error {
 	return p.Unmarshal(primaryKey, value, message)
 }
 

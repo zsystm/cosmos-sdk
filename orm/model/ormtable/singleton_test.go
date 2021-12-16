@@ -1,8 +1,10 @@
-package ormtable
+package ormtable_test
 
 import (
 	"bytes"
 	"testing"
+
+	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 
 	"google.golang.org/protobuf/testing/protocmp"
 
@@ -14,7 +16,7 @@ import (
 
 func TestSingleton(t *testing.T) {
 	val := &testpb.ExampleSingleton{}
-	singleton, err := Build(Options{
+	singleton, err := ormtable.Build(ormtable.Options{
 		MessageType: val.ProtoReflect().Type(),
 	})
 	assert.NilError(t, err)
@@ -23,14 +25,14 @@ func TestSingleton(t *testing.T) {
 	found, err := singleton.Has(store, nil)
 	assert.NilError(t, err)
 	assert.Assert(t, !found)
-	assert.NilError(t, singleton.Save(store, val, SAVE_MODE_DEFAULT))
+	assert.NilError(t, singleton.Save(store, val, ormtable.SAVE_MODE_DEFAULT))
 	found, err = singleton.Has(store, nil)
 	assert.NilError(t, err)
 	assert.Assert(t, found)
 
 	val.Foo = "abc"
 	val.Bar = 3
-	assert.NilError(t, singleton.Save(store, val, SAVE_MODE_DEFAULT))
+	assert.NilError(t, singleton.Save(store, val, ormtable.SAVE_MODE_DEFAULT))
 
 	var val2 testpb.ExampleSingleton
 	found, err = singleton.Get(store, nil, &val2)

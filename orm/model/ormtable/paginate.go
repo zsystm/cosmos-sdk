@@ -5,8 +5,6 @@ import (
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
-
 	"github.com/cosmos/cosmos-sdk/types/query"
 
 	"google.golang.org/protobuf/proto"
@@ -54,7 +52,7 @@ type PaginationResponse struct {
 // Paginate retrieves a "page" of data from the provided index and store.
 func Paginate(
 	index Index,
-	store kvstore.ReadBackend,
+	store ReadContext,
 	request *PaginationRequest,
 ) (*PaginationResponse, error) {
 	offset := int(request.Offset)
