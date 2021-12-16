@@ -23,26 +23,26 @@ func NewStoreKeyDB(key *types.KVStoreKey, prefix []byte, fileDescriptors []proto
 	return &StoreKeyDB{key: key, schema: schema}, err
 }
 
-func (s StoreKeyDB) OpenRead(ctx context.Context) (*orm.ReadDB, error) {
+func (s StoreKeyDB) OpenRead(ctx context.Context) (*orm.ReadDBConnection, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := sdkCtx.KVStore(s.key)
 	wrapper := &kvStoreBackend{
 		store: store,
 	}
-	return &orm.ReadDB{
+	return &orm.ReadDBConnection{
 		Schema:      s.schema,
 		ReadBackend: wrapper,
 	}, nil
 }
 
-func (s StoreKeyDB) Open(ctx context.Context) (*orm.DB, error) {
+func (s StoreKeyDB) Open(ctx context.Context) (*orm.DBConnection, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := sdkCtx.KVStore(s.key)
 	wrapper := &kvStoreBackend{
 		store: store,
 	}
-	return &orm.DB{
-		ReadDB: &orm.ReadDB{
+	return &orm.DBConnection{
+		ReadDBConnection: &orm.ReadDBConnection{
 			Schema:      s.schema,
 			ReadBackend: wrapper,
 		},
@@ -50,4 +50,4 @@ func (s StoreKeyDB) Open(ctx context.Context) (*orm.DB, error) {
 	}, nil
 }
 
-var _ orm.DBConnection = StoreKeyDB{}
+var _ orm.DB = StoreKeyDB{}
