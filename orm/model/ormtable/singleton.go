@@ -41,7 +41,12 @@ func (t singleton) ValidateJSON(reader io.Reader) error {
 	}
 }
 
-func (t singleton) ImportJSON(context context.Context, reader io.Reader) error {
+func (t singleton) ImportJSON(ctx context.Context, reader io.Reader) error {
+	backend, err := t.getBackend(ctx)
+	if err != nil {
+		return err
+	}
+
 	bz, err := io.ReadAll(reader)
 	if err != nil {
 		return err
@@ -53,12 +58,12 @@ func (t singleton) ImportJSON(context context.Context, reader io.Reader) error {
 		return err
 	}
 
-	return t.Save(context, msg, SAVE_MODE_DEFAULT)
+	return t.save(backend, msg, saveModeDefault)
 }
 
-func (t singleton) ExportJSON(context context.Context, writer io.Writer) error {
+func (t singleton) ExportJSON(ctx context.Context, writer io.Writer) error {
 	msg := t.MessageType().New().Interface()
-	found, err := t.Get(context, msg)
+	found, err := t.Get(ctx, msg)
 	if err != nil {
 		return err
 	}

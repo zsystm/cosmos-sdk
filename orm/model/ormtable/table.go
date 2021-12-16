@@ -50,7 +50,11 @@ type Table interface {
 	// Save attempts to be atomic with respect to the underlying store,
 	// meaning that either the full save operation is written or the store is
 	// left unchanged, unless there is an error with the underlying store.
-	Save(context context.Context, message proto.Message, mode SaveMode) error
+	Save(context context.Context, message proto.Message) error
+
+	Insert(context context.Context, message proto.Message) error
+
+	Update(context context.Context, message proto.Message) error
 
 	// Delete deletes the entry with the provided primary key values from the store.
 	//
@@ -106,19 +110,19 @@ type Table interface {
 	ID() uint32
 }
 
-// SaveMode defines the save mode for the Table.Save() method.
-type SaveMode int
+// saveMode defines the save mode for the Table.Save() method.
+type saveMode int
 
 const (
-	// SAVE_MODE_DEFAULT instructs Table.Save() to insert or update the
+	// saveModeDefault instructs Table.Save() to insert or update the
 	// entry depending on whether or not the entry already exists in the store.
-	SAVE_MODE_DEFAULT SaveMode = iota
+	saveModeDefault saveMode = iota
 
-	// SAVE_MODE_INSERT instructs Table.Save() to insert the entry or return
+	// saveModeInsert instructs Table.Save() to insert the entry or return
 	// an error if an entry with the same primary key already exists.
-	SAVE_MODE_INSERT
+	saveModeInsert
 
-	// SAVE_MODE_UPDATE instructs Table.Save() to update the entry or return
+	// saveModeUpdate instructs Table.Save() to update the entry or return
 	// an error if an entry with the same primary key does not already exist.
-	SAVE_MODE_UPDATE
+	saveModeUpdate
 )

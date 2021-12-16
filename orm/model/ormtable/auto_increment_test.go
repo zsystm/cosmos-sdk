@@ -42,11 +42,11 @@ func TestAutoIncrementScenario(t *testing.T) {
 }
 
 func runAutoIncrementScenario(t *testing.T, table ormtable.Table, context context.Context) {
-	err := table.Save(context, &testpb.ExampleAutoIncrementTable{Id: 5}, ormtable.SAVE_MODE_DEFAULT)
+	err := table.Save(context, &testpb.ExampleAutoIncrementTable{Id: 5})
 	assert.ErrorContains(t, err, "update")
 
 	ex1 := &testpb.ExampleAutoIncrementTable{X: "foo", Y: 5}
-	assert.NilError(t, table.Save(context, ex1, ormtable.SAVE_MODE_DEFAULT))
+	assert.NilError(t, table.Save(context, ex1))
 	assert.Equal(t, uint64(1), ex1.Id)
 
 	buf := &bytes.Buffer{}

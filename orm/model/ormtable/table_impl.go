@@ -33,18 +33,40 @@ type tableImpl struct {
 	getBackend            func(context.Context) (Backend, error)
 }
 
-func (t tableImpl) Save(context context.Context, message proto.Message, mode SaveMode) error {
-	ctx, err := t.getBackend(context)
+func (t tableImpl) Save(ctx context.Context, message proto.Message) error {
+	backend, err := t.getBackend(ctx)
 	if err != nil {
 		return err
 	}
 
-	writer := newBatchIndexCommitmentWriter(ctx)
+	return t.save(backend, message, saveModeDefault)
+}
+
+func (t tableImpl) Insert(ctx context.Context, message proto.Message) error {
+	backend, err := t.getBackend(ctx)
+	if err != nil {
+		return err
+	}
+
+	return t.save(backend, message, saveModeInsert)
+}
+
+func (t tableImpl) Update(ctx context.Context, message proto.Message) error {
+	backend, err := t.getBackend(ctx)
+	if err != nil {
+		return err
+	}
+
+	return t.save(backend, message, saveModeUpdate)
+}
+
+func (t tableImpl) save(backend Backend, message proto.Message, mode saveMode) error {
+	writer := newBatchIndexCommitmentWriter(backend)
 	defer writer.Close()
 	return t.doSave(writer, message, mode)
 }
 
-func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Message, mode SaveMode) error {
+func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Message, mode saveMode) error {
 	mref := message.ProtoReflect()
 	pkValues, pk, err := t.EncodeKeyFromMessage(mref)
 	if err != nil {
@@ -58,7 +80,7 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 	}
 
 	if haveExisting {
-		if mode == SAVE_MODE_INSERT {
+		if mode == saveModeInsert {
 			return sdkerrors.Wrapf(ormerrors.PrimaryKeyConstraintViolation, "%q:%+v", mref.Descriptor().FullName(), pkValues)
 		}
 
@@ -69,7 +91,7 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 			}
 		}
 	} else {
-		if mode == SAVE_MODE_UPDATE {
+		if mode == saveModeUpdate {
 			return ormerrors.NotFoundOnUpdate.Wrapf("%q", mref.Descriptor().FullName())
 		}
 
@@ -289,9 +311,14 @@ func (t tableImpl) ValidateJSON(reader io.Reader) error {
 	})
 }
 
-func (t tableImpl) ImportJSON(context context.Context, reader io.Reader) error {
+func (t tableImpl) ImportJSON(ctx context.Context, reader io.Reader) error {
+	backend, err := t.getBackend(ctx)
+	if err != nil {
+		return err
+	}
+
 	return t.decodeJson(reader, func(message proto.Message) error {
-		return t.Save(context, message, SAVE_MODE_DEFAULT)
+		return t.save(backend, message, saveModeDefault)
 	})
 }
 

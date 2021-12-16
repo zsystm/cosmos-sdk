@@ -25,14 +25,14 @@ func TestSingleton(t *testing.T) {
 	found, err := singleton.Has(store)
 	assert.NilError(t, err)
 	assert.Assert(t, !found)
-	assert.NilError(t, singleton.Save(store, val, ormtable.SAVE_MODE_DEFAULT))
+	assert.NilError(t, singleton.Save(store, val))
 	found, err = singleton.Has(store)
 	assert.NilError(t, err)
 	assert.Assert(t, found)
 
 	val.Foo = "abc"
 	val.Bar = 3
-	assert.NilError(t, singleton.Save(store, val, ormtable.SAVE_MODE_DEFAULT))
+	assert.NilError(t, singleton.Save(store, val))
 
 	var val2 testpb.ExampleSingleton
 	found, err = singleton.Get(store, &val2)

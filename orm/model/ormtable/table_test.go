@@ -111,14 +111,14 @@ func runTestScenario(t *testing.T, table ormtable.Table, ctx context.Context) {
 	}
 
 	// insert one record
-	err := table.Save(ctx, data[0], ormtable.SAVE_MODE_INSERT)
+	err := table.Insert(ctx, data[0])
 	// trivial prefix query has one record
 	it, err := table.PrefixIterator(ctx, nil, ormtable.IteratorOptions{})
 	assert.NilError(t, err)
 	assertIteratorItems(it, 0)
 
 	// insert one record
-	err = table.Save(ctx, data[1], ormtable.SAVE_MODE_INSERT)
+	err = table.Insert(ctx, data[1])
 	// trivial prefix query has two records
 	it, err = table.PrefixIterator(ctx, nil, ormtable.IteratorOptions{})
 	assert.NilError(t, err)
@@ -127,7 +127,7 @@ func runTestScenario(t *testing.T, table ormtable.Table, ctx context.Context) {
 	// insert the other records
 	assert.NilError(t, err)
 	for i := 2; i < len(data); i++ {
-		err = table.Save(ctx, data[i], ormtable.SAVE_MODE_INSERT)
+		err = table.Insert(ctx, data[i])
 		assert.NilError(t, err)
 	}
 
@@ -347,7 +347,7 @@ func runTestScenario(t *testing.T, table ormtable.Table, ctx context.Context) {
 	for i := 0; i < 5; i++ {
 		data[i].U64 = data[i].U64 * 2
 		data[i].Bz = []byte(data[i].Str)
-		err = table.Save(ctx, data[i], ormtable.SAVE_MODE_UPDATE)
+		err = table.Update(ctx, data[i])
 		assert.NilError(t, err)
 	}
 	it, err = table.PrefixIterator(ctx, nil, ormtable.IteratorOptions{})
@@ -357,7 +357,7 @@ func runTestScenario(t *testing.T, table ormtable.Table, ctx context.Context) {
 
 	// let's use SAVE_MODE_DEFAULT and add something
 	data = append(data, &testpb.ExampleTable{U32: 9})
-	err = table.Save(ctx, data[10], ormtable.SAVE_MODE_DEFAULT)
+	err = table.Save(ctx, data[10])
 	assert.NilError(t, err)
 	found, err = table.Get(ctx, &a, uint32(9), int64(0), "")
 	assert.NilError(t, err)
@@ -365,7 +365,7 @@ func runTestScenario(t *testing.T, table ormtable.Table, ctx context.Context) {
 	assert.DeepEqual(t, data[10], &a, protocmp.Transform())
 	// and update it
 	data[10].B = true
-	assert.NilError(t, table.Save(ctx, data[10], ormtable.SAVE_MODE_DEFAULT))
+	assert.NilError(t, table.Save(ctx, data[10]))
 	found, err = table.Get(ctx, &a, uint32(9), int64(0), "")
 	assert.NilError(t, err)
 	assert.Assert(t, found)
@@ -541,7 +541,7 @@ func TableDataGen(elemGen *rapid.Generator, n int) *rapid.Generator {
 
 		for i := 0; i < n; {
 			message = elemGen.Draw(t, fmt.Sprintf("message[%d]", i)).(proto.Message)
-			err := table.Save(store, message, ormtable.SAVE_MODE_INSERT)
+			err := table.Insert(store, message)
 			if sdkerrors.IsOf(err, ormerrors.PrimaryKeyConstraintViolation, ormerrors.UniqueKeyViolation) {
 				continue
 			} else if err != nil {
@@ -603,7 +603,7 @@ func TestJSONExportImport(t *testing.T) {
 
 	for i := 0; i < 100; {
 		x := testutil.GenA.Example().(proto.Message)
-		err = table.Save(store, x, ormtable.SAVE_MODE_INSERT)
+		err = table.Insert(store, x)
 		if sdkerrors.IsOf(err, ormerrors.PrimaryKeyConstraintViolation, ormerrors.UniqueKeyViolation) {
 			continue
 		} else {
