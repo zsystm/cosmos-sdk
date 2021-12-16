@@ -63,6 +63,8 @@ type UniqueIndex interface {
 
 	// Get retrieves the message if one exists in the store for the provided keyValues.
 	Get(context context.Context, message proto.Message, keyValues ...interface{}) (found bool, err error)
+
+	DeleteByKey(context context.Context, keyValues ...interface{}) error
 }
 
 // IteratorOptions are options for creating an iterator.

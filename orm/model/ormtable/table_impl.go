@@ -20,7 +20,6 @@ import (
 // tableImpl implements Table.
 type tableImpl struct {
 	*primaryKeyIndex
-	indexers              []indexer
 	indexes               []Index
 	indexesByFields       map[FieldNames]concreteIndex
 	uniqueIndexesByFields map[FieldNames]UniqueIndex
@@ -29,7 +28,6 @@ type tableImpl struct {
 	tableId               uint32
 	typeResolver          TypeResolver
 	customJSONValidator   func(message proto.Message) error
-	getBackend            func(context.Context) (Backend, error)
 }
 
 func (t tableImpl) Save(ctx context.Context, message proto.Message) error {
@@ -138,60 +136,9 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 	return writer.Write()
 }
 
-func (t tableImpl) Delete(context context.Context, primaryKeyValues ...interface{}) error {
-	ctx, err := t.getBackend(context)
-	if err != nil {
-		return err
-	}
-
-	values := encodeutil.ValuesOf(primaryKeyValues...)
-
-	pk, err := t.EncodeKey(values)
-	if err != nil {
-		return err
-	}
-
-	msg := t.MessageType().New().Interface()
-	found, err := t.getByKeyBytes(ctx, pk, values, msg)
-	if err != nil {
-		return err
-	}
-
-	if !found {
-		return nil
-	}
-
-	if hooks := ctx.getHooks(); hooks != nil {
-		err = hooks.OnDelete(msg)
-		if err != nil {
-			return err
-		}
-	}
-
-	// delete object
-	writer := newBatchIndexCommitmentWriter(ctx)
-	defer writer.Close()
-	err = writer.getCommitmentStore().Delete(pk)
-	if err != nil {
-		return err
-	}
-
-	// clear indexes
-	mref := msg.ProtoReflect()
-	indexStoreWriter := writer.getIndexStore()
-	for _, idx := range t.indexers {
-		err := idx.onDelete(indexStoreWriter, mref)
-		if err != nil {
-			return err
-		}
-	}
-
-	return writer.Write()
-}
-
-func (t tableImpl) DeleteMessage(context context.Context, message proto.Message) error {
+func (t tableImpl) Delete(context context.Context, message proto.Message) error {
 	pk := t.PrimaryKeyCodec.GetKeyValues(message.ProtoReflect())
-	return t.Delete(context, pk)
+	return t.DeleteByKey(context, pk)
 }
 
 func (t tableImpl) GetIndex(fields FieldNames) Index {

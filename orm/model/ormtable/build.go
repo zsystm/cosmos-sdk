@@ -76,15 +76,20 @@ func Build(options Options) (Table, error) {
 	}
 
 	table := &tableImpl{
-		indexers:              []indexer{},
+		primaryKeyIndex: &primaryKeyIndex{
+			indexers:       []indexer{},
+			getBackend:     getBackend,
+			getReadBackend: getReadBackend,
+		},
 		indexes:               []Index{},
 		indexesByFields:       map[FieldNames]concreteIndex{},
 		uniqueIndexesByFields: map[FieldNames]UniqueIndex{},
 		entryCodecsById:       map[uint32]ormkv.EntryCodec{},
 		typeResolver:          options.TypeResolver,
 		customJSONValidator:   options.JSONValidator,
-		getBackend:            getBackend,
 	}
+
+	pkIndex := table.primaryKeyIndex
 
 	tableDesc := options.TableDescriptor
 	if tableDesc == nil {
@@ -116,12 +121,9 @@ func Build(options Options) (Table, error) {
 			return nil, err
 		}
 
+		pkIndex.PrimaryKeyCodec = pkCodec
 		table.tablePrefix = prefix
 		table.tableId = singletonDesc.Id
-		table.primaryKeyIndex = &primaryKeyIndex{
-			PrimaryKeyCodec: pkCodec,
-			getReadBackend:  getReadBackend,
-		}
 
 		return &singleton{table}, nil
 	} else {
@@ -163,12 +165,7 @@ func Build(options Options) (Table, error) {
 		return nil, err
 	}
 
-	pkIndex := &primaryKeyIndex{
-		PrimaryKeyCodec: pkCodec,
-		getReadBackend:  getReadBackend,
-	}
-
-	table.primaryKeyIndex = pkIndex
+	pkIndex.PrimaryKeyCodec = pkCodec
 	table.indexesByFields[pkFields] = pkIndex
 	table.uniqueIndexesByFields[pkFields] = pkIndex
 	table.entryCodecsById[primaryKeyId] = pkIndex

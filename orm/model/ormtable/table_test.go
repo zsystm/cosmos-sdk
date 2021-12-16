@@ -385,7 +385,7 @@ func runTestScenario(t *testing.T, table ormtable.Table, ctx context.Context) {
 
 	// let's delete item 5
 	key5 := []interface{}{uint32(7), int64(-2), "abe"}
-	err = table.Delete(ctx, key5...)
+	err = table.DeleteByKey(ctx, key5...)
 	assert.NilError(t, err)
 	// it should be gone
 	found, err = table.Has(ctx, key5...)

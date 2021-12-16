@@ -14,6 +14,8 @@ import (
 // primaryKeyIndex defines an UniqueIndex for the primary key.
 type primaryKeyIndex struct {
 	*ormkv.PrimaryKeyCodec
+	indexers       []indexer
+	getBackend     func(context.Context) (Backend, error)
 	getReadBackend func(context.Context) (ReadBackend, error)
 }
 
@@ -73,13 +75,66 @@ func (p primaryKeyIndex) Has(context context.Context, key ...interface{}) (found
 	return ctx.CommitmentStoreReader().Has(keyBz)
 }
 
-func (p primaryKeyIndex) Get(context context.Context, message proto.Message, values ...interface{}) (found bool, err error) {
-	ctx, err := p.getReadBackend(context)
+func (p primaryKeyIndex) Get(ctx context.Context, message proto.Message, values ...interface{}) (found bool, err error) {
+	backend, err := p.getReadBackend(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	return p.get(ctx, message, encodeutil.ValuesOf(values...))
+	return p.get(backend, message, encodeutil.ValuesOf(values...))
+}
+
+func (t primaryKeyIndex) DeleteByKey(ctx context.Context, primaryKeyValues ...interface{}) error {
+	return t.doDeleteByKey(ctx, encodeutil.ValuesOf(primaryKeyValues...))
+}
+
+func (t primaryKeyIndex) doDeleteByKey(ctx context.Context, primaryKeyValues []protoreflect.Value) error {
+	backend, err := t.getBackend(ctx)
+	if err != nil {
+		return err
+	}
+
+	pk, err := t.EncodeKey(primaryKeyValues)
+	if err != nil {
+		return err
+	}
+
+	msg := t.MessageType().New().Interface()
+	found, err := t.getByKeyBytes(backend, pk, primaryKeyValues, msg)
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return nil
+	}
+
+	if hooks := backend.getHooks(); hooks != nil {
+		err = hooks.OnDelete(msg)
+		if err != nil {
+			return err
+		}
+	}
+
+	// delete object
+	writer := newBatchIndexCommitmentWriter(backend)
+	defer writer.Close()
+	err = writer.getCommitmentStore().Delete(pk)
+	if err != nil {
+		return err
+	}
+
+	// clear indexes
+	mref := msg.ProtoReflect()
+	indexStoreWriter := writer.getIndexStore()
+	for _, idx := range t.indexers {
+		err := idx.onDelete(indexStoreWriter, mref)
+		if err != nil {
+			return err
+		}
+	}
+
+	return writer.Write()
 }
 
 func (p primaryKeyIndex) get(backend ReadBackend, message proto.Message, values []protoreflect.Value) (found bool, err error) {
