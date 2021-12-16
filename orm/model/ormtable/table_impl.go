@@ -2,6 +2,7 @@ package ormtable
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"io"
@@ -29,10 +30,17 @@ type tableImpl struct {
 	tableId               uint32
 	typeResolver          TypeResolver
 	customJSONValidator   func(message proto.Message) error
+	getContext            func(context.Context) (Context, error)
+	getReadContext        func(context.Context) (ReadContext, error)
 }
 
-func (t tableImpl) Save(store Context, message proto.Message, mode SaveMode) error {
-	writer := newBatchIndexCommitmentWriter(store)
+func (t tableImpl) Save(context context.Context, message proto.Message, mode SaveMode) error {
+	ctx, err := t.getContext(context)
+	if err != nil {
+		return err
+	}
+
+	writer := newBatchIndexCommitmentWriter(ctx)
 	defer writer.Close()
 	return t.doSave(writer, message, mode)
 }
@@ -110,14 +118,19 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 	return writer.Write()
 }
 
-func (t tableImpl) Delete(store Context, primaryKey []protoreflect.Value) error {
+func (t tableImpl) Delete(context context.Context, primaryKey []protoreflect.Value) error {
+	ctx, err := t.getContext(context)
+	if err != nil {
+		return err
+	}
+
 	pk, err := t.EncodeKey(primaryKey)
 	if err != nil {
 		return err
 	}
 
 	msg := t.MessageType().New().Interface()
-	found, err := t.GetByKeyBytes(store, pk, primaryKey, msg)
+	found, err := t.GetByKeyBytes(ctx, pk, primaryKey, msg)
 	if err != nil {
 		return err
 	}
@@ -126,7 +139,7 @@ func (t tableImpl) Delete(store Context, primaryKey []protoreflect.Value) error 
 		return nil
 	}
 
-	if hooks := store.getHooks(); hooks != nil {
+	if hooks := ctx.getHooks(); hooks != nil {
 		err = hooks.OnDelete(msg)
 		if err != nil {
 			return err
@@ -134,7 +147,7 @@ func (t tableImpl) Delete(store Context, primaryKey []protoreflect.Value) error 
 	}
 
 	// delete object
-	writer := newBatchIndexCommitmentWriter(store)
+	writer := newBatchIndexCommitmentWriter(ctx)
 	defer writer.Close()
 	err = writer.getCommitmentStore().Delete(pk)
 	if err != nil {
@@ -154,9 +167,9 @@ func (t tableImpl) Delete(store Context, primaryKey []protoreflect.Value) error 
 	return writer.Write()
 }
 
-func (t tableImpl) DeleteMessage(store Context, message proto.Message) error {
+func (t tableImpl) DeleteMessage(context context.Context, message proto.Message) error {
 	pk := t.PrimaryKeyCodec.GetKeyValues(message.ProtoReflect())
-	return t.Delete(store, pk)
+	return t.Delete(context, pk)
 }
 
 func (t tableImpl) GetIndex(fields FieldNames) Index {
@@ -277,19 +290,29 @@ func (t tableImpl) ValidateJSON(reader io.Reader) error {
 	})
 }
 
-func (t tableImpl) ImportJSON(store Context, reader io.Reader) error {
-	return t.decodeJson(reader, func(message proto.Message) error {
-		return t.Save(store, message, SAVE_MODE_DEFAULT)
-	})
-}
-
-func (t tableImpl) ExportJSON(store ReadContext, writer io.Writer) error {
-	_, err := writer.Write([]byte("["))
+func (t tableImpl) ImportJSON(context context.Context, reader io.Reader) error {
+	ctx, err := t.getContext(context)
 	if err != nil {
 		return err
 	}
 
-	return t.doExportJSON(store, writer)
+	return t.decodeJson(reader, func(message proto.Message) error {
+		return t.Save(ctx, message, SAVE_MODE_DEFAULT)
+	})
+}
+
+func (t tableImpl) ExportJSON(context context.Context, writer io.Writer) error {
+	ctx, err := t.getReadContext(context)
+	if err != nil {
+		return err
+	}
+
+	_, err = writer.Write([]byte("["))
+	if err != nil {
+		return err
+	}
+
+	return t.doExportJSON(ctx, writer)
 }
 
 func (t tableImpl) doExportJSON(store ReadContext, writer io.Writer) error {

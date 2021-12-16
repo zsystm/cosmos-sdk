@@ -1,11 +1,16 @@
 package ormtable
 
 import (
+	"context"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 )
 
 // ReadContext defines the type used for read-only ORM operations.
 type ReadContext interface {
+	context.Context
+
 	// CommitmentStoreReader returns the reader for the commitment store.
 	CommitmentStoreReader() kvstore.Reader
 
@@ -43,6 +48,22 @@ type readContext struct {
 	indexReader      kvstore.Reader
 }
 
+func (r readContext) Deadline() (deadline time.Time, ok bool) {
+	return
+}
+
+func (r readContext) Done() <-chan struct{} {
+	return nil
+}
+
+func (r readContext) Err() error {
+	return nil
+}
+
+func (r readContext) Value(interface{}) interface{} {
+	return nil
+}
+
 func (r readContext) CommitmentStoreReader() kvstore.Reader {
 	return r.commitmentReader
 }
@@ -63,29 +84,45 @@ func NewReadContext(options ReadContextOptions) ReadContext {
 	}
 }
 
-type context struct {
+type writeContext struct {
 	commitmentStore kvstore.Store
 	indexStore      kvstore.Store
 	hooks           Hooks
 }
 
-func (c context) CommitmentStoreReader() kvstore.Reader {
+func (c writeContext) Deadline() (deadline time.Time, ok bool) {
+	return
+}
+
+func (c writeContext) Done() <-chan struct{} {
+	return nil
+}
+
+func (c writeContext) Err() error {
+	return nil
+}
+
+func (c writeContext) Value(interface{}) interface{} {
+	return nil
+}
+
+func (c writeContext) CommitmentStoreReader() kvstore.Reader {
 	return c.commitmentStore
 }
 
-func (c context) IndexStoreReader() kvstore.Reader {
+func (c writeContext) IndexStoreReader() kvstore.Reader {
 	return c.indexStore
 }
 
-func (c context) getCommitmentStore() kvstore.Store {
+func (c writeContext) getCommitmentStore() kvstore.Store {
 	return c.commitmentStore
 }
 
-func (c context) getIndexStore() kvstore.Store {
+func (c writeContext) getIndexStore() kvstore.Store {
 	return c.indexStore
 }
 
-func (c context) getHooks() Hooks {
+func (c writeContext) getHooks() Hooks {
 	return c.hooks
 }
 
@@ -113,7 +150,7 @@ func NewContext(options ContextOptions) Context {
 	if indexStore == nil {
 		indexStore = options.CommitmentStore
 	}
-	return &context{
+	return &writeContext{
 		commitmentStore: options.CommitmentStore,
 		indexStore:      indexStore,
 		hooks:           options.Hooks,

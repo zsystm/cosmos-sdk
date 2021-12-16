@@ -1,13 +1,14 @@
 package ormtable
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 
-	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
-
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
 )
 
 // View defines a read-only table.
@@ -49,7 +50,7 @@ type Table interface {
 	// Save attempts to be atomic with respect to the underlying store,
 	// meaning that either the full save operation is written or the store is
 	// left unchanged, unless there is an error with the underlying store.
-	Save(context Context, message proto.Message, mode SaveMode) error
+	Save(context context.Context, message proto.Message, mode SaveMode) error
 
 	// Delete deletes the entry with the provided primary key values from the store.
 	//
@@ -59,10 +60,10 @@ type Table interface {
 	// Delete attempts to be atomic with respect to the underlying store,
 	// meaning that either the full save operation is written or the store is
 	// left unchanged, unless there is an error with the underlying store.
-	Delete(context Context, primaryKey []protoreflect.Value) error
+	Delete(context context.Context, primaryKey []protoreflect.Value) error
 
 	// DeleteMessage calls delete with the primary key extracted from the provided message.
-	DeleteMessage(context Context, message proto.Message) error
+	DeleteMessage(context context.Context, message proto.Message) error
 
 	// DefaultJSON returns default JSON that can be used as a template for
 	// genesis files.
@@ -94,12 +95,12 @@ type Table interface {
 	// that in the case of an error, some records may already have been
 	// imported. It is assumed that ImportJSON is called in the context of some
 	// larger transaction isolation.
-	ImportJSON(Context, io.Reader) error
+	ImportJSON(context.Context, io.Reader) error
 
 	// ExportJSON exports JSON in the format accepted by ImportJSON.
 	// Auto-incrementing tables will export the last sequence number as the
 	// first element in the JSON array.
-	ExportJSON(ReadContext, io.Writer) error
+	ExportJSON(context.Context, io.Writer) error
 
 	// ID is the ID of this table within the schema of its FileDescriptor.
 	ID() uint32

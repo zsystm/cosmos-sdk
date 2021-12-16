@@ -1,6 +1,7 @@
 package ormtable
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,10 +23,15 @@ type autoIncrementTable struct {
 	seqCodec     *ormkv.SeqCodec
 }
 
-func (t *autoIncrementTable) Save(context Context, message proto.Message, mode SaveMode) error {
+func (t *autoIncrementTable) Save(context context.Context, message proto.Message, mode SaveMode) error {
+	ctx, err := t.getContext(context)
+	if err != nil {
+		return err
+	}
+
 	messageRef := message.ProtoReflect()
 	val := messageRef.Get(t.autoIncField).Uint()
-	writer := newBatchIndexCommitmentWriter(context)
+	writer := newBatchIndexCommitmentWriter(ctx)
 	defer writer.Close()
 
 	if val == 0 {
@@ -97,14 +103,19 @@ func (t autoIncrementTable) ValidateJSON(reader io.Reader) error {
 	})
 }
 
-func (t autoIncrementTable) ImportJSON(store Context, reader io.Reader) error {
-	return t.decodeAutoIncJson(store, reader, func(message proto.Message, maxID uint64) error {
+func (t autoIncrementTable) ImportJSON(context context.Context, reader io.Reader) error {
+	ctx, err := t.getContext(context)
+	if err != nil {
+		return err
+	}
+
+	return t.decodeAutoIncJson(ctx, reader, func(message proto.Message, maxID uint64) error {
 		messageRef := message.ProtoReflect()
 		id := messageRef.Get(t.autoIncField).Uint()
 		if id == 0 {
 			// we don't have an ID in the JSON, so we call Save to insert and
 			// generate one
-			return t.Save(store, message, SAVE_MODE_INSERT)
+			return t.Save(context, message, SAVE_MODE_INSERT)
 		} else {
 			if id > maxID {
 				return fmt.Errorf("invalid ID %d, expected a value <= %d", id, maxID)
@@ -113,7 +124,7 @@ func (t autoIncrementTable) ImportJSON(store Context, reader io.Reader) error {
 			// either no ID or SAVE_MODE_UPDATE. So instead we drop one level
 			// down and insert using tableImpl which doesn't know about
 			// auto-incrementing IDs
-			return t.tableImpl.Save(store, message, SAVE_MODE_INSERT)
+			return t.tableImpl.Save(context, message, SAVE_MODE_INSERT)
 		}
 	})
 }

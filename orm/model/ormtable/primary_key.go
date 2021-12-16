@@ -1,6 +1,10 @@
 package ormtable
 
 import (
+	"context"
+
+	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -10,6 +14,7 @@ import (
 // PrimaryKeyIndex defines an UniqueIndex for the primary key.
 type PrimaryKeyIndex struct {
 	*ormkv.PrimaryKeyCodec
+	getReadContext func(context.Context) (ReadContext, error)
 }
 
 // NewPrimaryKeyIndex returns a new PrimaryKeyIndex.
@@ -49,13 +54,18 @@ func (p PrimaryKeyIndex) RangeIterator(store ReadContext, start, end []protorefl
 
 func (p PrimaryKeyIndex) doNotImplement() {}
 
-func (p PrimaryKeyIndex) Has(store ReadContext, key []protoreflect.Value) (found bool, err error) {
-	keyBz, err := p.EncodeKey(key)
+func (p PrimaryKeyIndex) Has(context context.Context, key ...interface{}) (found bool, err error) {
+	ctx, err := p.getReadContext(context)
 	if err != nil {
 		return false, err
 	}
 
-	return store.CommitmentStoreReader().Has(keyBz)
+	keyBz, err := p.EncodeKey(encodeutil.ValuesOf(key...))
+	if err != nil {
+		return false, err
+	}
+
+	return ctx.CommitmentStoreReader().Has(keyBz)
 }
 
 func (p PrimaryKeyIndex) Get(store ReadContext, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {

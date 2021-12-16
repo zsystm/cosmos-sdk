@@ -1,6 +1,8 @@
 package ormtable
 
 import (
+	"context"
+
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 
@@ -13,7 +15,8 @@ import (
 // IndexKeyIndex implements Index for a regular IndexKey.
 type IndexKeyIndex struct {
 	*ormkv.IndexKeyCodec
-	primaryKey *PrimaryKeyIndex
+	primaryKey     *PrimaryKeyIndex
+	getReadContext func(context.Context) (ReadContext, error)
 }
 
 // NewIndexKeyIndex returns a new IndexKeyIndex.
@@ -21,13 +24,15 @@ func NewIndexKeyIndex(indexKeyCodec *ormkv.IndexKeyCodec, primaryKey *PrimaryKey
 	return &IndexKeyIndex{IndexKeyCodec: indexKeyCodec, primaryKey: primaryKey}
 }
 
-func (s IndexKeyIndex) PrefixIterator(store ReadContext, prefix []protoreflect.Value, options IteratorOptions) (Iterator, error) {
+func (s IndexKeyIndex) PrefixIterator(context context.Context, prefix []protoreflect.Value, options IteratorOptions) (Iterator, error) {
+	ctx, err := s.getReadContext(context)
+
 	prefixBz, err := s.EncodeKey(prefix)
 	if err != nil {
 		return nil, err
 	}
 
-	return prefixIterator(store.IndexStoreReader(), store, s, prefixBz, options)
+	return prefixIterator(ctx.IndexStoreReader(), ctx, s, prefixBz, options)
 }
 
 func (s IndexKeyIndex) RangeIterator(store ReadContext, start, end []protoreflect.Value, options IteratorOptions) (Iterator, error) {
