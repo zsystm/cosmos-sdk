@@ -51,7 +51,7 @@ type concreteIndex interface {
 	Index
 	ormkv.IndexCodec
 
-	readValueFromIndexKey(context ReadContext, primaryKey []protoreflect.Value, value []byte, message proto.Message) error
+	readValueFromIndexKey(context ReadBackend, primaryKey []protoreflect.Value, value []byte, message proto.Message) error
 }
 
 // UniqueIndex defines an unique index on a table.

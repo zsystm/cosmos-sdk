@@ -24,7 +24,7 @@ type autoIncrementTable struct {
 }
 
 func (t *autoIncrementTable) Save(context context.Context, message proto.Message, mode SaveMode) error {
-	ctx, err := t.getContext(context)
+	ctx, err := t.getBackend(context)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (t autoIncrementTable) ValidateJSON(reader io.Reader) error {
 }
 
 func (t autoIncrementTable) ImportJSON(context context.Context, reader io.Reader) error {
-	ctx, err := t.getContext(context)
+	ctx, err := t.getBackend(context)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (t autoIncrementTable) ImportJSON(context context.Context, reader io.Reader
 	})
 }
 
-func (t autoIncrementTable) decodeAutoIncJson(store Context, reader io.Reader, onMsg func(message proto.Message, maxID uint64) error) error {
+func (t autoIncrementTable) decodeAutoIncJson(store Backend, reader io.Reader, onMsg func(message proto.Message, maxID uint64) error) error {
 	decoder, err := t.startDecodeJson(reader)
 	if err != nil {
 		return err
@@ -163,13 +163,18 @@ func (t autoIncrementTable) decodeAutoIncJson(store Context, reader io.Reader, o
 		})
 }
 
-func (t autoIncrementTable) ExportJSON(store ReadContext, writer io.Writer) error {
-	_, err := writer.Write([]byte("["))
+func (t autoIncrementTable) ExportJSON(ctx context.Context, writer io.Writer) error {
+	backend, err := t.getBackend(ctx)
 	if err != nil {
 		return err
 	}
 
-	seq, err := t.curSeqValue(store.IndexStoreReader())
+	_, err = writer.Write([]byte("["))
+	if err != nil {
+		return err
+	}
+
+	seq, err := t.curSeqValue(backend.IndexStoreReader())
 	if err != nil {
 		return err
 	}
@@ -188,5 +193,5 @@ func (t autoIncrementTable) ExportJSON(store ReadContext, writer io.Writer) erro
 		return err
 	}
 
-	return t.doExportJSON(store, writer)
+	return t.doExportJSON(ctx, writer)
 }

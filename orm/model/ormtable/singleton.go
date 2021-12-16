@@ -1,6 +1,7 @@
 package ormtable
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 
@@ -40,7 +41,7 @@ func (t singleton) ValidateJSON(reader io.Reader) error {
 	}
 }
 
-func (t singleton) ImportJSON(store Context, reader io.Reader) error {
+func (t singleton) ImportJSON(context context.Context, reader io.Reader) error {
 	bz, err := io.ReadAll(reader)
 	if err != nil {
 		return err
@@ -52,12 +53,12 @@ func (t singleton) ImportJSON(store Context, reader io.Reader) error {
 		return err
 	}
 
-	return t.Save(store, msg, SAVE_MODE_DEFAULT)
+	return t.Save(context, msg, SAVE_MODE_DEFAULT)
 }
 
-func (t singleton) ExportJSON(store ReadContext, writer io.Writer) error {
+func (t singleton) ExportJSON(context context.Context, writer io.Writer) error {
 	msg := t.MessageType().New().Interface()
-	found, err := t.Get(store, nil, msg)
+	found, err := t.Get(context, msg)
 	if err != nil {
 		return err
 	}

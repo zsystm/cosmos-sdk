@@ -1,6 +1,7 @@
 package ormtable
 
 import (
+	"context"
 	"fmt"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -52,7 +53,7 @@ type PaginationResponse struct {
 // Paginate retrieves a "page" of data from the provided index and store.
 func Paginate(
 	index Index,
-	store ReadContext,
+	ctx context.Context,
 	request *PaginationRequest,
 ) (*PaginationResponse, error) {
 	offset := int(request.Offset)
@@ -71,9 +72,9 @@ func Paginate(
 			return nil, fmt.Errorf("can either use Start/End or Prefix, not both")
 		}
 
-		it, err = index.RangeIterator(store, request.Start, request.End, iteratorOpts)
+		it, err = index.RangeIterator(ctx, request.Start, request.End, iteratorOpts)
 	} else {
-		it, err = index.PrefixIterator(store, request.Prefix, iteratorOpts)
+		it, err = index.PrefixIterator(ctx, request.Prefix, iteratorOpts)
 	}
 	if err != nil {
 		return nil, err

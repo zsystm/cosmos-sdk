@@ -9,8 +9,8 @@ import (
 // NewSplitMemBackend returns a Backend instance
 // which uses two separate memory stores to simulate behavior when there
 // are really two separate backing stores.
-func NewSplitMemBackend() ormtable.Context {
-	return ormtable.NewContext(ormtable.ContextOptions{
+func NewSplitMemBackend() ormtable.Backend {
+	return ormtable.NewBackend(ormtable.BackendOptions{
 		CommitmentStore: dbm.NewMemDB(),
 		IndexStore:      dbm.NewMemDB(),
 	})
@@ -19,8 +19,8 @@ func NewSplitMemBackend() ormtable.Context {
 // NewSharedMemBackend returns a Backend instance
 // which uses a single backing memory store to simulate legacy scenarios
 // where only a single KV-store is available to modules.
-func NewSharedMemBackend() ormtable.Context {
-	return ormtable.NewContext(ormtable.ContextOptions{
+func NewSharedMemBackend() ormtable.Backend {
+	return ormtable.NewBackend(ormtable.BackendOptions{
 		CommitmentStore: dbm.NewMemDB(),
 		// commit store is automatically used as the index store
 	})

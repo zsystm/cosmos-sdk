@@ -1,7 +1,9 @@
 package ormtable
 
 import (
+	"context"
 	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
 
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -48,6 +50,10 @@ type Options struct {
 	// messaging when using ValidateJSON. If it is nil, DefaultJSONValidator
 	// will be used
 	JSONValidator func(proto.Message) error
+
+	GetBackend func(context.Context) (Backend, error)
+
+	GetReadBackend func(context.Context) (ReadBackend, error)
 }
 
 // TypeResolver is an interface that can be used for the protoreflect.UnmarshalOptions.Resolver option.
@@ -60,6 +66,15 @@ type TypeResolver interface {
 func Build(options Options) (Table, error) {
 	messageDescriptor := options.MessageType.Descriptor()
 
+	getReadBackend := options.GetReadBackend
+	if getReadBackend == nil {
+		getReadBackend = getReadBackendDefault
+	}
+	getBackend := options.GetBackend
+	if getBackend == nil {
+		getBackend = getBackendDefault
+	}
+
 	table := &tableImpl{
 		indexers:              []indexer{},
 		indexes:               []Index{},
@@ -68,6 +83,7 @@ func Build(options Options) (Table, error) {
 		entryCodecsById:       map[uint32]ormkv.EntryCodec{},
 		typeResolver:          options.TypeResolver,
 		customJSONValidator:   options.JSONValidator,
+		getBackend:            getBackend,
 	}
 
 	tableDesc := options.TableDescriptor
@@ -102,7 +118,10 @@ func Build(options Options) (Table, error) {
 
 		table.tablePrefix = prefix
 		table.tableId = singletonDesc.Id
-		table.PrimaryKeyIndex = NewPrimaryKeyIndex(pkCodec)
+		table.primaryKeyIndex = &primaryKeyIndex{
+			PrimaryKeyCodec: pkCodec,
+			getReadBackend:  getReadBackend,
+		}
 
 		return &singleton{table}, nil
 	} else {
@@ -144,9 +163,12 @@ func Build(options Options) (Table, error) {
 		return nil, err
 	}
 
-	pkIndex := NewPrimaryKeyIndex(pkCodec)
+	pkIndex := &primaryKeyIndex{
+		PrimaryKeyCodec: pkCodec,
+		getReadBackend:  getReadBackend,
+	}
 
-	table.PrimaryKeyIndex = pkIndex
+	table.primaryKeyIndex = pkIndex
 	table.indexesByFields[pkFields] = pkIndex
 	table.uniqueIndexesByFields[pkFields] = pkIndex
 	table.entryCodecsById[primaryKeyId] = pkIndex
@@ -183,9 +205,13 @@ func Build(options Options) (Table, error) {
 			if err != nil {
 				return nil, err
 			}
-			uniqIdx := NewUniqueKeyIndex(uniqCdc, pkIndex)
+			uniqIdx := &uniqueKeyIndex{
+				UniqueKeyCodec: uniqCdc,
+				primaryKey:     pkIndex,
+				getReadBackend: getReadBackend,
+			}
 			table.uniqueIndexesByFields[idxFields] = uniqIdx
-			index = NewUniqueKeyIndex(uniqCdc, pkIndex)
+			index = uniqIdx
 		} else {
 			idxCdc, err := ormkv.NewIndexKeyCodec(
 				idxPrefix,
@@ -196,7 +222,11 @@ func Build(options Options) (Table, error) {
 			if err != nil {
 				return nil, err
 			}
-			index = NewIndexKeyIndex(idxCdc, pkIndex)
+			index = &indexKeyIndex{
+				IndexKeyCodec:  idxCdc,
+				primaryKey:     pkIndex,
+				getReadBackend: getReadBackend,
+			}
 
 			// non-unique indexes can sometimes be named by several sub-lists of
 			// fields and we need to handle all of them. For example consider,

@@ -22,12 +22,12 @@ type Debugger interface {
 }
 
 // NewDebugBackend wraps both stores from a Backend with a debugger.
-func NewDebugBackend(options ormtable.ContextOptions, debugger Debugger) ormtable.Context {
+func NewDebugBackend(options ormtable.BackendOptions, debugger Debugger) ormtable.Backend {
 	indexStore := options.IndexStore
 	if indexStore == nil {
 		indexStore = options.CommitmentStore
 	}
-	return ormtable.NewContext(ormtable.ContextOptions{
+	return ormtable.NewBackend(ormtable.BackendOptions{
 		CommitmentStore: NewDebugStore(options.CommitmentStore, debugger, "commit"),
 		IndexStore:      NewDebugStore(indexStore, debugger, "index"),
 		Hooks:           debugHooks{debugger: debugger, hooks: options.Hooks},

@@ -7,10 +7,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 )
 
-// ReadContext defines the type used for read-only ORM operations.
-type ReadContext interface {
-	context.Context
-
+// ReadBackend defines the type used for read-only ORM operations.
+type ReadBackend interface {
 	// CommitmentStoreReader returns the reader for the commitment store.
 	CommitmentStoreReader() kvstore.Reader
 
@@ -18,22 +16,22 @@ type ReadContext interface {
 	IndexStoreReader() kvstore.Reader
 }
 
-// Context defines the type used for read-write ORM operations.
-// Unlike ReadContext, write access to the underlying kv-store
+// Backend defines the type used for read-write ORM operations.
+// Unlike ReadBackend, write access to the underlying kv-store
 // is hidden so that this can be fully encapsulated by the ORM.
-type Context interface {
-	ReadContext
+type Backend interface {
+	ReadBackend
 	getCommitmentStore() kvstore.Store
 	getIndexStore() kvstore.Store
 	getHooks() Hooks
 }
 
-// ReadContextOptions defines options for creating a ReadContext.
+// ReadBackendOptions defines options for creating a ReadBackend.
 // Read context can optionally define two stores - a commitment store
 // that is backed by a merkle tree and an index store that isn't.
 // If the index store is not defined, the commitment store will be
 // used for all operations.
-type ReadContextOptions struct {
+type ReadBackendOptions struct {
 
 	// CommitmentStoreReader is a reader for the commitment store.
 	CommitmentStoreReader kvstore.Reader
@@ -43,95 +41,79 @@ type ReadContextOptions struct {
 	IndexStoreReader kvstore.Reader
 }
 
-type readContext struct {
+type readBackend struct {
 	commitmentReader kvstore.Reader
 	indexReader      kvstore.Reader
 }
 
-func (r readContext) Deadline() (deadline time.Time, ok bool) {
-	return
-}
-
-func (r readContext) Done() <-chan struct{} {
-	return nil
-}
-
-func (r readContext) Err() error {
-	return nil
-}
-
-func (r readContext) Value(interface{}) interface{} {
-	return nil
-}
-
-func (r readContext) CommitmentStoreReader() kvstore.Reader {
+func (r readBackend) CommitmentStoreReader() kvstore.Reader {
 	return r.commitmentReader
 }
 
-func (r readContext) IndexStoreReader() kvstore.Reader {
+func (r readBackend) IndexStoreReader() kvstore.Reader {
 	return r.indexReader
 }
 
-// NewReadContext creates a new ReadContext.
-func NewReadContext(options ReadContextOptions) ReadContext {
+// NewReadBackend creates a new ReadBackend.
+func NewReadBackend(options ReadBackendOptions) ReadBackend {
 	indexReader := options.IndexStoreReader
 	if indexReader == nil {
 		indexReader = options.CommitmentStoreReader
 	}
-	return &readContext{
+	return &readBackend{
 		commitmentReader: options.CommitmentStoreReader,
 		indexReader:      indexReader,
 	}
 }
 
-type writeContext struct {
+type backend struct {
 	commitmentStore kvstore.Store
 	indexStore      kvstore.Store
 	hooks           Hooks
 }
 
-func (c writeContext) Deadline() (deadline time.Time, ok bool) {
+func (c backend) Deadline() (deadline time.Time, ok bool) {
 	return
 }
 
-func (c writeContext) Done() <-chan struct{} {
+func (c backend) Done() <-chan struct{} {
 	return nil
 }
 
-func (c writeContext) Err() error {
+func (c backend) Err() error {
 	return nil
 }
 
-func (c writeContext) Value(interface{}) interface{} {
+func (c backend) Value(interface{}) interface{} {
 	return nil
 }
 
-func (c writeContext) CommitmentStoreReader() kvstore.Reader {
+func (c backend) CommitmentStoreReader() kvstore.Reader {
 	return c.commitmentStore
 }
 
-func (c writeContext) IndexStoreReader() kvstore.Reader {
+func (c backend) IndexStoreReader() kvstore.Reader {
 	return c.indexStore
 }
 
-func (c writeContext) getCommitmentStore() kvstore.Store {
+func (c backend) getCommitmentStore() kvstore.Store {
 	return c.commitmentStore
 }
 
-func (c writeContext) getIndexStore() kvstore.Store {
+func (c backend) getIndexStore() kvstore.Store {
 	return c.indexStore
 }
 
-func (c writeContext) getHooks() Hooks {
+func (c backend) getHooks() Hooks {
 	return c.hooks
 }
 
-// ContextOptions defines options for creating a Context.
+// BackendOptions defines options for creating a Backend.
 // Context can optionally define two stores - a commitment store
 // that is backed by a merkle tree and an index store that isn't.
 // If the index store is not defined, the commitment store will be
 // used for all operations.
-type ContextOptions struct {
+type BackendOptions struct {
 
 	// CommitmentStore is the commitment store.
 	CommitmentStore kvstore.Store
@@ -144,15 +126,31 @@ type ContextOptions struct {
 	Hooks Hooks
 }
 
-// NewContext creates a new Context.
-func NewContext(options ContextOptions) Context {
+// NewBackend creates a new Backend.
+func NewBackend(options BackendOptions) Backend {
 	indexStore := options.IndexStore
 	if indexStore == nil {
 		indexStore = options.CommitmentStore
 	}
-	return &writeContext{
+	return &backend{
 		commitmentStore: options.CommitmentStore,
 		indexStore:      indexStore,
 		hooks:           options.Hooks,
 	}
+}
+
+func WrapContextDefault(backend Backend) context.Context {
+	return context.WithValue(context.Background(), defaultContextKey, backend)
+}
+
+type contextKeyType string
+
+var defaultContextKey = contextKeyType("backend")
+
+func getBackendDefault(ctx context.Context) (Backend, error) {
+	return ctx.Value(defaultContextKey).(Backend), nil
+}
+
+func getReadBackendDefault(ctx context.Context) (ReadBackend, error) {
+	return ctx.Value(defaultContextKey).(ReadBackend), nil
 }

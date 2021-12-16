@@ -20,7 +20,7 @@ import (
 
 // tableImpl implements Table.
 type tableImpl struct {
-	*PrimaryKeyIndex
+	*primaryKeyIndex
 	indexers              []indexer
 	indexes               []Index
 	indexesByFields       map[FieldNames]concreteIndex
@@ -30,12 +30,11 @@ type tableImpl struct {
 	tableId               uint32
 	typeResolver          TypeResolver
 	customJSONValidator   func(message proto.Message) error
-	getContext            func(context.Context) (Context, error)
-	getReadContext        func(context.Context) (ReadContext, error)
+	getBackend            func(context.Context) (Backend, error)
 }
 
 func (t tableImpl) Save(context context.Context, message proto.Message, mode SaveMode) error {
-	ctx, err := t.getContext(context)
+	ctx, err := t.getBackend(context)
 	if err != nil {
 		return err
 	}
@@ -53,7 +52,7 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 	}
 
 	existing := mref.New().Interface()
-	haveExisting, err := t.GetByKeyBytes(writer, pk, pkValues, existing)
+	haveExisting, err := t.getByKeyBytes(writer, pk, pkValues, existing)
 	if err != nil {
 		return err
 	}
@@ -119,7 +118,7 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 }
 
 func (t tableImpl) Delete(context context.Context, primaryKey []protoreflect.Value) error {
-	ctx, err := t.getContext(context)
+	ctx, err := t.getBackend(context)
 	if err != nil {
 		return err
 	}
@@ -130,7 +129,7 @@ func (t tableImpl) Delete(context context.Context, primaryKey []protoreflect.Val
 	}
 
 	msg := t.MessageType().New().Interface()
-	found, err := t.GetByKeyBytes(ctx, pk, primaryKey, msg)
+	found, err := t.getByKeyBytes(ctx, pk, primaryKey, msg)
 	if err != nil {
 		return err
 	}
@@ -291,38 +290,28 @@ func (t tableImpl) ValidateJSON(reader io.Reader) error {
 }
 
 func (t tableImpl) ImportJSON(context context.Context, reader io.Reader) error {
-	ctx, err := t.getContext(context)
-	if err != nil {
-		return err
-	}
-
 	return t.decodeJson(reader, func(message proto.Message) error {
-		return t.Save(ctx, message, SAVE_MODE_DEFAULT)
+		return t.Save(context, message, SAVE_MODE_DEFAULT)
 	})
 }
 
 func (t tableImpl) ExportJSON(context context.Context, writer io.Writer) error {
-	ctx, err := t.getReadContext(context)
+	_, err := writer.Write([]byte("["))
 	if err != nil {
 		return err
 	}
 
-	_, err = writer.Write([]byte("["))
-	if err != nil {
-		return err
-	}
-
-	return t.doExportJSON(ctx, writer)
+	return t.doExportJSON(context, writer)
 }
 
-func (t tableImpl) doExportJSON(store ReadContext, writer io.Writer) error {
+func (t tableImpl) doExportJSON(ctx context.Context, writer io.Writer) error {
 	marshalOptions := protojson.MarshalOptions{
 		UseProtoNames: true,
 		Resolver:      t.typeResolver,
 	}
 
 	var err error
-	it, _ := t.PrefixIterator(store, nil, IteratorOptions{})
+	it, _ := t.PrefixIterator(ctx, nil, IteratorOptions{})
 	start := true
 	for {
 		found := it.Next()
