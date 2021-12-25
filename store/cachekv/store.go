@@ -265,7 +265,7 @@ func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 	}
 	if deleted {
 		store.deleted[keyStr] = struct{}{}
-	} else {
+	} else if dirty {
 		delete(store.deleted, keyStr)
 	}
 	if dirty {
