@@ -4,6 +4,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
+	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
+	"github.com/cosmos/cosmos-sdk/orm/internal/listinternal"
+
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 )
 
@@ -27,8 +30,7 @@ type Iterator interface {
 	GetMessage() (proto.Message, error)
 
 	// Cursor returns the cursor referencing the current iteration position
-	// and can be passed to IteratorOptions to restart iteration right after
-	// this position.
+	// and can be used to restart iteration right after this position.
 	Cursor() Cursor
 
 	// Close closes the iterator and must always be called when done using
@@ -41,7 +43,49 @@ type Iterator interface {
 // Cursor defines the cursor type.
 type Cursor []byte
 
-func prefixIterator(iteratorStore kvstore.Reader, context ReadBackend, index concreteIndex, prefix []byte, options IteratorOptions) (Iterator, error) {
+func iterator(
+	backend ReadBackend,
+	index concreteIndex,
+	codec *ormkv.KeyCodec,
+	options []listinternal.Option,
+) (Iterator, error) {
+	opts := &listinternal.Options{}
+	listinternal.ApplyOptions(opts, options)
+	if err := opts.Validate(); err != nil {
+		return nil, err
+	}
+
+	if opts.Start != nil || opts.End != nil {
+		err := codec.CheckValidRangeIterationKeys(opts.Start, opts.End)
+		if err != nil {
+			return nil, err
+		}
+
+		startBz, err := codec.EncodeKey(opts.Start)
+		if err != nil {
+			return nil, err
+		}
+
+		endBz, err := codec.EncodeKey(opts.Start)
+		if err != nil {
+			return nil, err
+		}
+
+		fullEndKey := len(codec.GetFieldNames()) == len(opts.End)
+
+		return rangeIterator(backend.CommitmentStoreReader(), backend, index, startBz, endBz, fullEndKey, opts)
+	} else {
+
+		prefixBz, err := codec.EncodeKey(opts.Prefix)
+		if err != nil {
+			return nil, err
+		}
+
+		return prefixIterator(backend.CommitmentStoreReader(), backend, index, prefixBz, opts)
+	}
+}
+
+func prefixIterator(iteratorStore kvstore.Reader, context ReadBackend, index concreteIndex, prefix []byte, options *listinternal.Options) (Iterator, error) {
 	if !options.Reverse {
 		var start []byte
 		if len(options.Cursor) != 0 {
@@ -85,7 +129,7 @@ func prefixIterator(iteratorStore kvstore.Reader, context ReadBackend, index con
 
 // NOTE: fullEndKey indicates whether the end key contained all the fields of the key,
 // if it did then we need to use inclusive end bytes, otherwise we prefix the end bytes
-func rangeIterator(iteratorStore kvstore.Reader, context ReadBackend, index concreteIndex, start, end []byte, fullEndKey bool, options IteratorOptions) (Iterator, error) {
+func rangeIterator(iteratorStore kvstore.Reader, context ReadBackend, index concreteIndex, start, end []byte, fullEndKey bool, options *listinternal.Options) (Iterator, error) {
 	if !options.Reverse {
 		if len(options.Cursor) != 0 {
 			start = append(options.Cursor, 0)
