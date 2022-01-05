@@ -27,7 +27,7 @@ func (i indexKeyIndex) Iterator(ctx context.Context, options ...ormlist.Option) 
 		return nil, err
 	}
 
-	return iterator(backend, i, i.KeyCodec, options)
+	return iterator(backend, backend.IndexStoreReader(), i, i.KeyCodec, options)
 }
 
 var _ indexer = &indexKeyIndex{}

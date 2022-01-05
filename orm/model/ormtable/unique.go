@@ -27,7 +27,7 @@ func (u uniqueKeyIndex) Iterator(ctx context.Context, options ...ormlist.Option)
 		return nil, err
 	}
 
-	return iterator(backend, u, u.GetKeyCodec(), options)
+	return iterator(backend, backend.IndexStoreReader(), u, u.GetKeyCodec(), options)
 }
 
 func (u uniqueKeyIndex) doNotImplement() {}

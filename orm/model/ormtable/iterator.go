@@ -45,6 +45,7 @@ type Cursor []byte
 
 func iterator(
 	backend ReadBackend,
+	reader kvstore.Reader,
 	index concreteIndex,
 	codec *ormkv.KeyCodec,
 	options []listinternal.Option,
@@ -73,19 +74,18 @@ func iterator(
 
 		fullEndKey := len(codec.GetFieldNames()) == len(opts.End)
 
-		return rangeIterator(backend.CommitmentStoreReader(), backend, index, startBz, endBz, fullEndKey, opts)
+		return rangeIterator(reader, backend, index, startBz, endBz, fullEndKey, opts)
 	} else {
-
 		prefixBz, err := codec.EncodeKey(opts.Prefix)
 		if err != nil {
 			return nil, err
 		}
 
-		return prefixIterator(backend.CommitmentStoreReader(), backend, index, prefixBz, opts)
+		return prefixIterator(reader, backend, index, prefixBz, opts)
 	}
 }
 
-func prefixIterator(iteratorStore kvstore.Reader, context ReadBackend, index concreteIndex, prefix []byte, options *listinternal.Options) (Iterator, error) {
+func prefixIterator(iteratorStore kvstore.Reader, backend ReadBackend, index concreteIndex, prefix []byte, options *listinternal.Options) (Iterator, error) {
 	if !options.Reverse {
 		var start []byte
 		if len(options.Cursor) != 0 {
@@ -101,7 +101,7 @@ func prefixIterator(iteratorStore kvstore.Reader, context ReadBackend, index con
 		}
 		return &indexIterator{
 			index:    index,
-			store:    context,
+			store:    backend,
 			iterator: it,
 			started:  false,
 		}, nil
@@ -120,7 +120,7 @@ func prefixIterator(iteratorStore kvstore.Reader, context ReadBackend, index con
 
 		return &indexIterator{
 			index:    index,
-			store:    context,
+			store:    backend,
 			iterator: it,
 			started:  false,
 		}, nil
@@ -129,7 +129,7 @@ func prefixIterator(iteratorStore kvstore.Reader, context ReadBackend, index con
 
 // NOTE: fullEndKey indicates whether the end key contained all the fields of the key,
 // if it did then we need to use inclusive end bytes, otherwise we prefix the end bytes
-func rangeIterator(iteratorStore kvstore.Reader, context ReadBackend, index concreteIndex, start, end []byte, fullEndKey bool, options *listinternal.Options) (Iterator, error) {
+func rangeIterator(iteratorStore kvstore.Reader, reader ReadBackend, index concreteIndex, start, end []byte, fullEndKey bool, options *listinternal.Options) (Iterator, error) {
 	if !options.Reverse {
 		if len(options.Cursor) != 0 {
 			start = append(options.Cursor, 0)
@@ -147,7 +147,7 @@ func rangeIterator(iteratorStore kvstore.Reader, context ReadBackend, index conc
 		}
 		return &indexIterator{
 			index:    index,
-			store:    context,
+			store:    reader,
 			iterator: it,
 			started:  false,
 		}, nil
@@ -168,7 +168,7 @@ func rangeIterator(iteratorStore kvstore.Reader, context ReadBackend, index conc
 
 		return &indexIterator{
 			index:    index,
-			store:    context,
+			store:    reader,
 			iterator: it,
 			started:  false,
 		}, nil

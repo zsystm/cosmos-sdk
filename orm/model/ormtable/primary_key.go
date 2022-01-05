@@ -27,7 +27,7 @@ func (p primaryKeyIndex) Iterator(ctx context.Context, options ...ormlist.Option
 		return nil, err
 	}
 
-	return iterator(backend, p, p.KeyCodec, options)
+	return iterator(backend, backend.CommitmentStoreReader(), p, p.KeyCodec, options)
 }
 
 func (p primaryKeyIndex) doNotImplement() {}
