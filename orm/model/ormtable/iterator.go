@@ -66,7 +66,7 @@ func iterator(
 			return nil, err
 		}
 
-		endBz, err := codec.EncodeKey(opts.Start)
+		endBz, err := codec.EncodeKey(opts.End)
 		if err != nil {
 			return nil, err
 		}

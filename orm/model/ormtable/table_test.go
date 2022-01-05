@@ -140,8 +140,8 @@ func runTestScenario(t *testing.T, table ormtable.Table, backend ormtable.Backen
 
 	// let's try a reverse prefix query
 	it, err = table.Iterator(ctx, ormlist.Prefix(uint32(4)), ormlist.Reverse())
-	defer it.Close()
 	assert.NilError(t, err)
+	defer it.Close()
 	assertIteratorItems(it, 2, 1, 0)
 
 	// let's try a range query
@@ -149,17 +149,17 @@ func runTestScenario(t *testing.T, table ormtable.Table, backend ormtable.Backen
 		ormlist.Start(uint32(4), int64(-1)),
 		ormlist.End(uint32(7)),
 	)
-	defer it.Close()
 	assert.NilError(t, err)
+	defer it.Close()
 	assertIteratorItems(it, 2, 3, 4, 5, 6)
 
 	// and another range query
 	it, err = table.Iterator(ctx,
 		ormlist.Start(uint32(5), int64(-3)),
-		ormlist.Start(uint32(5), int64(-3)),
+		ormlist.End(uint32(8), int64(1), "abc"),
 	)
-	defer it.Close()
 	assert.NilError(t, err)
+	defer it.Close()
 	assertIteratorItems(it, 3, 4, 5, 6, 7, 8)
 
 	// now a reverse range query on a different index
@@ -169,7 +169,7 @@ func runTestScenario(t *testing.T, table ormtable.Table, backend ormtable.Backen
 	assert.Assert(t, strU32Index != nil)
 	it, err = strU32Index.Iterator(ctx,
 		ormlist.Start("abc"),
-		ormlist.Start("abd"),
+		ormlist.End("abd"),
 		ormlist.Reverse(),
 	)
 	assertIteratorItems(it, 9, 3, 1, 8, 7, 2, 0)
