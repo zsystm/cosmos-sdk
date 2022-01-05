@@ -4,6 +4,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
+	"github.com/cosmos/cosmos-sdk/orm/model/ormlist"
+
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
 	"github.com/cosmos/cosmos-sdk/orm/internal/listinternal"
 
@@ -31,7 +33,7 @@ type Iterator interface {
 
 	// Cursor returns the cursor referencing the current iteration position
 	// and can be used to restart iteration right after this position.
-	Cursor() Cursor
+	Cursor() ormlist.CursorT
 
 	// Close closes the iterator and must always be called when done using
 	// the iterator. The defer keyword should generally be used for this.
@@ -39,9 +41,6 @@ type Iterator interface {
 
 	doNotImplement()
 }
-
-// Cursor defines the cursor type.
-type Cursor []byte
 
 func iterator(
 	backend ReadBackend,
@@ -228,7 +227,7 @@ func (i *indexIterator) GetMessage() (proto.Message, error) {
 	return msg, err
 }
 
-func (i indexIterator) Cursor() Cursor {
+func (i indexIterator) Cursor() ormlist.CursorT {
 	return i.iterator.Key()
 }
 

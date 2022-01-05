@@ -16,21 +16,9 @@ import (
 // are stateless, with all state existing only in the store passed
 // to index methods.
 type Index interface {
-	Iterator(ctx context.Context, options ...ormlist.Option) (Iterator, error)
 
-	//
-	//// PrefixIterator returns a prefix iterator for the provided prefix. Prefix
-	//// can contain 0 or more values that must correspond to the fields in the index.
-	//PrefixIterator(context context.Context, prefix []protoreflect.Value, options iteratorOptions) (Iterator, error)
-	//
-	//// RangeIterator returns a range iterator between the provided start and end.
-	//// Start and end can contain 0 or more values that must correspond to the fields in the index.
-	//// Range iterators can only be contained for start and end values which are
-	//// well-ordered, meaning that any unordered components must be equal. Ex.
-	//// the bytes type is considered unordered, so a range iterator is created
-	//// over an index with a bytes field, both start and end must have the same
-	//// value for bytes.
-	//RangeIterator(context context.Context, start, end []protoreflect.Value, options iteratorOptions) (Iterator, error)
+	// Iterator returns an iterator for this index with the provided list options.
+	Iterator(ctx context.Context, options ...ormlist.Option) (Iterator, error)
 
 	// MessageType returns the protobuf message type of the index.
 	MessageType() protoreflect.MessageType
