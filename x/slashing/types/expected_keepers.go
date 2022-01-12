@@ -62,3 +62,9 @@ type StakingHooks interface {
 
 	AfterValidatorBonded(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress) error // Must be called when a validator is bonded
 }
+
+// SlashingHooks event hooks for jailing and slashing validator
+type SlashingHooks interface {
+	// Is triggered when the validator missed too many blocks
+	AfterValidatorDowntime(ctx sdk.Context, consAddr sdk.ConsAddress, power int64)
+}
