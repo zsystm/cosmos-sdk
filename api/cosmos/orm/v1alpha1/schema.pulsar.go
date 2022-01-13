@@ -2,14 +2,15 @@ package ormv1alpha1
 
 import (
 	fmt "fmt"
+	io "io"
+	reflect "reflect"
+	sync "sync"
+
 	runtime "github.com/cosmos/cosmos-proto/runtime"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoiface "google.golang.org/protobuf/runtime/protoiface"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
-	io "io"
-	reflect "reflect"
-	sync "sync"
 )
 
 var _ protoreflect.List = (*_SchemaDescriptor_2_list)(nil)
@@ -660,7 +661,7 @@ func (x *SchemaDescriptor_ModuleEntry) ProtoReflect() protoreflect.Message {
 }
 
 func (x *SchemaDescriptor_ModuleEntry) slowProtoReflect() protoreflect.Message {
-	mi := &file_cosmos_orm_v1alpha1_schema_proto_msgTypes[2]
+	mi := &file_cosmos_orm_v1alpha1_schema_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1231,7 +1232,7 @@ func (x *SchemaDescriptor_FileEntry) ProtoReflect() protoreflect.Message {
 }
 
 func (x *SchemaDescriptor_FileEntry) slowProtoReflect() protoreflect.Message {
-	mi := &file_cosmos_orm_v1alpha1_schema_proto_msgTypes[3]
+	mi := &file_cosmos_orm_v1alpha1_schema_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1677,474 +1678,6 @@ func (x *fastReflection_SchemaDescriptor_FileEntry) ProtoMethods() *protoiface.M
 	}
 }
 
-var (
-	md_ModuleFileTable           protoreflect.MessageDescriptor
-	fd_ModuleFileTable_id        protoreflect.FieldDescriptor
-	fd_ModuleFileTable_file_name protoreflect.FieldDescriptor
-)
-
-func init() {
-	file_cosmos_orm_v1alpha1_schema_proto_init()
-	md_ModuleFileTable = File_cosmos_orm_v1alpha1_schema_proto.Messages().ByName("ModuleFileTable")
-	fd_ModuleFileTable_id = md_ModuleFileTable.Fields().ByName("id")
-	fd_ModuleFileTable_file_name = md_ModuleFileTable.Fields().ByName("file_name")
-}
-
-var _ protoreflect.Message = (*fastReflection_ModuleFileTable)(nil)
-
-type fastReflection_ModuleFileTable ModuleFileTable
-
-func (x *ModuleFileTable) ProtoReflect() protoreflect.Message {
-	return (*fastReflection_ModuleFileTable)(x)
-}
-
-func (x *ModuleFileTable) slowProtoReflect() protoreflect.Message {
-	mi := &file_cosmos_orm_v1alpha1_schema_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-var _fastReflection_ModuleFileTable_messageType fastReflection_ModuleFileTable_messageType
-var _ protoreflect.MessageType = fastReflection_ModuleFileTable_messageType{}
-
-type fastReflection_ModuleFileTable_messageType struct{}
-
-func (x fastReflection_ModuleFileTable_messageType) Zero() protoreflect.Message {
-	return (*fastReflection_ModuleFileTable)(nil)
-}
-func (x fastReflection_ModuleFileTable_messageType) New() protoreflect.Message {
-	return new(fastReflection_ModuleFileTable)
-}
-func (x fastReflection_ModuleFileTable_messageType) Descriptor() protoreflect.MessageDescriptor {
-	return md_ModuleFileTable
-}
-
-// Descriptor returns message descriptor, which contains only the protobuf
-// type information for the message.
-func (x *fastReflection_ModuleFileTable) Descriptor() protoreflect.MessageDescriptor {
-	return md_ModuleFileTable
-}
-
-// Type returns the message type, which encapsulates both Go and protobuf
-// type information. If the Go type information is not needed,
-// it is recommended that the message descriptor be used instead.
-func (x *fastReflection_ModuleFileTable) Type() protoreflect.MessageType {
-	return _fastReflection_ModuleFileTable_messageType
-}
-
-// New returns a newly allocated and mutable empty message.
-func (x *fastReflection_ModuleFileTable) New() protoreflect.Message {
-	return new(fastReflection_ModuleFileTable)
-}
-
-// Interface unwraps the message reflection interface and
-// returns the underlying ProtoMessage interface.
-func (x *fastReflection_ModuleFileTable) Interface() protoreflect.ProtoMessage {
-	return (*ModuleFileTable)(x)
-}
-
-// Range iterates over every populated field in an undefined order,
-// calling f for each field descriptor and value encountered.
-// Range returns immediately if f returns false.
-// While iterating, mutating operations may only be performed
-// on the current field descriptor.
-func (x *fastReflection_ModuleFileTable) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
-	if x.Id != uint32(0) {
-		value := protoreflect.ValueOfUint32(x.Id)
-		if !f(fd_ModuleFileTable_id, value) {
-			return
-		}
-	}
-	if x.FileName != "" {
-		value := protoreflect.ValueOfString(x.FileName)
-		if !f(fd_ModuleFileTable_file_name, value) {
-			return
-		}
-	}
-}
-
-// Has reports whether a field is populated.
-//
-// Some fields have the property of nullability where it is possible to
-// distinguish between the default value of a field and whether the field
-// was explicitly populated with the default value. Singular message fields,
-// member fields of a oneof, and proto2 scalar fields are nullable. Such
-// fields are populated only if explicitly set.
-//
-// In other cases (aside from the nullable cases above),
-// a proto3 scalar field is populated if it contains a non-zero value, and
-// a repeated field is populated if it is non-empty.
-func (x *fastReflection_ModuleFileTable) Has(fd protoreflect.FieldDescriptor) bool {
-	switch fd.FullName() {
-	case "cosmos.orm.v1alpha1.ModuleFileTable.id":
-		return x.Id != uint32(0)
-	case "cosmos.orm.v1alpha1.ModuleFileTable.file_name":
-		return x.FileName != ""
-	default:
-		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.orm.v1alpha1.ModuleFileTable"))
-		}
-		panic(fmt.Errorf("message cosmos.orm.v1alpha1.ModuleFileTable does not contain field %s", fd.FullName()))
-	}
-}
-
-// Clear clears the field such that a subsequent Has call reports false.
-//
-// Clearing an extension field clears both the extension type and value
-// associated with the given field number.
-//
-// Clear is a mutating operation and unsafe for concurrent use.
-func (x *fastReflection_ModuleFileTable) Clear(fd protoreflect.FieldDescriptor) {
-	switch fd.FullName() {
-	case "cosmos.orm.v1alpha1.ModuleFileTable.id":
-		x.Id = uint32(0)
-	case "cosmos.orm.v1alpha1.ModuleFileTable.file_name":
-		x.FileName = ""
-	default:
-		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.orm.v1alpha1.ModuleFileTable"))
-		}
-		panic(fmt.Errorf("message cosmos.orm.v1alpha1.ModuleFileTable does not contain field %s", fd.FullName()))
-	}
-}
-
-// Get retrieves the value for a field.
-//
-// For unpopulated scalars, it returns the default value, where
-// the default value of a bytes scalar is guaranteed to be a copy.
-// For unpopulated composite types, it returns an empty, read-only view
-// of the value; to obtain a mutable reference, use Mutable.
-func (x *fastReflection_ModuleFileTable) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
-	switch descriptor.FullName() {
-	case "cosmos.orm.v1alpha1.ModuleFileTable.id":
-		value := x.Id
-		return protoreflect.ValueOfUint32(value)
-	case "cosmos.orm.v1alpha1.ModuleFileTable.file_name":
-		value := x.FileName
-		return protoreflect.ValueOfString(value)
-	default:
-		if descriptor.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.orm.v1alpha1.ModuleFileTable"))
-		}
-		panic(fmt.Errorf("message cosmos.orm.v1alpha1.ModuleFileTable does not contain field %s", descriptor.FullName()))
-	}
-}
-
-// Set stores the value for a field.
-//
-// For a field belonging to a oneof, it implicitly clears any other field
-// that may be currently set within the same oneof.
-// For extension fields, it implicitly stores the provided ExtensionType.
-// When setting a composite type, it is unspecified whether the stored value
-// aliases the source's memory in any way. If the composite value is an
-// empty, read-only value, then it panics.
-//
-// Set is a mutating operation and unsafe for concurrent use.
-func (x *fastReflection_ModuleFileTable) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
-	switch fd.FullName() {
-	case "cosmos.orm.v1alpha1.ModuleFileTable.id":
-		x.Id = uint32(value.Uint())
-	case "cosmos.orm.v1alpha1.ModuleFileTable.file_name":
-		x.FileName = value.Interface().(string)
-	default:
-		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.orm.v1alpha1.ModuleFileTable"))
-		}
-		panic(fmt.Errorf("message cosmos.orm.v1alpha1.ModuleFileTable does not contain field %s", fd.FullName()))
-	}
-}
-
-// Mutable returns a mutable reference to a composite type.
-//
-// If the field is unpopulated, it may allocate a composite value.
-// For a field belonging to a oneof, it implicitly clears any other field
-// that may be currently set within the same oneof.
-// For extension fields, it implicitly stores the provided ExtensionType
-// if not already stored.
-// It panics if the field does not contain a composite type.
-//
-// Mutable is a mutating operation and unsafe for concurrent use.
-func (x *fastReflection_ModuleFileTable) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
-	switch fd.FullName() {
-	case "cosmos.orm.v1alpha1.ModuleFileTable.id":
-		panic(fmt.Errorf("field id of message cosmos.orm.v1alpha1.ModuleFileTable is not mutable"))
-	case "cosmos.orm.v1alpha1.ModuleFileTable.file_name":
-		panic(fmt.Errorf("field file_name of message cosmos.orm.v1alpha1.ModuleFileTable is not mutable"))
-	default:
-		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.orm.v1alpha1.ModuleFileTable"))
-		}
-		panic(fmt.Errorf("message cosmos.orm.v1alpha1.ModuleFileTable does not contain field %s", fd.FullName()))
-	}
-}
-
-// NewField returns a new value that is assignable to the field
-// for the given descriptor. For scalars, this returns the default value.
-// For lists, maps, and messages, this returns a new, empty, mutable value.
-func (x *fastReflection_ModuleFileTable) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
-	switch fd.FullName() {
-	case "cosmos.orm.v1alpha1.ModuleFileTable.id":
-		return protoreflect.ValueOfUint32(uint32(0))
-	case "cosmos.orm.v1alpha1.ModuleFileTable.file_name":
-		return protoreflect.ValueOfString("")
-	default:
-		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.orm.v1alpha1.ModuleFileTable"))
-		}
-		panic(fmt.Errorf("message cosmos.orm.v1alpha1.ModuleFileTable does not contain field %s", fd.FullName()))
-	}
-}
-
-// WhichOneof reports which field within the oneof is populated,
-// returning nil if none are populated.
-// It panics if the oneof descriptor does not belong to this message.
-func (x *fastReflection_ModuleFileTable) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
-	switch d.FullName() {
-	default:
-		panic(fmt.Errorf("%s is not a oneof field in cosmos.orm.v1alpha1.ModuleFileTable", d.FullName()))
-	}
-	panic("unreachable")
-}
-
-// GetUnknown retrieves the entire list of unknown fields.
-// The caller may only mutate the contents of the RawFields
-// if the mutated bytes are stored back into the message with SetUnknown.
-func (x *fastReflection_ModuleFileTable) GetUnknown() protoreflect.RawFields {
-	return x.unknownFields
-}
-
-// SetUnknown stores an entire list of unknown fields.
-// The raw fields must be syntactically valid according to the wire format.
-// An implementation may panic if this is not the case.
-// Once stored, the caller must not mutate the content of the RawFields.
-// An empty RawFields may be passed to clear the fields.
-//
-// SetUnknown is a mutating operation and unsafe for concurrent use.
-func (x *fastReflection_ModuleFileTable) SetUnknown(fields protoreflect.RawFields) {
-	x.unknownFields = fields
-}
-
-// IsValid reports whether the message is valid.
-//
-// An invalid message is an empty, read-only value.
-//
-// An invalid message often corresponds to a nil pointer of the concrete
-// message type, but the details are implementation dependent.
-// Validity is not part of the protobuf data model, and may not
-// be preserved in marshaling or other operations.
-func (x *fastReflection_ModuleFileTable) IsValid() bool {
-	return x != nil
-}
-
-// ProtoMethods returns optional fastReflectionFeature-path implementations of various operations.
-// This method may return nil.
-//
-// The returned methods type is identical to
-// "google.golang.org/protobuf/runtime/protoiface".Methods.
-// Consult the protoiface package documentation for details.
-func (x *fastReflection_ModuleFileTable) ProtoMethods() *protoiface.Methods {
-	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
-		x := input.Message.Interface().(*ModuleFileTable)
-		if x == nil {
-			return protoiface.SizeOutput{
-				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
-				Size:              0,
-			}
-		}
-		options := runtime.SizeInputToOptions(input)
-		_ = options
-		var n int
-		var l int
-		_ = l
-		if x.Id != 0 {
-			n += 1 + runtime.Sov(uint64(x.Id))
-		}
-		l = len(x.FileName)
-		if l > 0 {
-			n += 1 + l + runtime.Sov(uint64(l))
-		}
-		if x.unknownFields != nil {
-			n += len(x.unknownFields)
-		}
-		return protoiface.SizeOutput{
-			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
-			Size:              n,
-		}
-	}
-
-	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
-		x := input.Message.Interface().(*ModuleFileTable)
-		if x == nil {
-			return protoiface.MarshalOutput{
-				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
-				Buf:               input.Buf,
-			}, nil
-		}
-		options := runtime.MarshalInputToOptions(input)
-		_ = options
-		size := options.Size(x)
-		dAtA := make([]byte, size)
-		i := len(dAtA)
-		_ = i
-		var l int
-		_ = l
-		if x.unknownFields != nil {
-			i -= len(x.unknownFields)
-			copy(dAtA[i:], x.unknownFields)
-		}
-		if len(x.FileName) > 0 {
-			i -= len(x.FileName)
-			copy(dAtA[i:], x.FileName)
-			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.FileName)))
-			i--
-			dAtA[i] = 0x12
-		}
-		if x.Id != 0 {
-			i = runtime.EncodeVarint(dAtA, i, uint64(x.Id))
-			i--
-			dAtA[i] = 0x8
-		}
-		if input.Buf != nil {
-			input.Buf = append(input.Buf, dAtA...)
-		} else {
-			input.Buf = dAtA
-		}
-		return protoiface.MarshalOutput{
-			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
-			Buf:               input.Buf,
-		}, nil
-	}
-	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
-		x := input.Message.Interface().(*ModuleFileTable)
-		if x == nil {
-			return protoiface.UnmarshalOutput{
-				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
-				Flags:             input.Flags,
-			}, nil
-		}
-		options := runtime.UnmarshalInputToOptions(input)
-		_ = options
-		dAtA := input.Buf
-		l := len(dAtA)
-		iNdEx := 0
-		for iNdEx < l {
-			preIndex := iNdEx
-			var wire uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				wire |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			fieldNum := int32(wire >> 3)
-			wireType := int(wire & 0x7)
-			if wireType == 4 {
-				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: ModuleFileTable: wiretype end group for non-group")
-			}
-			if fieldNum <= 0 {
-				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: ModuleFileTable: illegal tag %d (wire type %d)", fieldNum, wire)
-			}
-			switch fieldNum {
-			case 1:
-				if wireType != 0 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
-				}
-				x.Id = 0
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					x.Id |= uint32(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-			case 2:
-				if wireType != 2 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field FileName", wireType)
-				}
-				var stringLen uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					stringLen |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				intStringLen := int(stringLen)
-				if intStringLen < 0 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
-				}
-				postIndex := iNdEx + intStringLen
-				if postIndex < 0 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
-				}
-				if postIndex > l {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-				}
-				x.FileName = string(dAtA[iNdEx:postIndex])
-				iNdEx = postIndex
-			default:
-				iNdEx = preIndex
-				skippy, err := runtime.Skip(dAtA[iNdEx:])
-				if err != nil {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
-				}
-				if (skippy < 0) || (iNdEx+skippy) < 0 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
-				}
-				if (iNdEx + skippy) > l {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-				}
-				if !options.DiscardUnknown {
-					x.unknownFields = append(x.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-				}
-				iNdEx += skippy
-			}
-		}
-
-		if iNdEx > l {
-			return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-		}
-		return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, nil
-	}
-	return &protoiface.Methods{
-		NoUnkeyedLiterals: struct{}{},
-		Flags:             protoiface.SupportMarshalDeterministic | protoiface.SupportUnmarshalDiscardUnknown,
-		Size:              size,
-		Marshal:           marshal,
-		Unmarshal:         unmarshal,
-		Merge:             nil,
-		CheckInitialized:  nil,
-	}
-}
-
 // Code generated by protoc-gen-go. DO NOT EDIT.
 // versions:
 // 	protoc-gen-go v1.27.0
@@ -2207,54 +1740,6 @@ func (x *SchemaDescriptor) GetModules() []*SchemaDescriptor_ModuleEntry {
 	return nil
 }
 
-// ModuleFileTable defines a table that is stored internally in each module
-// to track the files in the schema and the IDs they are assigned.
-type ModuleFileTable struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// id is the id of this FileDescriptor in
-	Id uint32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	// file_name is the name of a file in the FileDescriptorSet that contains
-	// table definitions.
-	FileName string `protobuf:"bytes,2,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
-}
-
-func (x *ModuleFileTable) Reset() {
-	*x = ModuleFileTable{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_cosmos_orm_v1alpha1_schema_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ModuleFileTable) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ModuleFileTable) ProtoMessage() {}
-
-// Deprecated: Use ModuleFileTable.ProtoReflect.Descriptor instead.
-func (*ModuleFileTable) Descriptor() ([]byte, []int) {
-	return file_cosmos_orm_v1alpha1_schema_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ModuleFileTable) GetId() uint32 {
-	if x != nil {
-		return x.Id
-	}
-	return 0
-}
-
-func (x *ModuleFileTable) GetFileName() string {
-	if x != nil {
-		return x.FileName
-	}
-	return ""
-}
-
 // ModuleEntry describes a single module's schema.
 type SchemaDescriptor_ModuleEntry struct {
 	state         protoimpl.MessageState
@@ -2274,7 +1759,7 @@ type SchemaDescriptor_ModuleEntry struct {
 func (x *SchemaDescriptor_ModuleEntry) Reset() {
 	*x = SchemaDescriptor_ModuleEntry{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cosmos_orm_v1alpha1_schema_proto_msgTypes[2]
+		mi := &file_cosmos_orm_v1alpha1_schema_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2321,7 +1806,7 @@ type SchemaDescriptor_FileEntry struct {
 	// id is a prefix that will be varint encoded and prepended to all the
 	// table keys specified in the file's tables.
 	Id uint32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	// file_name is the name of a file in the FileDescriptorSet that contains
+	// file_name is the name of a file in the FileDescriptor set that contains
 	// table definitions.
 	FileName string `protobuf:"bytes,2,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
 }
@@ -2329,7 +1814,7 @@ type SchemaDescriptor_FileEntry struct {
 func (x *SchemaDescriptor_FileEntry) Reset() {
 	*x = SchemaDescriptor_FileEntry{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cosmos_orm_v1alpha1_schema_proto_msgTypes[3]
+		mi := &file_cosmos_orm_v1alpha1_schema_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2368,37 +1853,29 @@ var file_cosmos_orm_v1alpha1_schema_proto_rawDesc = []byte{
 	0x74, 0x6f, 0x12, 0x13, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x6f, 0x72, 0x6d, 0x2e, 0x76,
 	0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x1a, 0x20, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2f,
 	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70,
-	0x74, 0x6f, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x1d, 0x63, 0x6f, 0x73, 0x6d, 0x6f,
-	0x73, 0x2f, 0x6f, 0x72, 0x6d, 0x2f, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2f, 0x6f,
-	0x72, 0x6d, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0xd6, 0x02, 0x0a, 0x10, 0x53, 0x63, 0x68,
-	0x65, 0x6d, 0x61, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x12, 0x38, 0x0a,
-	0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x67,
-	0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x46,
-	0x69, 0x6c, 0x65, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x53, 0x65, 0x74,
-	0x52, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x12, 0x4b, 0x0a, 0x07, 0x6d, 0x6f, 0x64, 0x75, 0x6c,
-	0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x31, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f,
-	0x73, 0x2e, 0x6f, 0x72, 0x6d, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x53,
-	0x63, 0x68, 0x65, 0x6d, 0x61, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x2e,
-	0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x07, 0x6d, 0x6f, 0x64,
-	0x75, 0x6c, 0x65, 0x73, 0x1a, 0x80, 0x01, 0x0a, 0x0b, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x45,
-	0x6e, 0x74, 0x72, 0x79, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x70, 0x72, 0x65, 0x66,
-	0x69, 0x78, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x70, 0x72, 0x65, 0x66, 0x69, 0x78,
-	0x12, 0x45, 0x0a, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32,
-	0x2f, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x6f, 0x72, 0x6d, 0x2e, 0x76, 0x31, 0x61,
-	0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x44, 0x65, 0x73, 0x63,
-	0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x2e, 0x46, 0x69, 0x6c, 0x65, 0x45, 0x6e, 0x74, 0x72, 0x79,
-	0x52, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x1a, 0x38, 0x0a, 0x09, 0x46, 0x69, 0x6c, 0x65, 0x45,
-	0x6e, 0x74, 0x72, 0x79, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d,
-	0x52, 0x02, 0x69, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x6e, 0x61, 0x6d,
-	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d,
-	0x65, 0x22, 0x5f, 0x0a, 0x0f, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x46, 0x69, 0x6c, 0x65, 0x54,
-	0x61, 0x62, 0x6c, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d,
-	0x52, 0x02, 0x69, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x6e, 0x61, 0x6d,
-	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61, 0x6d,
-	0x65, 0x3a, 0x1f, 0xf2, 0x9e, 0xd3, 0x8e, 0x03, 0x19, 0x0a, 0x04, 0x0a, 0x02, 0x69, 0x64, 0x12,
-	0x0f, 0x0a, 0x09, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x10, 0x01, 0x18, 0x01,
-	0x18, 0x01, 0x42, 0xd6, 0x01, 0x0a, 0x17, 0x63, 0x6f, 0x6d, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f,
+	0x74, 0x6f, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0xd6, 0x02, 0x0a, 0x10, 0x53, 0x63,
+	0x68, 0x65, 0x6d, 0x61, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x12, 0x38,
+	0x0a, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e,
+	0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e,
+	0x46, 0x69, 0x6c, 0x65, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x53, 0x65,
+	0x74, 0x52, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x12, 0x4b, 0x0a, 0x07, 0x6d, 0x6f, 0x64, 0x75,
+	0x6c, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x31, 0x2e, 0x63, 0x6f, 0x73, 0x6d,
+	0x6f, 0x73, 0x2e, 0x6f, 0x72, 0x6d, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e,
+	0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72,
+	0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x07, 0x6d, 0x6f,
+	0x64, 0x75, 0x6c, 0x65, 0x73, 0x1a, 0x80, 0x01, 0x0a, 0x0b, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65,
+	0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x70, 0x72, 0x65,
+	0x66, 0x69, 0x78, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x70, 0x72, 0x65, 0x66, 0x69,
+	0x78, 0x12, 0x45, 0x0a, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x2f, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x6f, 0x72, 0x6d, 0x2e, 0x76, 0x31,
+	0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x44, 0x65, 0x73,
+	0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x2e, 0x46, 0x69, 0x6c, 0x65, 0x45, 0x6e, 0x74, 0x72,
+	0x79, 0x52, 0x05, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x1a, 0x38, 0x0a, 0x09, 0x46, 0x69, 0x6c, 0x65,
+	0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0d, 0x52, 0x02, 0x69, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x66, 0x69, 0x6c, 0x65, 0x5f, 0x6e, 0x61,
+	0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x4e, 0x61,
+	0x6d, 0x65, 0x42, 0xd6, 0x01, 0x0a, 0x17, 0x63, 0x6f, 0x6d, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f,
 	0x73, 0x2e, 0x6f, 0x72, 0x6d, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x42, 0x0b,
 	0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x40, 0x67,
 	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73,
@@ -2427,18 +1904,17 @@ func file_cosmos_orm_v1alpha1_schema_proto_rawDescGZIP() []byte {
 	return file_cosmos_orm_v1alpha1_schema_proto_rawDescData
 }
 
-var file_cosmos_orm_v1alpha1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_cosmos_orm_v1alpha1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_cosmos_orm_v1alpha1_schema_proto_goTypes = []interface{}{
 	(*SchemaDescriptor)(nil),               // 0: cosmos.orm.v1alpha1.SchemaDescriptor
-	(*ModuleFileTable)(nil),                // 1: cosmos.orm.v1alpha1.ModuleFileTable
-	(*SchemaDescriptor_ModuleEntry)(nil),   // 2: cosmos.orm.v1alpha1.SchemaDescriptor.ModuleEntry
-	(*SchemaDescriptor_FileEntry)(nil),     // 3: cosmos.orm.v1alpha1.SchemaDescriptor.FileEntry
-	(*descriptorpb.FileDescriptorSet)(nil), // 4: google.protobuf.FileDescriptorSet
+	(*SchemaDescriptor_ModuleEntry)(nil),   // 1: cosmos.orm.v1alpha1.SchemaDescriptor.ModuleEntry
+	(*SchemaDescriptor_FileEntry)(nil),     // 2: cosmos.orm.v1alpha1.SchemaDescriptor.FileEntry
+	(*descriptorpb.FileDescriptorSet)(nil), // 3: google.protobuf.FileDescriptorSet
 }
 var file_cosmos_orm_v1alpha1_schema_proto_depIdxs = []int32{
-	4, // 0: cosmos.orm.v1alpha1.SchemaDescriptor.files:type_name -> google.protobuf.FileDescriptorSet
-	2, // 1: cosmos.orm.v1alpha1.SchemaDescriptor.modules:type_name -> cosmos.orm.v1alpha1.SchemaDescriptor.ModuleEntry
-	3, // 2: cosmos.orm.v1alpha1.SchemaDescriptor.ModuleEntry.files:type_name -> cosmos.orm.v1alpha1.SchemaDescriptor.FileEntry
+	3, // 0: cosmos.orm.v1alpha1.SchemaDescriptor.files:type_name -> google.protobuf.FileDescriptorSet
+	1, // 1: cosmos.orm.v1alpha1.SchemaDescriptor.modules:type_name -> cosmos.orm.v1alpha1.SchemaDescriptor.ModuleEntry
+	2, // 2: cosmos.orm.v1alpha1.SchemaDescriptor.ModuleEntry.files:type_name -> cosmos.orm.v1alpha1.SchemaDescriptor.FileEntry
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -2451,7 +1927,6 @@ func file_cosmos_orm_v1alpha1_schema_proto_init() {
 	if File_cosmos_orm_v1alpha1_schema_proto != nil {
 		return
 	}
-	file_cosmos_orm_v1alpha1_orm_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_cosmos_orm_v1alpha1_schema_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SchemaDescriptor); i {
@@ -2466,18 +1941,6 @@ func file_cosmos_orm_v1alpha1_schema_proto_init() {
 			}
 		}
 		file_cosmos_orm_v1alpha1_schema_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ModuleFileTable); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_cosmos_orm_v1alpha1_schema_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SchemaDescriptor_ModuleEntry); i {
 			case 0:
 				return &v.state
@@ -2489,7 +1952,7 @@ func file_cosmos_orm_v1alpha1_schema_proto_init() {
 				return nil
 			}
 		}
-		file_cosmos_orm_v1alpha1_schema_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_cosmos_orm_v1alpha1_schema_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SchemaDescriptor_FileEntry); i {
 			case 0:
 				return &v.state
@@ -2508,7 +1971,7 @@ func file_cosmos_orm_v1alpha1_schema_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_cosmos_orm_v1alpha1_schema_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
