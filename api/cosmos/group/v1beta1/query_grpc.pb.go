@@ -19,26 +19,28 @@ const _ = grpc.SupportPackageIsVersion6
 type QueryClient interface {
 	// GroupInfo queries group info based on group id.
 	GroupInfo(ctx context.Context, in *QueryGroupInfoRequest, opts ...grpc.CallOption) (*QueryGroupInfoResponse, error)
-	// GroupAccountInfo queries group account info based on group account address.
-	GroupAccountInfo(ctx context.Context, in *QueryGroupAccountInfoRequest, opts ...grpc.CallOption) (*QueryGroupAccountInfoResponse, error)
+	// GroupPolicyInfo queries group policy info based on account address of group policy.
+	GroupPolicyInfo(ctx context.Context, in *QueryGroupPolicyInfoRequest, opts ...grpc.CallOption) (*QueryGroupPolicyInfoResponse, error)
 	// GroupMembers queries members of a group
 	GroupMembers(ctx context.Context, in *QueryGroupMembersRequest, opts ...grpc.CallOption) (*QueryGroupMembersResponse, error)
 	// GroupsByAdmin queries groups by admin address.
 	GroupsByAdmin(ctx context.Context, in *QueryGroupsByAdminRequest, opts ...grpc.CallOption) (*QueryGroupsByAdminResponse, error)
-	// GroupAccountsByGroup queries group accounts by group id.
-	GroupAccountsByGroup(ctx context.Context, in *QueryGroupAccountsByGroupRequest, opts ...grpc.CallOption) (*QueryGroupAccountsByGroupResponse, error)
-	// GroupsByAdmin queries group accounts by admin address.
-	GroupAccountsByAdmin(ctx context.Context, in *QueryGroupAccountsByAdminRequest, opts ...grpc.CallOption) (*QueryGroupAccountsByAdminResponse, error)
+	// GroupPoliciesByGroup queries group policies by group id.
+	GroupPoliciesByGroup(ctx context.Context, in *QueryGroupPoliciesByGroupRequest, opts ...grpc.CallOption) (*QueryGroupPoliciesByGroupResponse, error)
+	// GroupsByAdmin queries group policies by admin address.
+	GroupPoliciesByAdmin(ctx context.Context, in *QueryGroupPoliciesByAdminRequest, opts ...grpc.CallOption) (*QueryGroupPoliciesByAdminResponse, error)
 	// Proposal queries a proposal based on proposal id.
 	Proposal(ctx context.Context, in *QueryProposalRequest, opts ...grpc.CallOption) (*QueryProposalResponse, error)
-	// ProposalsByGroupAccount queries proposals based on group account address.
-	ProposalsByGroupAccount(ctx context.Context, in *QueryProposalsByGroupAccountRequest, opts ...grpc.CallOption) (*QueryProposalsByGroupAccountResponse, error)
+	// ProposalsByGroupPolicy queries proposals based on account address of group policy.
+	ProposalsByGroupPolicy(ctx context.Context, in *QueryProposalsByGroupPolicyRequest, opts ...grpc.CallOption) (*QueryProposalsByGroupPolicyResponse, error)
 	// VoteByProposalVoter queries a vote by proposal id and voter.
 	VoteByProposalVoter(ctx context.Context, in *QueryVoteByProposalVoterRequest, opts ...grpc.CallOption) (*QueryVoteByProposalVoterResponse, error)
 	// VotesByProposal queries a vote by proposal.
 	VotesByProposal(ctx context.Context, in *QueryVotesByProposalRequest, opts ...grpc.CallOption) (*QueryVotesByProposalResponse, error)
 	// VotesByVoter queries a vote by voter.
 	VotesByVoter(ctx context.Context, in *QueryVotesByVoterRequest, opts ...grpc.CallOption) (*QueryVotesByVoterResponse, error)
+	// GroupsByMember queries groups by member address.
+	GroupsByMember(ctx context.Context, in *QueryGroupsByMemberRequest, opts ...grpc.CallOption) (*QueryGroupsByMemberResponse, error)
 }
 
 type queryClient struct {
@@ -58,9 +60,9 @@ func (c *queryClient) GroupInfo(ctx context.Context, in *QueryGroupInfoRequest, 
 	return out, nil
 }
 
-func (c *queryClient) GroupAccountInfo(ctx context.Context, in *QueryGroupAccountInfoRequest, opts ...grpc.CallOption) (*QueryGroupAccountInfoResponse, error) {
-	out := new(QueryGroupAccountInfoResponse)
-	err := c.cc.Invoke(ctx, "/cosmos.group.v1beta1.Query/GroupAccountInfo", in, out, opts...)
+func (c *queryClient) GroupPolicyInfo(ctx context.Context, in *QueryGroupPolicyInfoRequest, opts ...grpc.CallOption) (*QueryGroupPolicyInfoResponse, error) {
+	out := new(QueryGroupPolicyInfoResponse)
+	err := c.cc.Invoke(ctx, "/cosmos.group.v1beta1.Query/GroupPolicyInfo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,18 +87,18 @@ func (c *queryClient) GroupsByAdmin(ctx context.Context, in *QueryGroupsByAdminR
 	return out, nil
 }
 
-func (c *queryClient) GroupAccountsByGroup(ctx context.Context, in *QueryGroupAccountsByGroupRequest, opts ...grpc.CallOption) (*QueryGroupAccountsByGroupResponse, error) {
-	out := new(QueryGroupAccountsByGroupResponse)
-	err := c.cc.Invoke(ctx, "/cosmos.group.v1beta1.Query/GroupAccountsByGroup", in, out, opts...)
+func (c *queryClient) GroupPoliciesByGroup(ctx context.Context, in *QueryGroupPoliciesByGroupRequest, opts ...grpc.CallOption) (*QueryGroupPoliciesByGroupResponse, error) {
+	out := new(QueryGroupPoliciesByGroupResponse)
+	err := c.cc.Invoke(ctx, "/cosmos.group.v1beta1.Query/GroupPoliciesByGroup", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *queryClient) GroupAccountsByAdmin(ctx context.Context, in *QueryGroupAccountsByAdminRequest, opts ...grpc.CallOption) (*QueryGroupAccountsByAdminResponse, error) {
-	out := new(QueryGroupAccountsByAdminResponse)
-	err := c.cc.Invoke(ctx, "/cosmos.group.v1beta1.Query/GroupAccountsByAdmin", in, out, opts...)
+func (c *queryClient) GroupPoliciesByAdmin(ctx context.Context, in *QueryGroupPoliciesByAdminRequest, opts ...grpc.CallOption) (*QueryGroupPoliciesByAdminResponse, error) {
+	out := new(QueryGroupPoliciesByAdminResponse)
+	err := c.cc.Invoke(ctx, "/cosmos.group.v1beta1.Query/GroupPoliciesByAdmin", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -112,9 +114,9 @@ func (c *queryClient) Proposal(ctx context.Context, in *QueryProposalRequest, op
 	return out, nil
 }
 
-func (c *queryClient) ProposalsByGroupAccount(ctx context.Context, in *QueryProposalsByGroupAccountRequest, opts ...grpc.CallOption) (*QueryProposalsByGroupAccountResponse, error) {
-	out := new(QueryProposalsByGroupAccountResponse)
-	err := c.cc.Invoke(ctx, "/cosmos.group.v1beta1.Query/ProposalsByGroupAccount", in, out, opts...)
+func (c *queryClient) ProposalsByGroupPolicy(ctx context.Context, in *QueryProposalsByGroupPolicyRequest, opts ...grpc.CallOption) (*QueryProposalsByGroupPolicyResponse, error) {
+	out := new(QueryProposalsByGroupPolicyResponse)
+	err := c.cc.Invoke(ctx, "/cosmos.group.v1beta1.Query/ProposalsByGroupPolicy", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -148,32 +150,43 @@ func (c *queryClient) VotesByVoter(ctx context.Context, in *QueryVotesByVoterReq
 	return out, nil
 }
 
+func (c *queryClient) GroupsByMember(ctx context.Context, in *QueryGroupsByMemberRequest, opts ...grpc.CallOption) (*QueryGroupsByMemberResponse, error) {
+	out := new(QueryGroupsByMemberResponse)
+	err := c.cc.Invoke(ctx, "/cosmos.group.v1beta1.Query/GroupsByMember", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueryServer is the server API for Query service.
 // All implementations must embed UnimplementedQueryServer
 // for forward compatibility
 type QueryServer interface {
 	// GroupInfo queries group info based on group id.
 	GroupInfo(context.Context, *QueryGroupInfoRequest) (*QueryGroupInfoResponse, error)
-	// GroupAccountInfo queries group account info based on group account address.
-	GroupAccountInfo(context.Context, *QueryGroupAccountInfoRequest) (*QueryGroupAccountInfoResponse, error)
+	// GroupPolicyInfo queries group policy info based on account address of group policy.
+	GroupPolicyInfo(context.Context, *QueryGroupPolicyInfoRequest) (*QueryGroupPolicyInfoResponse, error)
 	// GroupMembers queries members of a group
 	GroupMembers(context.Context, *QueryGroupMembersRequest) (*QueryGroupMembersResponse, error)
 	// GroupsByAdmin queries groups by admin address.
 	GroupsByAdmin(context.Context, *QueryGroupsByAdminRequest) (*QueryGroupsByAdminResponse, error)
-	// GroupAccountsByGroup queries group accounts by group id.
-	GroupAccountsByGroup(context.Context, *QueryGroupAccountsByGroupRequest) (*QueryGroupAccountsByGroupResponse, error)
-	// GroupsByAdmin queries group accounts by admin address.
-	GroupAccountsByAdmin(context.Context, *QueryGroupAccountsByAdminRequest) (*QueryGroupAccountsByAdminResponse, error)
+	// GroupPoliciesByGroup queries group policies by group id.
+	GroupPoliciesByGroup(context.Context, *QueryGroupPoliciesByGroupRequest) (*QueryGroupPoliciesByGroupResponse, error)
+	// GroupsByAdmin queries group policies by admin address.
+	GroupPoliciesByAdmin(context.Context, *QueryGroupPoliciesByAdminRequest) (*QueryGroupPoliciesByAdminResponse, error)
 	// Proposal queries a proposal based on proposal id.
 	Proposal(context.Context, *QueryProposalRequest) (*QueryProposalResponse, error)
-	// ProposalsByGroupAccount queries proposals based on group account address.
-	ProposalsByGroupAccount(context.Context, *QueryProposalsByGroupAccountRequest) (*QueryProposalsByGroupAccountResponse, error)
+	// ProposalsByGroupPolicy queries proposals based on account address of group policy.
+	ProposalsByGroupPolicy(context.Context, *QueryProposalsByGroupPolicyRequest) (*QueryProposalsByGroupPolicyResponse, error)
 	// VoteByProposalVoter queries a vote by proposal id and voter.
 	VoteByProposalVoter(context.Context, *QueryVoteByProposalVoterRequest) (*QueryVoteByProposalVoterResponse, error)
 	// VotesByProposal queries a vote by proposal.
 	VotesByProposal(context.Context, *QueryVotesByProposalRequest) (*QueryVotesByProposalResponse, error)
 	// VotesByVoter queries a vote by voter.
 	VotesByVoter(context.Context, *QueryVotesByVoterRequest) (*QueryVotesByVoterResponse, error)
+	// GroupsByMember queries groups by member address.
+	GroupsByMember(context.Context, *QueryGroupsByMemberRequest) (*QueryGroupsByMemberResponse, error)
 	mustEmbedUnimplementedQueryServer()
 }
 
@@ -184,8 +197,8 @@ type UnimplementedQueryServer struct {
 func (*UnimplementedQueryServer) GroupInfo(context.Context, *QueryGroupInfoRequest) (*QueryGroupInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GroupInfo not implemented")
 }
-func (*UnimplementedQueryServer) GroupAccountInfo(context.Context, *QueryGroupAccountInfoRequest) (*QueryGroupAccountInfoResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GroupAccountInfo not implemented")
+func (*UnimplementedQueryServer) GroupPolicyInfo(context.Context, *QueryGroupPolicyInfoRequest) (*QueryGroupPolicyInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GroupPolicyInfo not implemented")
 }
 func (*UnimplementedQueryServer) GroupMembers(context.Context, *QueryGroupMembersRequest) (*QueryGroupMembersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GroupMembers not implemented")
@@ -193,17 +206,17 @@ func (*UnimplementedQueryServer) GroupMembers(context.Context, *QueryGroupMember
 func (*UnimplementedQueryServer) GroupsByAdmin(context.Context, *QueryGroupsByAdminRequest) (*QueryGroupsByAdminResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GroupsByAdmin not implemented")
 }
-func (*UnimplementedQueryServer) GroupAccountsByGroup(context.Context, *QueryGroupAccountsByGroupRequest) (*QueryGroupAccountsByGroupResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GroupAccountsByGroup not implemented")
+func (*UnimplementedQueryServer) GroupPoliciesByGroup(context.Context, *QueryGroupPoliciesByGroupRequest) (*QueryGroupPoliciesByGroupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GroupPoliciesByGroup not implemented")
 }
-func (*UnimplementedQueryServer) GroupAccountsByAdmin(context.Context, *QueryGroupAccountsByAdminRequest) (*QueryGroupAccountsByAdminResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GroupAccountsByAdmin not implemented")
+func (*UnimplementedQueryServer) GroupPoliciesByAdmin(context.Context, *QueryGroupPoliciesByAdminRequest) (*QueryGroupPoliciesByAdminResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GroupPoliciesByAdmin not implemented")
 }
 func (*UnimplementedQueryServer) Proposal(context.Context, *QueryProposalRequest) (*QueryProposalResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Proposal not implemented")
 }
-func (*UnimplementedQueryServer) ProposalsByGroupAccount(context.Context, *QueryProposalsByGroupAccountRequest) (*QueryProposalsByGroupAccountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProposalsByGroupAccount not implemented")
+func (*UnimplementedQueryServer) ProposalsByGroupPolicy(context.Context, *QueryProposalsByGroupPolicyRequest) (*QueryProposalsByGroupPolicyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProposalsByGroupPolicy not implemented")
 }
 func (*UnimplementedQueryServer) VoteByProposalVoter(context.Context, *QueryVoteByProposalVoterRequest) (*QueryVoteByProposalVoterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VoteByProposalVoter not implemented")
@@ -213,6 +226,9 @@ func (*UnimplementedQueryServer) VotesByProposal(context.Context, *QueryVotesByP
 }
 func (*UnimplementedQueryServer) VotesByVoter(context.Context, *QueryVotesByVoterRequest) (*QueryVotesByVoterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VotesByVoter not implemented")
+}
+func (*UnimplementedQueryServer) GroupsByMember(context.Context, *QueryGroupsByMemberRequest) (*QueryGroupsByMemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GroupsByMember not implemented")
 }
 func (*UnimplementedQueryServer) mustEmbedUnimplementedQueryServer() {}
 
@@ -238,20 +254,20 @@ func _Query_GroupInfo_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Query_GroupAccountInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryGroupAccountInfoRequest)
+func _Query_GroupPolicyInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGroupPolicyInfoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(QueryServer).GroupAccountInfo(ctx, in)
+		return srv.(QueryServer).GroupPolicyInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cosmos.group.v1beta1.Query/GroupAccountInfo",
+		FullMethod: "/cosmos.group.v1beta1.Query/GroupPolicyInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).GroupAccountInfo(ctx, req.(*QueryGroupAccountInfoRequest))
+		return srv.(QueryServer).GroupPolicyInfo(ctx, req.(*QueryGroupPolicyInfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -292,38 +308,38 @@ func _Query_GroupsByAdmin_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Query_GroupAccountsByGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryGroupAccountsByGroupRequest)
+func _Query_GroupPoliciesByGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGroupPoliciesByGroupRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(QueryServer).GroupAccountsByGroup(ctx, in)
+		return srv.(QueryServer).GroupPoliciesByGroup(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cosmos.group.v1beta1.Query/GroupAccountsByGroup",
+		FullMethod: "/cosmos.group.v1beta1.Query/GroupPoliciesByGroup",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).GroupAccountsByGroup(ctx, req.(*QueryGroupAccountsByGroupRequest))
+		return srv.(QueryServer).GroupPoliciesByGroup(ctx, req.(*QueryGroupPoliciesByGroupRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Query_GroupAccountsByAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryGroupAccountsByAdminRequest)
+func _Query_GroupPoliciesByAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGroupPoliciesByAdminRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(QueryServer).GroupAccountsByAdmin(ctx, in)
+		return srv.(QueryServer).GroupPoliciesByAdmin(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cosmos.group.v1beta1.Query/GroupAccountsByAdmin",
+		FullMethod: "/cosmos.group.v1beta1.Query/GroupPoliciesByAdmin",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).GroupAccountsByAdmin(ctx, req.(*QueryGroupAccountsByAdminRequest))
+		return srv.(QueryServer).GroupPoliciesByAdmin(ctx, req.(*QueryGroupPoliciesByAdminRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -346,20 +362,20 @@ func _Query_Proposal_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Query_ProposalsByGroupAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryProposalsByGroupAccountRequest)
+func _Query_ProposalsByGroupPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryProposalsByGroupPolicyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(QueryServer).ProposalsByGroupAccount(ctx, in)
+		return srv.(QueryServer).ProposalsByGroupPolicy(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cosmos.group.v1beta1.Query/ProposalsByGroupAccount",
+		FullMethod: "/cosmos.group.v1beta1.Query/ProposalsByGroupPolicy",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).ProposalsByGroupAccount(ctx, req.(*QueryProposalsByGroupAccountRequest))
+		return srv.(QueryServer).ProposalsByGroupPolicy(ctx, req.(*QueryProposalsByGroupPolicyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -418,6 +434,24 @@ func _Query_VotesByVoter_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_GroupsByMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGroupsByMemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).GroupsByMember(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cosmos.group.v1beta1.Query/GroupsByMember",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).GroupsByMember(ctx, req.(*QueryGroupsByMemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Query_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cosmos.group.v1beta1.Query",
 	HandlerType: (*QueryServer)(nil),
@@ -427,8 +461,8 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Query_GroupInfo_Handler,
 		},
 		{
-			MethodName: "GroupAccountInfo",
-			Handler:    _Query_GroupAccountInfo_Handler,
+			MethodName: "GroupPolicyInfo",
+			Handler:    _Query_GroupPolicyInfo_Handler,
 		},
 		{
 			MethodName: "GroupMembers",
@@ -439,20 +473,20 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Query_GroupsByAdmin_Handler,
 		},
 		{
-			MethodName: "GroupAccountsByGroup",
-			Handler:    _Query_GroupAccountsByGroup_Handler,
+			MethodName: "GroupPoliciesByGroup",
+			Handler:    _Query_GroupPoliciesByGroup_Handler,
 		},
 		{
-			MethodName: "GroupAccountsByAdmin",
-			Handler:    _Query_GroupAccountsByAdmin_Handler,
+			MethodName: "GroupPoliciesByAdmin",
+			Handler:    _Query_GroupPoliciesByAdmin_Handler,
 		},
 		{
 			MethodName: "Proposal",
 			Handler:    _Query_Proposal_Handler,
 		},
 		{
-			MethodName: "ProposalsByGroupAccount",
-			Handler:    _Query_ProposalsByGroupAccount_Handler,
+			MethodName: "ProposalsByGroupPolicy",
+			Handler:    _Query_ProposalsByGroupPolicy_Handler,
 		},
 		{
 			MethodName: "VoteByProposalVoter",
@@ -465,6 +499,10 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VotesByVoter",
 			Handler:    _Query_VotesByVoter_Handler,
+		},
+		{
+			MethodName: "GroupsByMember",
+			Handler:    _Query_GroupsByMember_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
