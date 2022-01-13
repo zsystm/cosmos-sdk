@@ -108,8 +108,8 @@ type Table interface {
 	// first element in the JSON array.
 	ExportJSON(context.Context, io.Writer) error
 
+	AutoMigrate(ctx context.Context) error
+
 	// ID is the ID of this table within the schema of its FileDescriptor.
 	ID() uint32
-
-	AutoMigrate(kvstore.Backend) error
 }

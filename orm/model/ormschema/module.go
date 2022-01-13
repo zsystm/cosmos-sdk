@@ -2,14 +2,13 @@ package ormschema
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"sort"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
-
-	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 
 	"google.golang.org/protobuf/proto"
 
@@ -44,6 +43,10 @@ type ModuleSchemaOptions struct {
 	// messaging when using ValidateJSON. If it is nil, DefaultJSONValidator
 	// will be used
 	JSONValidator func(proto.Message) error
+
+	GetBackend func(context.Context) (ormtable.Backend, error)
+
+	GetReadBackend func(context.Context) (ormtable.ReadBackend, error)
 }
 
 func NewModuleSchema(fileDescriptors []protoreflect.FileDescriptor, options ModuleSchemaOptions) (*ModuleSchema, error) {
@@ -70,9 +73,11 @@ func NewModuleSchema(fileDescriptors []protoreflect.FileDescriptor, options Modu
 
 	for _, fileDescriptor := range fileDescriptors {
 		opts := FileDescriptorSchemaOptions{
-			Prefix:        prefix,
-			TypeResolver:  options.TypeResolver,
-			JSONValidator: options.JSONValidator,
+			Prefix:         prefix,
+			TypeResolver:   options.TypeResolver,
+			JSONValidator:  options.JSONValidator,
+			GetBackend:     options.GetBackend,
+			GetReadBackend: options.GetReadBackend,
 		}
 
 		if options.FileDescriptorIds != nil {
@@ -141,7 +146,7 @@ func (m ModuleSchema) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	return table.EncodeEntry(entry)
 }
 
-func (m ModuleSchema) AutoMigrate(store kvstore.Backend) error {
+func (m ModuleSchema) AutoMigrate(ctx context.Context) error {
 	moduleFileTable := m.schemaSubspace.GetTable(&ormv1alpha1.ModuleFileTable{})
 	if moduleFileTable == nil {
 		return ormerrors.UnexpectedError.Wrapf("missing ModuleFileTable")
@@ -158,7 +163,7 @@ func (m ModuleSchema) AutoMigrate(store kvstore.Backend) error {
 		file := m.filesById[id]
 
 		var existing ormv1alpha1.ModuleFileTable
-		found, err := moduleFileTable.Get(store, encodeutil.ValuesOf(id), &existing)
+		found, err := moduleFileTable.Get(ctx, &existing, id)
 		if err != nil {
 			return err
 		}
@@ -177,15 +182,15 @@ func (m ModuleSchema) AutoMigrate(store kvstore.Backend) error {
 
 		// because of the unique index on file_name, this will fail
 		// if the file was already registered with a different id
-		err = moduleFileTable.Save(store, &ormv1alpha1.ModuleFileTable{
+		err = moduleFileTable.Save(ctx, &ormv1alpha1.ModuleFileTable{
 			Id:       id,
 			FileName: filePath,
-		}, ormtable.SAVE_MODE_INSERT)
+		})
 		if err != nil {
 			return err
 		}
 
-		err = file.AutoMigrate(store)
+		err = file.AutoMigrate(ctx)
 		if err != nil {
 			return err
 		}

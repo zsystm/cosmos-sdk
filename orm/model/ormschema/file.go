@@ -2,6 +2,7 @@ package ormschema
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -9,15 +10,14 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
 
-	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
-
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 
-	ormv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/v1alpha1"
-	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	ormv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/v1alpha1"
+	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 )
 
 type FileDescriptorSchemaOptions struct {
@@ -32,6 +32,10 @@ type FileDescriptorSchemaOptions struct {
 	// messaging when using ValidateJSON. If it is nil, DefaultJSONValidator
 	// will be used
 	JSONValidator func(proto.Message) error
+
+	GetBackend func(context.Context) (ormtable.Backend, error)
+
+	GetReadBackend func(context.Context) (ormtable.ReadBackend, error)
 }
 
 type FileDescriptorSchema struct {
@@ -71,10 +75,12 @@ func NewFileDescriptorSchema(fileDescriptor protoreflect.FileDescriptor, options
 		}
 
 		table, err := ormtable.Build(ormtable.Options{
-			Prefix:        prefix,
-			MessageType:   messageType,
-			TypeResolver:  options.TypeResolver,
-			JSONValidator: options.JSONValidator,
+			Prefix:         prefix,
+			MessageType:    messageType,
+			TypeResolver:   options.TypeResolver,
+			JSONValidator:  options.JSONValidator,
+			GetReadBackend: options.GetReadBackend,
+			GetBackend:     options.GetBackend,
 		})
 		if err != nil {
 			return nil, err
@@ -125,7 +131,7 @@ func (f FileDescriptorSchema) GetTable(message proto.Message) ormtable.Table {
 	return table
 }
 
-func (f FileDescriptorSchema) AutoMigrate(store kvstore.Backend) error {
+func (f FileDescriptorSchema) AutoMigrate(ctx context.Context) error {
 	var sortedIds []int
 	for id := range f.tablesById {
 		sortedIds = append(sortedIds, int(id))
@@ -134,7 +140,7 @@ func (f FileDescriptorSchema) AutoMigrate(store kvstore.Backend) error {
 
 	for _, id := range sortedIds {
 		id := uint32(id)
-		err := f.tablesById[id].AutoMigrate(store)
+		err := f.tablesById[id].AutoMigrate(ctx)
 		if err != nil {
 			return err
 		}
