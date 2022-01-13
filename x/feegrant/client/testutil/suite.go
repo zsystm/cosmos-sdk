@@ -18,6 +18,8 @@ import (
 	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	bankcli "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
+	banktestutil "github.com/cosmos/cosmos-sdk/x/bank/client/testutil"
 	"github.com/cosmos/cosmos-sdk/x/feegrant"
 	"github.com/cosmos/cosmos-sdk/x/feegrant/client/cli"
 	govtestutil "github.com/cosmos/cosmos-sdk/x/gov/client/testutil"
@@ -710,7 +712,8 @@ func (s *IntegrationTestSuite) TestFilteredFeeAllowance() {
 	val := s.network.Validators[0]
 
 	granter := val.Address
-	k, _, err := val.ClientCtx.Keyring.NewMnemonic("grantee1", keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
+	granteeAccName := "grantee1"
+	k, _, err := val.ClientCtx.Keyring.NewMnemonic(granteeAccName, keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 	s.Require().NoError(err)
 	pub, err := k.GetPubKey()
 	s.Require().NoError(err)
@@ -833,6 +836,25 @@ func (s *IntegrationTestSuite) TestFilteredFeeAllowance() {
 		expectedCode uint32
 	}{
 		{
+			"should fail with unauthorized msgs",
+			func() (testutil.BufferWriter, error) {
+				args := append(
+					[]string{
+						granteeAccName,
+						"cosmos14cm33pvnrv2497tyt8sp9yavhmw83nwej3m0e8",
+						"100stake",
+						// fmt.Sprintf("--%s=%s", cli.FlagSpendLimit, "100stake"),
+						// fmt.Sprintf("--%s=%s", flags.FlagFeeGranter, granter),
+					},
+					commonFlags...,
+				)
+				cmd := bankcli.NewSendTxCmd()
+				return clitestutil.ExecTestCLICmd(clientCtx, cmd, args)
+			},
+			&sdk.TxResponse{},
+			7,
+		},
+		{
 			"valid proposal tx",
 			func() (testutil.BufferWriter, error) {
 				return govtestutil.MsgSubmitProposal(val.ClientCtx, grantee.String(),
@@ -855,26 +877,157 @@ func (s *IntegrationTestSuite) TestFilteredFeeAllowance() {
 		},
 		/* TODO(#10559): This case times out after TM v0.35.
 		   Figure out why and fix it.
-
-				{
-					"should fail with unauthorized msgs",
-					func() (testutil.BufferWriter, error) {
-						args := append(
-							[]string{
-								grantee.String(),
-								"cosmos14cm33pvnrv2497tyt8sp9yavhmw83nwej3m0e8",
-								fmt.Sprintf("--%s=%s", cli.FlagSpendLimit, "100stake"),
-								fmt.Sprintf("--%s=%s", flags.FlagFeeGranter, granter),
-							},
-							commonFlags...,
-						)
-						cmd := cli.NewCmdFeeGrant()
-						return clitestutil.ExecTestCLICmd(clientCtx, cmd, args)
-					},
-					&sdk.TxResponse{},
-					7,
-				},
 		*/
+		// {
+		// 	"should fail with unauthorized msgs",
+		// 	func() (testutil.BufferWriter, error) {
+		// 		args := append(
+		// 			[]string{
+		// 				granteeAccName,
+		// 				"cosmos14cm33pvnrv2497tyt8sp9yavhmw83nwej3m0e8",
+		// 				"100stake",
+		// 				// fmt.Sprintf("--%s=%s", cli.FlagSpendLimit, "100stake"),
+		// 				// fmt.Sprintf("--%s=%s", flags.FlagFeeGranter, granter),
+		// 			},
+		// 			commonFlags...,
+		// 		)
+		// 		cmd := bankcli.NewSendTxCmd()
+		// 		return clitestutil.ExecTestCLICmd(clientCtx, cmd, args)
+		// 	},
+		// 	&sdk.TxResponse{},
+		// 	7,
+		// },
+	}
+
+	for _, tc := range cases {
+		tc := tc
+
+		s.Run(tc.name, func() {
+			out, err := tc.malleate()
+			s.Require().NoError(err)
+			s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), tc.respType), out.String())
+			txResp := tc.respType.(*sdk.TxResponse)
+			s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
+		})
+	}
+}
+
+func (s *IntegrationTestSuite) TestExecFilteredFeeAllowance() {
+	val := s.network.Validators[0]
+	clientCtx := val.ClientCtx
+
+	granter := val.Address
+	k, _, err := val.ClientCtx.Keyring.NewMnemonic("grantee2", keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
+	s.Require().NoError(err)
+	pub, err := k.GetPubKey()
+	s.Require().NoError(err)
+	grantee := sdk.AccAddress(pub.Address())
+
+	commonFlags := []string{
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	}
+
+	// send some tokens to the grantee
+	_, err = banktestutil.MsgSendExec(
+		clientCtx,
+		val.Address,
+		grantee,
+		sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(200))), fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	)
+	s.Require().NoError(err)
+
+	spendLimit := sdk.NewCoin("stake", sdk.NewInt(1000))
+	allowMsgs := strings.Join([]string{sdk.MsgTypeURL(&govtypes.MsgSubmitProposal{}), sdk.MsgTypeURL(&govtypes.MsgVoteWeighted{})}, ",")
+	args := append(
+		[]string{
+			granter.String(),
+			grantee.String(),
+			fmt.Sprintf("--%s=%s", cli.FlagAllowedMsgs, allowMsgs),
+			fmt.Sprintf("--%s=%s", cli.FlagSpendLimit, spendLimit.String()),
+			fmt.Sprintf("--%s=%s", flags.FlagFrom, granter),
+		},
+		commonFlags...,
+	)
+
+	cmd := cli.NewCmdFeeGrant()
+	out, err := clitestutil.ExecTestCLICmd(clientCtx, cmd, args)
+	s.Require().NoError(err)
+
+	var txResp sdk.TxResponse
+	s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &txResp), out.String())
+	s.Require().Equal(uint32(0), txResp.Code, out.String())
+
+	cases := []struct {
+		name         string
+		malleate     func() (testutil.BufferWriter, error)
+		respType     proto.Message
+		expectedCode uint32
+	}{
+		{
+			"should fail with unauthorized msgs",
+			func() (testutil.BufferWriter, error) {
+				args := append(
+					[]string{
+						grantee.String(),
+						"cosmos14cm33pvnrv2497tyt8sp9yavhmw83nwej3m0e8",
+						"100stake",
+						fmt.Sprintf("--%s=%s", flags.FlagFeeGranter, granter),
+					},
+					commonFlags...,
+				)
+				cmd := bankcli.NewSendTxCmd()
+				return clitestutil.ExecTestCLICmd(clientCtx, cmd, args)
+			},
+			&sdk.TxResponse{},
+			7,
+		},
+		// {
+		// 	"valid proposal tx",
+		// 	func() (testutil.BufferWriter, error) {
+		// 		return govtestutil.MsgSubmitProposal(val.ClientCtx, grantee.String(),
+		// 			"Text Proposal", "No desc", govtypes.ProposalTypeText,
+		// 			fmt.Sprintf("--%s=%s", flags.FlagFeeGranter, granter.String()),
+		// 		)
+		// 	},
+		// 	&sdk.TxResponse{},
+		// 	0,
+		// },
+		// {
+		// 	"valid weighted_vote tx",
+		// 	func() (testutil.BufferWriter, error) {
+		// 		return govtestutil.MsgVote(val.ClientCtx, grantee.String(), "0", "yes",
+		// 			fmt.Sprintf("--%s=%s", flags.FlagFeeGranter, granter.String()),
+		// 		)
+		// 	},
+		// 	&sdk.TxResponse{},
+		// 	2,
+		// },
+		/* TODO(#10559): This case times out after TM v0.35.
+		   Figure out why and fix it.
+		*/
+		// {
+		// 	"should fail with unauthorized msgs",
+		// 	func() (testutil.BufferWriter, error) {
+		// 		args := append(
+		// 			[]string{
+		// 				grantee.String(),
+		// 				"cosmos14cm33pvnrv2497tyt8sp9yavhmw83nwej3m0e8",
+		// 				"100stake",
+		// 				// fmt.Sprintf("--%s=%s", cli.FlagSpendLimit, "100stake"),
+		// 				// fmt.Sprintf("--%s=%s", flags.FlagFeeGranter, granter),
+		// 			},
+		// 			commonFlags...,
+		// 		)
+		// 		cmd := bankcli.NewSendTxCmd()
+		// 		return clitestutil.ExecTestCLICmd(clientCtx, cmd, args)
+		// 	},
+		// 	&sdk.TxResponse{},
+		// 	7,
+		// },
 	}
 
 	for _, tc := range cases {
