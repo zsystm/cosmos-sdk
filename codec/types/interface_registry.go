@@ -1,12 +1,27 @@
 package types
 
 import (
+	"compress/gzip"
+	"embed"
 	"fmt"
+	"io"
 	"reflect"
+
+	cosmos_proto "github.com/cosmos/cosmos-proto"
+
+	"google.golang.org/protobuf/reflect/protoregistry"
+
+	"google.golang.org/protobuf/types/descriptorpb"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+
+	"google.golang.org/protobuf/reflect/protodesc"
 
 	"github.com/gogo/protobuf/jsonpb"
 
 	"github.com/gogo/protobuf/proto"
+
+	proto2 "google.golang.org/protobuf/proto"
 )
 
 // AnyUnpacker is an interface which allows safely unpacking types packed
@@ -27,6 +42,7 @@ type AnyUnpacker interface {
 type InterfaceRegistry interface {
 	AnyUnpacker
 	jsonpb.AnyResolver
+	protodesc.Resolver
 
 	// RegisterInterface associates protoName as the public name for the
 	// interface passed in as iface. This is to be used primarily to create
@@ -82,6 +98,10 @@ type interfaceRegistry struct {
 	interfaceNames map[string]reflect.Type
 	interfaceImpls map[reflect.Type]interfaceMap
 	typeURLMap     map[string]reflect.Type
+
+	files          *protoregistry.Files
+	moduleFiles    map[string][]protoreflect.FileDescriptor
+	interfaceMapV2 map[string]map[protoreflect.FullName]bool
 }
 
 type interfaceMap = map[string]reflect.Type
@@ -276,3 +296,91 @@ func UnpackInterfaces(x interface{}, unpacker AnyUnpacker) error {
 	}
 	return nil
 }
+
+func (registry *moduleRegistrar) RegisterFiles(pinnedFileDescriptorSet embed.FS, fileDescriptors ...protoreflect.FileDescriptor) error {
+	// read the pinned FileDescriptorSet
+	f, err := pinnedFileDescriptorSet.Open("image.bin.gz")
+	if err != nil {
+		return err
+	}
+
+	rdr, err := gzip.NewReader(f)
+	if err != nil {
+		return err
+	}
+
+	bz, err := io.ReadAll(rdr)
+	if err != nil {
+		return err
+	}
+
+	var fdSet descriptorpb.FileDescriptorSet
+	err = proto.Unmarshal(bz, &fdSet)
+	if err != nil {
+		return err
+	}
+
+	files, err := protodesc.NewFiles(&fdSet)
+	if err != nil {
+		return err
+	}
+
+	pinnedDescriptors := make([]protoreflect.FileDescriptor, len(fileDescriptors))
+	for i, descriptor := range fileDescriptors {
+		desc, err := files.FindFileByPath(descriptor.Path())
+		if err != nil {
+			return err
+		}
+
+		pinnedDescriptors[i] = desc
+		err = registry.files.RegisterFile(desc)
+		if err != nil {
+			return err
+		}
+
+		registry.registerMessages(desc.Messages())
+	}
+
+	registry.moduleFiles[registry.moduleName] = pinnedDescriptors
+
+	return nil
+}
+
+func (registry *interfaceRegistry) registerMessages(messages protoreflect.MessageDescriptors) {
+	n := messages.Len()
+	for i := 0; i < n; i++ {
+		msg := messages.Get(i)
+
+		implementsInterface := proto2.GetExtension(msg.Options(), cosmos_proto.E_ImplementsInterface).([]string)
+		for _, iface := range implementsInterface {
+			m, ok := registry.interfaceMapV2[iface]
+			if !ok {
+				m = map[protoreflect.FullName]bool{}
+				registry.interfaceMapV2[iface] = m
+			}
+
+			m[msg.FullName()] = true
+		}
+
+		registry.registerMessages(messages)
+	}
+}
+
+func (registry *interfaceRegistry) FindFileByPath(s string) (protoreflect.FileDescriptor, error) {
+	return registry.files.FindFileByPath(s)
+}
+
+func (registry *interfaceRegistry) FindDescriptorByName(name protoreflect.FullName) (protoreflect.Descriptor, error) {
+	return registry.files.FindDescriptorByName(name)
+}
+
+type ModuleRegistrar interface {
+	RegisterFiles(fs embed.FS, fileDescriptors ...protoreflect.FileDescriptor) error
+}
+
+type moduleRegistrar struct {
+	moduleName string
+	*interfaceRegistry
+}
+
+var _ ModuleRegistrar = &moduleRegistrar{}

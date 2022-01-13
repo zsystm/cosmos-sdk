@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"fmt"
 	"math"
 	"sort"
 
@@ -16,7 +15,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	ormv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/v1alpha1"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 )
 
@@ -47,18 +45,10 @@ type FileDescriptorSchema struct {
 }
 
 func NewFileDescriptorSchema(fileDescriptor protoreflect.FileDescriptor, options FileDescriptorSchemaOptions) (*FileDescriptorSchema, error) {
-	moduleFileId := options.ID
-	if moduleFileId == 0 {
-		moduleFileId = proto.GetExtension(fileDescriptor.Options(), ormv1alpha1.E_ModuleFileId).(uint32)
-		if moduleFileId == 0 {
-			return nil, fmt.Errorf("missing file descriptor ID for %s", fileDescriptor.Path())
-		}
-	}
-
-	prefix := encodeutil.AppendVarUInt32(options.Prefix, moduleFileId)
+	prefix := encodeutil.AppendVarUInt32(options.Prefix, options.ID)
 
 	schema := &FileDescriptorSchema{
-		id:             moduleFileId,
+		id:             options.ID,
 		prefix:         prefix,
 		tablesById:     map[uint32]ormtable.Table{},
 		tablesByName:   map[protoreflect.FullName]ormtable.Table{},

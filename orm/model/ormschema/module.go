@@ -8,6 +8,8 @@ import (
 	"math"
 	"sort"
 
+	"google.golang.org/protobuf/reflect/protodesc"
+
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
 
 	"google.golang.org/protobuf/proto"
@@ -33,11 +35,11 @@ const (
 )
 
 type ModuleSchemaOptions struct {
-	Prefix            []byte
-	FileDescriptorIds map[string]uint32
 	// TypeResolver is an optional type resolver to be used when unmarshaling
 	// protobuf messages.
 	TypeResolver ormtable.TypeResolver
+
+	FileResolver protodesc.Resolver
 
 	// JSONValidator is an optional validator that can be used for validating
 	// messaging when using ValidateJSON. If it is nil, DefaultJSONValidator
@@ -49,8 +51,8 @@ type ModuleSchemaOptions struct {
 	GetReadBackend func(context.Context) (ormtable.ReadBackend, error)
 }
 
-func NewModuleSchema(fileDescriptors []protoreflect.FileDescriptor, options ModuleSchemaOptions) (*ModuleSchema, error) {
-	prefix := options.Prefix
+func NewModuleSchema(desc ModuleDescriptor, options ModuleSchemaOptions) (*ModuleSchema, error) {
+	prefix := desc.Prefix
 
 	// the schema subspace is a private part of the store used for storing
 	// important schema information for migrations and introspection
@@ -71,8 +73,9 @@ func NewModuleSchema(fileDescriptors []protoreflect.FileDescriptor, options Modu
 		schemaSubspace: schemaSubspace,
 	}
 
-	for _, fileDescriptor := range fileDescriptors {
+	for id, fileDescriptor := range desc.FileDescriptors {
 		opts := FileDescriptorSchemaOptions{
+			ID:             id,
 			Prefix:         prefix,
 			TypeResolver:   options.TypeResolver,
 			JSONValidator:  options.JSONValidator,
@@ -80,9 +83,13 @@ func NewModuleSchema(fileDescriptors []protoreflect.FileDescriptor, options Modu
 			GetReadBackend: options.GetReadBackend,
 		}
 
-		if options.FileDescriptorIds != nil {
-			if id, ok := options.FileDescriptorIds[fileDescriptor.Path()]; ok {
-				opts.ID = id
+		if options.FileResolver != nil {
+			// if a FileResolver is provided, we use that to resolve the file
+			// and not the one provided as a different pinned file descriptor
+			// may have been provided
+			fileDescriptor, err = options.FileResolver.FindFileByPath(fileDescriptor.Path())
+			if err != nil {
+				return nil, err
 			}
 		}
 
@@ -91,7 +98,7 @@ func NewModuleSchema(fileDescriptors []protoreflect.FileDescriptor, options Modu
 			return nil, err
 		}
 
-		schema.filesById[fdSchema.id] = fdSchema
+		schema.filesById[id] = fdSchema
 		for name, table := range fdSchema.tablesByName {
 			if _, ok := schema.tablesByName[name]; ok {
 				return nil, ormerrors.UnexpectedError.Wrapf("duplicate table %s", name)
