@@ -1,6 +1,7 @@
 package ormtable
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
@@ -49,6 +50,19 @@ type Options struct {
 	// messaging when using ValidateJSON. If it is nil, DefaultJSONValidator
 	// will be used
 	JSONValidator func(proto.Message) error
+
+	// GetBackend is an optional function which retrieves a Backend from the context.
+	// If it is nil, the default behavior will be to attempt to retrieve a
+	// backend using the method that WrapContextDefault uses. This method
+	// can be used to imlement things like "store keys" which would allow a
+	// table to only be used with a specific backend and to hide direct
+	// access to the backend other than through the table interface.
+	GetBackend func(context.Context) (Backend, error)
+
+	// GetReadBackend is an optional function which retrieves a ReadBackend from the context.
+	// If it is nil, the default behavior will be to attempt to retrieve a
+	// backend using the method that WrapContextDefault uses.
+	GetReadBackend func(context.Context) (ReadBackend, error)
 }
 
 // TypeResolver is an interface that can be used for the protoreflect.UnmarshalOptions.Resolver option.
@@ -61,15 +75,30 @@ type TypeResolver interface {
 func Build(options Options) (Table, error) {
 	messageDescriptor := options.MessageType.Descriptor()
 
+	getReadBackend := options.GetReadBackend
+	if getReadBackend == nil {
+		getReadBackend = getReadBackendDefault
+	}
+	getBackend := options.GetBackend
+	if getBackend == nil {
+		getBackend = getBackendDefault
+	}
+
 	table := &tableImpl{
-		indexers:              []indexer{},
+		primaryKeyIndex: &primaryKeyIndex{
+			indexers:       []indexer{},
+			getBackend:     getBackend,
+			getReadBackend: getReadBackend,
+		},
 		indexes:               []Index{},
-		indexesByFields:       map[FieldNames]concreteIndex{},
-		uniqueIndexesByFields: map[FieldNames]UniqueIndex{},
+		indexesByFields:       map[fieldNames]concreteIndex{},
+		uniqueIndexesByFields: map[fieldNames]UniqueIndex{},
 		entryCodecsById:       map[uint32]ormkv.EntryCodec{},
 		typeResolver:          options.TypeResolver,
 		customJSONValidator:   options.JSONValidator,
 	}
+
+	pkIndex := table.primaryKeyIndex
 
 	tableDesc := options.TableDescriptor
 	if tableDesc == nil {
@@ -101,9 +130,9 @@ func Build(options Options) (Table, error) {
 			return nil, err
 		}
 
+		pkIndex.PrimaryKeyCodec = pkCodec
 		table.tablePrefix = prefix
 		table.tableId = singletonDesc.Id
-		table.PrimaryKeyIndex = NewPrimaryKeyIndex(pkCodec)
 
 		return &singleton{table}, nil
 	} else {
@@ -124,11 +153,8 @@ func Build(options Options) (Table, error) {
 		return nil, ormerrors.MissingPrimaryKey.Wrap(string(messageDescriptor.FullName()))
 	}
 
-	pkFields, err := CommaSeparatedFieldNames(tableDesc.PrimaryKey.Fields)
-	if err != nil {
-		return nil, err
-	}
-
+	pkFields := commaSeparatedFieldNames(tableDesc.PrimaryKey.Fields)
+	table.primaryKeyIndex.fields = pkFields
 	pkFieldNames := pkFields.Names()
 	if len(pkFieldNames) == 0 {
 		return nil, ormerrors.InvalidTableDefinition.Wrapf("empty primary key fields for %s", messageDescriptor.FullName())
@@ -145,9 +171,7 @@ func Build(options Options) (Table, error) {
 		return nil, err
 	}
 
-	pkIndex := NewPrimaryKeyIndex(pkCodec)
-
-	table.PrimaryKeyIndex = pkIndex
+	pkIndex.PrimaryKeyCodec = pkCodec
 	table.indexesByFields[pkFields] = pkIndex
 	table.uniqueIndexesByFields[pkFields] = pkIndex
 	table.entryCodecsById[primaryKeyId] = pkIndex
@@ -163,16 +187,12 @@ func Build(options Options) (Table, error) {
 			return nil, ormerrors.DuplicateIndexId.Wrapf("id %d on table %s", id, messageDescriptor.FullName())
 		}
 
-		idxFields, err := CommaSeparatedFieldNames(idxDesc.Fields)
-		if err != nil {
-			return nil, err
-		}
-
+		idxFields := commaSeparatedFieldNames(idxDesc.Fields)
 		idxPrefix := encodeutil.AppendVarUInt32(prefix, id)
 		var index concreteIndex
 
 		// altNames contains all the alternative "names" of this index
-		altNames := map[FieldNames]bool{idxFields: true}
+		altNames := map[fieldNames]bool{idxFields: true}
 
 		if idxDesc.Unique && isNonTrivialUniqueKey(idxFields.Names(), pkFieldNames) {
 			uniqCdc, err := ormkv.NewUniqueKeyCodec(
@@ -184,9 +204,14 @@ func Build(options Options) (Table, error) {
 			if err != nil {
 				return nil, err
 			}
-			uniqIdx := NewUniqueKeyIndex(uniqCdc, pkIndex)
+			uniqIdx := &uniqueKeyIndex{
+				UniqueKeyCodec: uniqCdc,
+				fields:         idxFields,
+				primaryKey:     pkIndex,
+				getReadBackend: getReadBackend,
+			}
 			table.uniqueIndexesByFields[idxFields] = uniqIdx
-			index = NewUniqueKeyIndex(uniqCdc, pkIndex)
+			index = uniqIdx
 		} else {
 			idxCdc, err := ormkv.NewIndexKeyCodec(
 				idxPrefix,
@@ -197,7 +222,12 @@ func Build(options Options) (Table, error) {
 			if err != nil {
 				return nil, err
 			}
-			index = NewIndexKeyIndex(idxCdc, pkIndex)
+			index = &indexKeyIndex{
+				IndexKeyCodec:  idxCdc,
+				fields:         idxFields,
+				primaryKey:     pkIndex,
+				getReadBackend: getReadBackend,
+			}
 
 			// non-unique indexes can sometimes be named by several sub-lists of
 			// fields and we need to handle all of them. For example consider,
@@ -206,10 +236,10 @@ func Build(options Options) (Table, error) {
 			// is actually stored as "c,a,b". So this index can be referred to
 			// by the fields "c", "c,a", or "c,a,b".
 			allFields := index.GetFieldNames()
-			allFieldNames := FieldsFromNames(allFields)
+			allFieldNames := fieldsFromNames(allFields)
 			altNames[allFieldNames] = true
 			for i := 1; i < len(allFields); i++ {
-				altName := FieldsFromNames(allFields[:i])
+				altName := fieldsFromNames(allFields[:i])
 				if altNames[altName] {
 					continue
 				}
@@ -226,7 +256,7 @@ func Build(options Options) (Table, error) {
 					return nil, err
 				}
 
-				if FieldsFromNames(altIdxCdc.GetFieldNames()) == allFieldNames {
+				if fieldsFromNames(altIdxCdc.GetFieldNames()) == allFieldNames {
 					altNames[altName] = true
 				}
 			}

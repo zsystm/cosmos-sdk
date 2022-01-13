@@ -1,6 +1,10 @@
 package ormtable
 
 import (
+	"context"
+
+	"github.com/cosmos/cosmos-sdk/orm/model/ormlist"
+
 	"github.com/cosmos/cosmos-sdk/orm/model/kvstore"
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 
@@ -10,68 +14,44 @@ import (
 	"github.com/cosmos/cosmos-sdk/orm/encoding/ormkv"
 )
 
-// IndexKeyIndex implements Index for a regular IndexKey.
-type IndexKeyIndex struct {
+// indexKeyIndex implements Index for a regular IndexKey.
+type indexKeyIndex struct {
 	*ormkv.IndexKeyCodec
-	primaryKey *PrimaryKeyIndex
+	fields         fieldNames
+	primaryKey     *primaryKeyIndex
+	getReadBackend func(context.Context) (ReadBackend, error)
 }
 
-// NewIndexKeyIndex returns a new IndexKeyIndex.
-func NewIndexKeyIndex(indexKeyCodec *ormkv.IndexKeyCodec, primaryKey *PrimaryKeyIndex) *IndexKeyIndex {
-	return &IndexKeyIndex{IndexKeyCodec: indexKeyCodec, primaryKey: primaryKey}
-}
-
-func (s IndexKeyIndex) PrefixIterator(store kvstore.ReadBackend, prefix []protoreflect.Value, options IteratorOptions) (Iterator, error) {
-	prefixBz, err := s.EncodeKey(prefix)
+func (i indexKeyIndex) Iterator(ctx context.Context, options ...ormlist.Option) (Iterator, error) {
+	backend, err := i.getReadBackend(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return prefixIterator(store.IndexStoreReader(), store, s, prefixBz, options)
+	return iterator(backend, backend.IndexStoreReader(), i, i.KeyCodec, options)
 }
 
-func (s IndexKeyIndex) RangeIterator(store kvstore.ReadBackend, start, end []protoreflect.Value, options IteratorOptions) (Iterator, error) {
-	err := s.CheckValidRangeIterationKeys(start, end)
-	if err != nil {
-		return nil, err
-	}
+var _ indexer = &indexKeyIndex{}
+var _ Index = &indexKeyIndex{}
 
-	startBz, err := s.EncodeKey(start)
-	if err != nil {
-		return nil, err
-	}
+func (i indexKeyIndex) doNotImplement() {}
 
-	endBz, err := s.EncodeKey(end)
-	if err != nil {
-		return nil, err
-	}
-
-	fullEndKey := len(s.GetFieldNames()) == len(end)
-
-	return rangeIterator(store.IndexStoreReader(), store, s, startBz, endBz, fullEndKey, options)
-}
-
-var _ indexer = &IndexKeyIndex{}
-var _ Index = &IndexKeyIndex{}
-
-func (s IndexKeyIndex) doNotImplement() {}
-
-func (s IndexKeyIndex) onInsert(store kvstore.Writer, message protoreflect.Message) error {
-	k, v, err := s.EncodeKVFromMessage(message)
+func (i indexKeyIndex) onInsert(store kvstore.Writer, message protoreflect.Message) error {
+	k, v, err := i.EncodeKVFromMessage(message)
 	if err != nil {
 		return err
 	}
 	return store.Set(k, v)
 }
 
-func (s IndexKeyIndex) onUpdate(store kvstore.Writer, new, existing protoreflect.Message) error {
-	newValues := s.GetKeyValues(new)
-	existingValues := s.GetKeyValues(existing)
-	if s.CompareKeys(newValues, existingValues) == 0 {
+func (i indexKeyIndex) onUpdate(store kvstore.Writer, new, existing protoreflect.Message) error {
+	newValues := i.GetKeyValues(new)
+	existingValues := i.GetKeyValues(existing)
+	if i.CompareKeys(newValues, existingValues) == 0 {
 		return nil
 	}
 
-	existingKey, err := s.EncodeKey(existingValues)
+	existingKey, err := i.EncodeKey(existingValues)
 	if err != nil {
 		return err
 	}
@@ -80,23 +60,23 @@ func (s IndexKeyIndex) onUpdate(store kvstore.Writer, new, existing protoreflect
 		return err
 	}
 
-	newKey, err := s.EncodeKey(newValues)
+	newKey, err := i.EncodeKey(newValues)
 	if err != nil {
 		return err
 	}
 	return store.Set(newKey, []byte{})
 }
 
-func (s IndexKeyIndex) onDelete(store kvstore.Writer, message protoreflect.Message) error {
-	_, key, err := s.EncodeKeyFromMessage(message)
+func (i indexKeyIndex) onDelete(store kvstore.Writer, message protoreflect.Message) error {
+	_, key, err := i.EncodeKeyFromMessage(message)
 	if err != nil {
 		return err
 	}
 	return store.Delete(key)
 }
 
-func (s IndexKeyIndex) readValueFromIndexKey(store kvstore.ReadBackend, primaryKey []protoreflect.Value, _ []byte, message proto.Message) error {
-	found, err := s.primaryKey.Get(store, primaryKey, message)
+func (i indexKeyIndex) readValueFromIndexKey(backend ReadBackend, primaryKey []protoreflect.Value, _ []byte, message proto.Message) error {
+	found, err := i.primaryKey.get(backend, message, primaryKey)
 	if err != nil {
 		return err
 	}
@@ -106,4 +86,8 @@ func (s IndexKeyIndex) readValueFromIndexKey(store kvstore.ReadBackend, primaryK
 	}
 
 	return nil
+}
+
+func (p indexKeyIndex) Fields() string {
+	return p.fields.String()
 }

@@ -1,6 +1,12 @@
 package ormtable
 
 import (
+	"context"
+
+	"github.com/cosmos/cosmos-sdk/orm/model/ormlist"
+
+	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -9,64 +15,50 @@ import (
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 )
 
-type UniqueKeyIndex struct {
+type uniqueKeyIndex struct {
 	*ormkv.UniqueKeyCodec
-	primaryKey *PrimaryKeyIndex
+	fields         fieldNames
+	primaryKey     *primaryKeyIndex
+	getReadBackend func(context.Context) (ReadBackend, error)
 }
 
-func NewUniqueKeyIndex(uniqueKeyCodec *ormkv.UniqueKeyCodec, primaryKey *PrimaryKeyIndex) *UniqueKeyIndex {
-	return &UniqueKeyIndex{UniqueKeyCodec: uniqueKeyCodec, primaryKey: primaryKey}
-}
-
-func (u UniqueKeyIndex) PrefixIterator(store kvstore.ReadBackend, prefix []protoreflect.Value, options IteratorOptions) (Iterator, error) {
-	prefixBz, err := u.GetKeyCodec().EncodeKey(prefix)
+func (u uniqueKeyIndex) Iterator(ctx context.Context, options ...ormlist.Option) (Iterator, error) {
+	backend, err := u.getReadBackend(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return prefixIterator(store.IndexStoreReader(), store, u, prefixBz, options)
+	return iterator(backend, backend.IndexStoreReader(), u, u.GetKeyCodec(), options)
 }
 
-func (u UniqueKeyIndex) RangeIterator(store kvstore.ReadBackend, start, end []protoreflect.Value, options IteratorOptions) (Iterator, error) {
-	keyCodec := u.GetKeyCodec()
-	err := keyCodec.CheckValidRangeIterationKeys(start, end)
-	if err != nil {
-		return nil, err
-	}
+func (u uniqueKeyIndex) doNotImplement() {}
 
-	startBz, err := keyCodec.EncodeKey(start)
-	if err != nil {
-		return nil, err
-	}
-
-	endBz, err := keyCodec.EncodeKey(end)
-	if err != nil {
-		return nil, err
-	}
-
-	fullEndKey := len(keyCodec.GetFieldNames()) == len(end)
-
-	return rangeIterator(store.IndexStoreReader(), store, u, startBz, endBz, fullEndKey, options)
-}
-
-func (u UniqueKeyIndex) doNotImplement() {}
-
-func (u UniqueKeyIndex) Has(store kvstore.ReadBackend, keyValues []protoreflect.Value) (found bool, err error) {
-	key, err := u.GetKeyCodec().EncodeKey(keyValues)
+func (u uniqueKeyIndex) Has(ctx context.Context, values ...interface{}) (found bool, err error) {
+	backend, err := u.getReadBackend(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	return store.IndexStoreReader().Has(key)
-}
-
-func (u UniqueKeyIndex) Get(store kvstore.ReadBackend, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {
-	key, err := u.GetKeyCodec().EncodeKey(keyValues)
+	key, err := u.GetKeyCodec().EncodeKey(encodeutil.ValuesOf(values...))
 	if err != nil {
 		return false, err
 	}
 
-	value, err := store.IndexStoreReader().Get(key)
+	return backend.IndexStoreReader().Has(key)
+}
+
+func (u uniqueKeyIndex) Get(ctx context.Context, message proto.Message, keyValues ...interface{}) (found bool, err error) {
+	backend, err := u.getReadBackend(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	key, err := u.GetKeyCodec().EncodeKey(encodeutil.ValuesOf(keyValues...))
+	if err != nil {
+		return false, err
+	}
+
+	value, err := backend.IndexStoreReader().Get(key)
 	if err != nil {
 		return false, err
 	}
@@ -81,10 +73,39 @@ func (u UniqueKeyIndex) Get(store kvstore.ReadBackend, keyValues []protoreflect.
 		return true, err
 	}
 
-	return u.primaryKey.Get(store, pk, message)
+	return u.primaryKey.get(backend, message, pk)
 }
 
-func (u UniqueKeyIndex) onInsert(store kvstore.Writer, message protoreflect.Message) error {
+func (u uniqueKeyIndex) DeleteByKey(ctx context.Context, keyValues ...interface{}) error {
+	backend, err := u.getReadBackend(ctx)
+	if err != nil {
+		return err
+	}
+
+	key, err := u.GetKeyCodec().EncodeKey(encodeutil.ValuesOf(keyValues...))
+	if err != nil {
+		return err
+	}
+
+	value, err := backend.IndexStoreReader().Get(key)
+	if err != nil {
+		return err
+	}
+
+	// for unique keys, value can be empty and the entry still exists
+	if value == nil {
+		return nil
+	}
+
+	_, pk, err := u.DecodeIndexKey(key, value)
+	if err != nil {
+		return err
+	}
+
+	return u.primaryKey.doDeleteByKey(ctx, pk)
+}
+
+func (u uniqueKeyIndex) onInsert(store kvstore.Writer, message protoreflect.Message) error {
 	k, v, err := u.EncodeKVFromMessage(message)
 	if err != nil {
 		return err
@@ -102,7 +123,7 @@ func (u UniqueKeyIndex) onInsert(store kvstore.Writer, message protoreflect.Mess
 	return store.Set(k, v)
 }
 
-func (u UniqueKeyIndex) onUpdate(store kvstore.Writer, new, existing protoreflect.Message) error {
+func (u uniqueKeyIndex) onUpdate(store kvstore.Writer, new, existing protoreflect.Message) error {
 	keyCodec := u.GetKeyCodec()
 	newValues := keyCodec.GetKeyValues(new)
 	existingValues := keyCodec.GetKeyValues(existing)
@@ -142,7 +163,7 @@ func (u UniqueKeyIndex) onUpdate(store kvstore.Writer, new, existing protoreflec
 	return store.Set(newKey, value)
 }
 
-func (u UniqueKeyIndex) onDelete(store kvstore.Writer, message protoreflect.Message) error {
+func (u uniqueKeyIndex) onDelete(store kvstore.Writer, message protoreflect.Message) error {
 	_, key, err := u.GetKeyCodec().EncodeKeyFromMessage(message)
 	if err != nil {
 		return err
@@ -151,8 +172,8 @@ func (u UniqueKeyIndex) onDelete(store kvstore.Writer, message protoreflect.Mess
 	return store.Delete(key)
 }
 
-func (u UniqueKeyIndex) readValueFromIndexKey(store kvstore.ReadBackend, primaryKey []protoreflect.Value, _ []byte, message proto.Message) error {
-	found, err := u.primaryKey.Get(store, primaryKey, message)
+func (u uniqueKeyIndex) readValueFromIndexKey(store ReadBackend, primaryKey []protoreflect.Value, _ []byte, message proto.Message) error {
+	found, err := u.primaryKey.get(store, message, primaryKey)
 	if err != nil {
 		return err
 	}
@@ -164,8 +185,12 @@ func (u UniqueKeyIndex) readValueFromIndexKey(store kvstore.ReadBackend, primary
 	return nil
 }
 
-var _ indexer = &UniqueKeyIndex{}
-var _ UniqueIndex = &UniqueKeyIndex{}
+func (p uniqueKeyIndex) Fields() string {
+	return p.fields.String()
+}
+
+var _ indexer = &uniqueKeyIndex{}
+var _ UniqueIndex = &uniqueKeyIndex{}
 
 // isNonTrivialUniqueKey checks if unique key fields are non-trivial, meaning that they
 // don't contain the full primary key. If they contain the full primary key, then
