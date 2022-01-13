@@ -19,8 +19,8 @@ type KeyCodec struct {
 	}
 
 	prefix           []byte
-	fieldDescriptors []protoreflect.FieldDescriptor
-	fieldNames       []protoreflect.Name
+	fieldDescriptors []Expression
+	fieldNames       []string
 	fieldCodecs      []ormfield.Codec
 }
 
@@ -29,7 +29,8 @@ type KeyCodec struct {
 func NewKeyCodec(prefix []byte, messageDescriptor protoreflect.MessageDescriptor, fieldNames []protoreflect.Name) (*KeyCodec, error) {
 	n := len(fieldNames)
 	fieldCodecs := make([]ormfield.Codec, n)
-	fieldDescriptors := make([]protoreflect.FieldDescriptor, n)
+	expressions := make([]Expression, n)
+	expressionStrs := make([]string, n)
 	var variableSizers []struct {
 		cdc ormfield.Codec
 		i   int
@@ -40,7 +41,7 @@ func NewKeyCodec(prefix []byte, messageDescriptor protoreflect.MessageDescriptor
 	for i := 0; i < n; i++ {
 		nonTerminal := i != n-1
 		field := messageFields.ByName(fieldNames[i])
-		cdc, err := ormfield.GetCodec(field, nonTerminal)
+		cdc, err := ormfield.GetFieldCodec(field, nonTerminal)
 		if err != nil {
 			return nil, err
 		}
@@ -53,13 +54,14 @@ func NewKeyCodec(prefix []byte, messageDescriptor protoreflect.MessageDescriptor
 			}{cdc, i})
 		}
 		fieldCodecs[i] = cdc
-		fieldDescriptors[i] = field
+		expressions[i] = FieldExpression{field}
+		expressionStrs[i] = expressions[i].String()
 	}
 
 	return &KeyCodec{
 		fieldCodecs:      fieldCodecs,
-		fieldDescriptors: fieldDescriptors,
-		fieldNames:       fieldNames,
+		fieldDescriptors: expressions,
+		fieldNames:       expressionStrs,
 		prefix:           prefix,
 		fixedSize:        fixedSize,
 		variableSizers:   variableSizers,
@@ -98,7 +100,7 @@ func (cdc *KeyCodec) Encode(values []protoreflect.Value) ([]byte, error) {
 func (cdc *KeyCodec) GetValues(message protoreflect.Message) []protoreflect.Value {
 	res := make([]protoreflect.Value, len(cdc.fieldDescriptors))
 	for i, f := range cdc.fieldDescriptors {
-		res[i] = message.Get(f)
+		res[i] = f.GetValue(message)
 	}
 	return res
 }

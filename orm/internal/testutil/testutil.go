@@ -107,7 +107,7 @@ func MakeTestCodec(fname protoreflect.Name, nonTerminal bool) (ormfield.Codec, e
 	if field == nil {
 		return nil, fmt.Errorf("can't find field %s", fname)
 	}
-	return ormfield.GetCodec(field, nonTerminal)
+	return ormfield.GetFieldCodec(field, nonTerminal)
 }
 
 func GetTestField(fname protoreflect.Name) protoreflect.FieldDescriptor {

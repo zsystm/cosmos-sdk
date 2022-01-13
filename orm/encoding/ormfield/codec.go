@@ -50,10 +50,10 @@ var (
 	durationFullName  = durationMsgType.Descriptor().FullName()
 )
 
-// GetCodec returns the Codec for the provided field if one is defined.
+// GetFieldCodec returns the Codec for the provided field if one is defined.
 // nonTerminal should be set to true if this value is being encoded as a
 // non-terminal segment of a multi-part key.
-func GetCodec(field protoreflect.FieldDescriptor, nonTerminal bool) (Codec, error) {
+func GetFieldCodec(field protoreflect.FieldDescriptor, nonTerminal bool) (Codec, error) {
 	if field == nil {
 		return nil, ormerrors.UnsupportedKeyField.Wrap("nil field")
 	}

@@ -64,20 +64,20 @@ func checkEncodeDecodeSize(t *rapid.T, x protoreflect.Value, cdc ormfield.Codec)
 }
 
 func TestUnsupportedFields(t *testing.T) {
-	_, err := ormfield.GetCodec(nil, false)
+	_, err := ormfield.GetFieldCodec(nil, false)
 	assert.ErrorContains(t, err, ormerrors.UnsupportedKeyField.Error())
-	_, err = ormfield.GetCodec(testutil.GetTestField("repeated"), false)
+	_, err = ormfield.GetFieldCodec(testutil.GetTestField("repeated"), false)
 	assert.ErrorContains(t, err, ormerrors.UnsupportedKeyField.Error())
-	_, err = ormfield.GetCodec(testutil.GetTestField("map"), false)
+	_, err = ormfield.GetFieldCodec(testutil.GetTestField("map"), false)
 	assert.ErrorContains(t, err, ormerrors.UnsupportedKeyField.Error())
-	_, err = ormfield.GetCodec(testutil.GetTestField("msg"), false)
+	_, err = ormfield.GetFieldCodec(testutil.GetTestField("msg"), false)
 	assert.ErrorContains(t, err, ormerrors.UnsupportedKeyField.Error())
-	_, err = ormfield.GetCodec(testutil.GetTestField("oneof"), false)
+	_, err = ormfield.GetFieldCodec(testutil.GetTestField("oneof"), false)
 	assert.ErrorContains(t, err, ormerrors.UnsupportedKeyField.Error())
 }
 
 func TestNTBytesTooLong(t *testing.T) {
-	cdc, err := ormfield.GetCodec(testutil.GetTestField("bz"), true)
+	cdc, err := ormfield.GetFieldCodec(testutil.GetTestField("bz"), true)
 	assert.NilError(t, err)
 	buf := &bytes.Buffer{}
 	bz := protoreflect.ValueOfBytes(make([]byte, 256))
