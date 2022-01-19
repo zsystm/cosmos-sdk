@@ -7,13 +7,13 @@ import (
 
 	bankv1beta1 "github.com/cosmos/cosmos-sdk/api/cosmos/bank/v1beta1"
 	bankv2alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/bank/v2alpha1"
-	"github.com/cosmos/cosmos-sdk/orm/model/ormschema"
+	"github.com/cosmos/cosmos-sdk/orm/model/ormdb"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 	"github.com/cosmos/cosmos-sdk/types/address"
 )
 
 // ModuleSchemaDescriptor declares a module's db statically
-var ModuleSchemaDescriptor = ormschema.ModuleDescriptor{
+var ModuleSchemaDescriptor = ormdb.ModuleSchema{
 	FileDescriptors: map[uint32]protoreflect.FileDescriptor{
 		1: bankv2alpha1.File_cosmos_bank_v2alpha1_state_proto,
 	},
@@ -25,7 +25,7 @@ type server struct {
 
 	addressCodec address.Codec
 
-	db                       ormschema.DB
+	db                       ormdb.DB
 	balanceTable             ormtable.Table
 	balanceAddressDenomIndex ormtable.UniqueIndex
 	balanceDenomAddressIndex ormtable.Index
@@ -38,7 +38,7 @@ type server struct {
 //
 // db is derived from a store key, codec, and ModuleSchemaDescriptor. It
 // would be provided at the framework level using a one-per-scope providers (see the container module).
-func NewServer(db ormschema.DB, codec address.Codec) (*server, error) {
+func NewServer(db ormdb.DB, codec address.Codec) (*server, error) {
 	s := &server{
 		db:           db,
 		addressCodec: codec,

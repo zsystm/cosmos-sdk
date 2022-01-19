@@ -1,4 +1,4 @@
-package ormschema
+package ormdb
 
 import (
 	"google.golang.org/protobuf/proto"

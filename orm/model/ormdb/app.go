@@ -1,4 +1,4 @@
-package ormschema
+package ormdb
 
 import (
 	"fmt"
@@ -9,19 +9,19 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-type AppSchema struct {
-	moduleSchemas map[string]*ModuleSchema
+type AppDB struct {
+	moduleSchemas map[string]*ModuleDB
 	tablesByName  map[protoreflect.FullName]moduleTableEntry
 }
 
 type moduleTableEntry struct {
 	module string
 	table  ormtable.Table
-	schema *ModuleSchema
+	schema *ModuleDB
 }
 
-func NewAppSchema(moduleSchemas map[string]*ModuleSchema) *AppSchema {
-	schema := &AppSchema{
+func NewAppDB(moduleSchemas map[string]*ModuleDB) *AppDB {
+	schema := &AppDB{
 		moduleSchemas: moduleSchemas,
 		tablesByName:  map[protoreflect.FullName]moduleTableEntry{},
 	}
@@ -39,7 +39,7 @@ func NewAppSchema(moduleSchemas map[string]*ModuleSchema) *AppSchema {
 	return schema
 }
 
-func (a AppSchema) DecodeEntry(module string, k, v []byte) (ormkv.Entry, error) {
+func (a AppDB) DecodeEntry(module string, k, v []byte) (ormkv.Entry, error) {
 	moduleSchema, ok := a.moduleSchemas[module]
 	if !ok {
 		return nil, fmt.Errorf("can't find module %s", module)
@@ -48,7 +48,7 @@ func (a AppSchema) DecodeEntry(module string, k, v []byte) (ormkv.Entry, error) 
 	return moduleSchema.DecodeEntry(k, v)
 }
 
-func (a AppSchema) EncodeEntry(entry ormkv.Entry) (module string, k, v []byte, err error) {
+func (a AppDB) EncodeEntry(entry ormkv.Entry) (module string, k, v []byte, err error) {
 	tableName := entry.GetTableName()
 	tableEntry, ok := a.tablesByName[tableName]
 	if !ok {

@@ -1,4 +1,4 @@
-package ormschema
+package ormdb
 
 import (
 	"bytes"
@@ -24,17 +24,22 @@ import (
 )
 
 type ModuleSchema struct {
+	FileDescriptors map[uint32]protoreflect.FileDescriptor
+	Prefix          []byte
+}
+
+type ModuleDB struct {
 	prefix         []byte
-	filesById      map[uint32]*FileDescriptorSchema
+	filesById      map[uint32]*FileDescriptorDB
 	tablesByName   map[protoreflect.FullName]ormtable.Table
-	schemaSubspace *FileDescriptorSchema
+	schemaSubspace *FileDescriptorDB
 }
 
 const (
 	schemaSubspaceId uint32 = 0
 )
 
-type ModuleSchemaOptions struct {
+type ModuleDBOptions struct {
 	// TypeResolver is an optional type resolver to be used when unmarshaling
 	// protobuf messages.
 	TypeResolver ormtable.TypeResolver
@@ -51,13 +56,13 @@ type ModuleSchemaOptions struct {
 	GetReadBackend func(context.Context) (ormtable.ReadBackend, error)
 }
 
-func NewModuleSchema(desc ModuleDescriptor, options ModuleSchemaOptions) (*ModuleSchema, error) {
+func NewModuleDB(desc ModuleSchema, options ModuleDBOptions) (*ModuleDB, error) {
 	prefix := desc.Prefix
 
 	// the schema subspace is a private part of the store used for storing
 	// important schema information for migrations and introspection
 	schemaPrefix := encodeutil.AppendVarUInt32(prefix, schemaSubspaceId)
-	schemaSubspace, err := NewFileDescriptorSchema(ormv1alpha1.File_cosmos_orm_v1alpha1_schema_proto, FileDescriptorSchemaOptions{
+	schemaSubspace, err := NewFileDescriptorSchema(ormv1alpha1.File_cosmos_orm_v1alpha1_schema_proto, FileDescriptorDBOptions{
 		Prefix:       schemaPrefix,
 		ID:           1,
 		TypeResolver: options.TypeResolver,
@@ -66,15 +71,15 @@ func NewModuleSchema(desc ModuleDescriptor, options ModuleSchemaOptions) (*Modul
 		return nil, err
 	}
 
-	schema := &ModuleSchema{
+	schema := &ModuleDB{
 		prefix:         prefix,
-		filesById:      map[uint32]*FileDescriptorSchema{},
+		filesById:      map[uint32]*FileDescriptorDB{},
 		tablesByName:   map[protoreflect.FullName]ormtable.Table{},
 		schemaSubspace: schemaSubspace,
 	}
 
 	for id, fileDescriptor := range desc.FileDescriptors {
-		opts := FileDescriptorSchemaOptions{
+		opts := FileDescriptorDBOptions{
 			ID:             id,
 			Prefix:         prefix,
 			TypeResolver:   options.TypeResolver,
@@ -111,7 +116,7 @@ func NewModuleSchema(desc ModuleDescriptor, options ModuleSchemaOptions) (*Modul
 	return schema, nil
 }
 
-func (m ModuleSchema) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
+func (m ModuleDB) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 	r := bytes.NewReader(k)
 	err := encodeutil.SkipPrefix(r, m.prefix)
 	if err != nil {
@@ -140,7 +145,7 @@ func (m ModuleSchema) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 	return fileSchema.DecodeEntry(k, v)
 }
 
-func (m ModuleSchema) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
+func (m ModuleDB) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	tableName := entry.GetTableName()
 	table, ok := m.tablesByName[tableName]
 	if !ok {
@@ -153,7 +158,7 @@ func (m ModuleSchema) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	return table.EncodeEntry(entry)
 }
 
-func (m ModuleSchema) AutoMigrate(ctx context.Context) error {
+func (m ModuleDB) AutoMigrate(ctx context.Context) error {
 	moduleFileTable := m.schemaSubspace.GetTable(&ormv1alpha1.ModuleFileTable{})
 	if moduleFileTable == nil {
 		return ormerrors.UnexpectedError.Wrapf("missing ModuleFileTable")
@@ -206,7 +211,7 @@ func (m ModuleSchema) AutoMigrate(ctx context.Context) error {
 	return nil
 }
 
-func (m ModuleSchema) GetTable(message proto.Message) (ormtable.Table, error) {
+func (m ModuleDB) GetTable(message proto.Message) (ormtable.Table, error) {
 	tableName := message.ProtoReflect().Descriptor().FullName()
 	table, ok := m.tablesByName[tableName]
 	if !ok {
@@ -216,5 +221,5 @@ func (m ModuleSchema) GetTable(message proto.Message) (ormtable.Table, error) {
 	return table, nil
 }
 
-var _ ormkv.EntryCodec = &ModuleSchema{}
-var _ DB = &ModuleSchema{}
+var _ ormkv.EntryCodec = &ModuleDB{}
+var _ DB = &ModuleDB{}
