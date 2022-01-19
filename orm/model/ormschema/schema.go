@@ -6,6 +6,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 )
 
-type Schema interface {
+type DB interface {
 	GetTable(message proto.Message) (ormtable.Table, error)
 }

@@ -13,7 +13,7 @@ import (
 )
 
 type ReadDBConnection struct {
-	Schema      ormschema.Schema
+	Schema      ormschema.DB
 	ReadBackend kvstore.ReadBackend
 }
 

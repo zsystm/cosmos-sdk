@@ -217,4 +217,4 @@ func (m ModuleSchema) GetTable(message proto.Message) (ormtable.Table, error) {
 }
 
 var _ ormkv.EntryCodec = &ModuleSchema{}
-var _ Schema = &ModuleSchema{}
+var _ DB = &ModuleSchema{}

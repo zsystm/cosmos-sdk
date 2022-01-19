@@ -3,51 +3,25 @@ package ormstore
 import (
 	"context"
 
-	"google.golang.org/protobuf/reflect/protoreflect"
-
-	"github.com/cosmos/cosmos-sdk/orm"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormschema"
-	"github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type StoreKeyDB struct {
-	key    *types.KVStoreKey
-	schema ormschema.Schema
-}
-
-func NewStoreKeyDB(key *types.KVStoreKey, prefix []byte, fileDescriptors []protoreflect.FileDescriptor) (*StoreKeyDB, error) {
-	schema, err := ormschema.NewModuleSchema(fileDescriptors, ormschema.ModuleSchemaOptions{
-		Prefix: prefix,
-	})
-	return &StoreKeyDB{key: key, schema: schema}, err
-}
-
-func (s StoreKeyDB) OpenRead(ctx context.Context) (*orm.ReadDBConnection, error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	store := sdkCtx.KVStore(s.key)
-	wrapper := &kvStoreBackend{
-		store: store,
+func KVStoreDB(desc ormschema.ModuleDescriptor, key storetypes.StoreKey, options ormschema.ModuleSchemaOptions) (ormschema.DB, error) {
+	getBackend := func(ctx context.Context) (ormtable.Backend, error) {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		store := sdkCtx.KVStore(key)
+		wrapper := storeWrapper{store}
+		return ormtable.NewBackend(ormtable.BackendOptions{
+			CommitmentStore: wrapper,
+			IndexStore:      wrapper,
+		}), nil
 	}
-	return &orm.ReadDBConnection{
-		Schema:      s.schema,
-		ReadBackend: wrapper,
-	}, nil
-}
-
-func (s StoreKeyDB) Open(ctx context.Context) (*orm.DBConnection, error) {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	store := sdkCtx.KVStore(s.key)
-	wrapper := &kvStoreBackend{
-		store: store,
+	options.GetBackend = getBackend
+	options.GetReadBackend = func(ctx context.Context) (ormtable.ReadBackend, error) {
+		return getBackend(ctx)
 	}
-	return &orm.DBConnection{
-		ReadDBConnection: &orm.ReadDBConnection{
-			Schema:      s.schema,
-			ReadBackend: wrapper,
-		},
-		Backend: wrapper,
-	}, nil
+	return ormschema.NewModuleSchema(desc, options)
 }
-
-var _ orm.DB = StoreKeyDB{}

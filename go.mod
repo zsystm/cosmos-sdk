@@ -160,4 +160,6 @@ replace github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.7.0
 replace github.com/cosmos/cosmos-sdk/db => ./db
 
 replace github.com/cosmos/cosmos-sdk/x/group => ./x/group
-replace github.com/cosmos/cosmos-sdk/x/group => ./x/group
+
+replace github.com/cosmos/cosmos-sdk/api => ./api
+replace github.com/cosmos/cosmos-sdk/orm => ./orm

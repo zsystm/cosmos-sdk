@@ -14,7 +14,7 @@ type DB interface {
 }
 
 type db struct {
-	ormschema.Schema
+	ormschema.DB
 }
 
 func (d db) GetTable(message proto.Message) (Table, error) {
