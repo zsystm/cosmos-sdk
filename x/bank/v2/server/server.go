@@ -12,8 +12,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/address"
 )
 
-// ModuleSchemaDescriptor declares a module's db statically
-var ModuleSchemaDescriptor = ormdb.ModuleSchema{
+// ModuleSchema declares a module's db statically
+var ModuleSchema = ormdb.ModuleSchema{
 	FileDescriptors: map[uint32]protoreflect.FileDescriptor{
 		1: bankv2alpha1.File_cosmos_bank_v2alpha1_state_proto,
 	},
@@ -36,7 +36,7 @@ type server struct {
 
 // NewServer creates a new server.
 //
-// db is derived from a store key, codec, and ModuleSchemaDescriptor. It
+// db is derived from a store key, codec, and ModuleSchema. It
 // would be provided at the framework level using a one-per-scope providers (see the container module).
 func NewServer(db ormdb.DB, codec address.Codec) (*server, error) {
 	s := &server{
