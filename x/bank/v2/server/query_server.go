@@ -2,18 +2,18 @@ package server
 
 import (
 	"context"
-	"fmt"
+
+	"google.golang.org/protobuf/proto"
 
 	"github.com/cosmos/cosmos-sdk/orm/model/ormlist"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	bankv1beta1 "github.com/cosmos/cosmos-sdk/api/cosmos/bank/v1beta1"
 	bankv2alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/bank/v2alpha1"
 	v1beta1 "github.com/cosmos/cosmos-sdk/api/cosmos/base/v1beta1"
-	"github.com/cosmos/cosmos-sdk/orm/model/ormschema"
-	"github.com/cosmos/cosmos-sdk/types/address"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 var _ bankv1beta1.QueryServer = &server{}
@@ -46,17 +46,28 @@ func (s server) AllBalances(ctx context.Context, request *bankv1beta1.QueryAllBa
 		return nil, err
 	}
 
-	res, err := ormtable.Paginate(
+	res := &bankv1beta1.QueryAllBalancesResponse{}
+
+	pageRes, err := ormtable.Paginate(
 		s.balanceAddressDenomIndex,
 		ctx,
 		&ormtable.PaginationRequest{PageRequest: request.Pagination},
+		func(message proto.Message) {
+			balance := message.(*bankv2alpha1.Balance)
+			res.Balances = append(res.Balances, &v1beta1.Coin{
+				Denom:  balance.Denom,
+				Amount: balance.Amount,
+			})
+		},
 		ormlist.Prefix(addressBz),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return
+	res.Pagination = pageRes.PageResponse
+
+	return res, nil
 }
 
 func (s server) TotalSupply(ctx context.Context, request *bankv1beta1.QueryTotalSupplyRequest) (*bankv1beta1.QueryTotalSupplyResponse, error) {
@@ -87,49 +98,4 @@ func (s server) DenomsMetadata(ctx context.Context, request *bankv1beta1.QueryDe
 func (s server) DenomOwners(ctx context.Context, request *bankv1beta1.QueryDenomOwnersRequest) (*bankv1beta1.QueryDenomOwnersResponse, error) {
 	//TODO implement me
 	panic("implement me")
-}
-
-func (s server) mustEmbedUnimplementedQueryServer() {
-	//TODO implement me
-	panic("implement me")
-}
-
-// NewServer creates a new server.
-//
-// db is derived from a store key, codec, and ModuleSchemaDescriptor. It
-// would be provided at the framework level using a one-per-scope providers (see the container module).
-func NewServer(db ormschema.DB, codec address.Codec) (*server, error) {
-	s := &server{
-		db:           db,
-		addressCodec: codec,
-	}
-
-	var err error
-
-	s.balanceTable, err = s.db.GetTable(&bankv2alpha1.Balance{})
-	if err != nil {
-		return nil, err
-	}
-
-	s.balanceAddressDenomIndex = s.balanceTable.GetUniqueIndex("address,denom")
-	if s.balanceAddressDenomIndex == nil {
-		return nil, fmt.Errorf("missing address,denom index")
-	}
-
-	s.balanceDenomAddressIndex = s.balanceTable.GetUniqueIndex("denom,address")
-	if s.balanceDenomAddressIndex == nil {
-		return nil, fmt.Errorf("missing denom,address index")
-	}
-
-	s.supplyTable, err = s.db.GetTable(&bankv2alpha1.Supply{})
-	if err != nil {
-		return nil, err
-	}
-
-	s.supplyDenomIndex = s.supplyTable.GetUniqueIndex("denom")
-	if s.supplyDenomIndex == nil {
-		return nil, fmt.Errorf("missing denom index")
-	}
-
-	return s, nil
 }
