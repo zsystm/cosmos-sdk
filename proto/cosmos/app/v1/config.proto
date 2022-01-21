@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package cosmos.app.v1;
+
+import "google/protobuf/any.proto";
+
+message Config {
+  repeated ModuleConfig modules = 1;
+}
+
+message ModuleConfig {
+  google.protobuf.Any config = 1;
+  string name = 2;
+}
