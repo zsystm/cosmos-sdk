@@ -5,7 +5,8 @@ import (
 	"context"
 	"encoding/binary"
 	"math"
-	"sort"
+
+	"google.golang.org/protobuf/reflect/protoregistry"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
 
@@ -18,25 +19,16 @@ import (
 	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 )
 
-type FileDescriptorDBOptions struct {
-	Prefix []byte
-	ID     uint32
-
-	// TypeResolver is an optional type resolver to be used when unmarshaling
-	// protobuf messages.
-	TypeResolver ormtable.TypeResolver
-
-	// JSONValidator is an optional validator that can be used for validating
-	// messaging when using ValidateJSON. If it is nil, DefaultJSONValidator
-	// will be used
-	JSONValidator func(proto.Message) error
-
-	GetBackend func(context.Context) (ormtable.Backend, error)
-
+type fileDescriptorDBOptions struct {
+	Prefix         []byte
+	ID             uint32
+	TypeResolver   ormtable.TypeResolver
+	JSONValidator  func(proto.Message) error
+	GetBackend     func(context.Context) (ormtable.Backend, error)
 	GetReadBackend func(context.Context) (ormtable.ReadBackend, error)
 }
 
-type FileDescriptorDB struct {
+type fileDescriptorDB struct {
 	id             uint32
 	prefix         []byte
 	tablesById     map[uint32]ormtable.Table
@@ -44,10 +36,10 @@ type FileDescriptorDB struct {
 	fileDescriptor protoreflect.FileDescriptor
 }
 
-func NewFileDescriptorSchema(fileDescriptor protoreflect.FileDescriptor, options FileDescriptorDBOptions) (*FileDescriptorDB, error) {
+func newFileDescriptorDB(fileDescriptor protoreflect.FileDescriptor, options fileDescriptorDBOptions) (*fileDescriptorDB, error) {
 	prefix := encodeutil.AppendVarUInt32(options.Prefix, options.ID)
 
-	schema := &FileDescriptorDB{
+	schema := &fileDescriptorDB{
 		id:             options.ID,
 		prefix:         prefix,
 		tablesById:     map[uint32]ormtable.Table{},
@@ -55,11 +47,17 @@ func NewFileDescriptorSchema(fileDescriptor protoreflect.FileDescriptor, options
 		fileDescriptor: fileDescriptor,
 	}
 
+	resolver := options.TypeResolver
+	if resolver == nil {
+		resolver = protoregistry.GlobalTypes
+	}
+
 	messages := fileDescriptor.Messages()
 	n := messages.Len()
 	for i := 0; i < n; i++ {
 		messageDescriptor := messages.Get(i)
-		messageType, err := options.TypeResolver.FindMessageByName(messageDescriptor.FullName())
+		tableName := messageDescriptor.FullName()
+		messageType, err := resolver.FindMessageByName(tableName)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +65,7 @@ func NewFileDescriptorSchema(fileDescriptor protoreflect.FileDescriptor, options
 		table, err := ormtable.Build(ormtable.Options{
 			Prefix:         prefix,
 			MessageType:    messageType,
-			TypeResolver:   options.TypeResolver,
+			TypeResolver:   resolver,
 			JSONValidator:  options.JSONValidator,
 			GetReadBackend: options.GetReadBackend,
 			GetBackend:     options.GetBackend,
@@ -76,14 +74,22 @@ func NewFileDescriptorSchema(fileDescriptor protoreflect.FileDescriptor, options
 			return nil, err
 		}
 
-		schema.tablesByName[messageDescriptor.FullName()] = table
-		schema.tablesById[table.ID()] = table
+		id := table.ID()
+		if _, ok := schema.tablesById[id]; ok {
+			return nil, ormerrors.InvalidTableId.Wrapf("duplicate ID %d for %s", id, tableName)
+		}
+		schema.tablesById[id] = table
+
+		if _, ok := schema.tablesByName[tableName]; ok {
+			return nil, ormerrors.InvalidTableDefinition.Wrapf("duplicate table %s", tableName)
+		}
+		schema.tablesByName[tableName] = table
 	}
 
 	return schema, nil
 }
 
-func (f FileDescriptorDB) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
+func (f fileDescriptorDB) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 	r := bytes.NewReader(k)
 	err := encodeutil.SkipPrefix(r, f.prefix)
 	if err != nil {
@@ -107,7 +113,7 @@ func (f FileDescriptorDB) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 	return table.DecodeEntry(k, v)
 }
 
-func (f FileDescriptorDB) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
+func (f fileDescriptorDB) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	table, ok := f.tablesByName[entry.GetTableName()]
 	if !ok {
 		return nil, nil, ormerrors.BadDecodeEntry.Wrapf("can't find table %s", entry.GetTableName())
@@ -116,27 +122,4 @@ func (f FileDescriptorDB) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error
 	return table.EncodeEntry(entry)
 }
 
-func (f FileDescriptorDB) GetTable(message proto.Message) ormtable.Table {
-	table, _ := f.tablesByName[message.ProtoReflect().Descriptor().FullName()]
-	return table
-}
-
-func (f FileDescriptorDB) AutoMigrate(ctx context.Context) error {
-	var sortedIds []int
-	for id := range f.tablesById {
-		sortedIds = append(sortedIds, int(id))
-	}
-	sort.Ints(sortedIds)
-
-	for _, id := range sortedIds {
-		id := uint32(id)
-		err := f.tablesById[id].AutoMigrate(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-var _ ormkv.EntryCodec = FileDescriptorDB{}
+var _ ormkv.EntryCodec = fileDescriptorDB{}

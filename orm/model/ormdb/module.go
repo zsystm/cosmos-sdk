@@ -4,17 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"fmt"
 	"math"
-	"sort"
 
 	"google.golang.org/protobuf/reflect/protodesc"
 
 	"github.com/cosmos/cosmos-sdk/orm/encoding/encodeutil"
 
 	"google.golang.org/protobuf/proto"
-
-	ormv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/v1alpha1"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -23,27 +19,42 @@ import (
 	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 )
 
+// ModuleSchema describes the ORM schema for a module.
 type ModuleSchema struct {
+	// FileDescriptors are the file descriptors that contain ORM tables to use in this schema.
+	// Each file descriptor must have an unique non-zero uint32 ID associated with it.
 	FileDescriptors map[uint32]protoreflect.FileDescriptor
-	Prefix          []byte
+
+	// Prefix is an optional prefix to prepend to all keys. It is recommended
+	// to leave it empty.
+	Prefix []byte
 }
 
-type ModuleDB struct {
-	prefix         []byte
-	filesById      map[uint32]*FileDescriptorDB
-	tablesByName   map[protoreflect.FullName]ormtable.Table
-	schemaSubspace *FileDescriptorDB
+// ModuleDB defines the ORM database type to be used by modules.
+type ModuleDB interface {
+	ormkv.EntryCodec
+
+	// GetTable returns the table for the provided message type or nil.
+	GetTable(message proto.Message) ormtable.Table
 }
 
-const (
-	schemaSubspaceId uint32 = 0
-)
+type moduleDB struct {
+	prefix       []byte
+	filesById    map[uint32]*fileDescriptorDB
+	tablesByName map[protoreflect.FullName]ormtable.Table
+}
 
+// ModuleDBOptions are options for constructing a ModuleDB.
 type ModuleDBOptions struct {
+
 	// TypeResolver is an optional type resolver to be used when unmarshaling
-	// protobuf messages.
+	// protobuf messages. If it is nil, protoregistry.GlobalTypes will be used.
 	TypeResolver ormtable.TypeResolver
 
+	// FileResolver is an optional file resolver that can be used to retrieve
+	// pinned file descriptors that may be different from those available at
+	// runtime. The file descriptor versions returned by this resolver will be
+	// used instead of the ones provided at runtime by the ModuleSchema.
 	FileResolver protodesc.Resolver
 
 	// JSONValidator is an optional validator that can be used for validating
@@ -51,35 +62,30 @@ type ModuleDBOptions struct {
 	// will be used
 	JSONValidator func(proto.Message) error
 
+	// GetBackend is the function used to retrieve the table backend.
+	// See ormtable.Options.GetBackend for more details.
 	GetBackend func(context.Context) (ormtable.Backend, error)
 
+	// GetReadBackend is the function used to retrieve a table read backend.
+	// See ormtable.Options.GetReadBackend for more details.
 	GetReadBackend func(context.Context) (ormtable.ReadBackend, error)
 }
 
-func NewModuleDB(desc ModuleSchema, options ModuleDBOptions) (*ModuleDB, error) {
-	prefix := desc.Prefix
-
-	// the schema subspace is a private part of the store used for storing
-	// important schema information for migrations and introspection
-	schemaPrefix := encodeutil.AppendVarUInt32(prefix, schemaSubspaceId)
-	schemaSubspace, err := NewFileDescriptorSchema(ormv1alpha1.File_cosmos_orm_v1alpha1_schema_proto, FileDescriptorDBOptions{
-		Prefix:       schemaPrefix,
-		ID:           1,
-		TypeResolver: options.TypeResolver,
-	})
-	if err != nil {
-		return nil, err
+// NewModuleDB constructs a ModuleDB instance from the provided schema and options.
+func NewModuleDB(schema ModuleSchema, options ModuleDBOptions) (ModuleDB, error) {
+	prefix := schema.Prefix
+	db := &moduleDB{
+		prefix:       prefix,
+		filesById:    map[uint32]*fileDescriptorDB{},
+		tablesByName: map[protoreflect.FullName]ormtable.Table{},
 	}
 
-	schema := &ModuleDB{
-		prefix:         prefix,
-		filesById:      map[uint32]*FileDescriptorDB{},
-		tablesByName:   map[protoreflect.FullName]ormtable.Table{},
-		schemaSubspace: schemaSubspace,
-	}
+	for id, fileDescriptor := range schema.FileDescriptors {
+		if id == 0 {
+			return nil, ormerrors.InvalidFileDescriptorID.Wrapf("for %s", fileDescriptor.Path())
+		}
 
-	for id, fileDescriptor := range desc.FileDescriptors {
-		opts := FileDescriptorDBOptions{
+		opts := fileDescriptorDBOptions{
 			ID:             id,
 			Prefix:         prefix,
 			TypeResolver:   options.TypeResolver,
@@ -92,31 +98,32 @@ func NewModuleDB(desc ModuleSchema, options ModuleDBOptions) (*ModuleDB, error) 
 			// if a FileResolver is provided, we use that to resolve the file
 			// and not the one provided as a different pinned file descriptor
 			// may have been provided
+			var err error
 			fileDescriptor, err = options.FileResolver.FindFileByPath(fileDescriptor.Path())
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		fdSchema, err := NewFileDescriptorSchema(fileDescriptor, opts)
+		fdSchema, err := newFileDescriptorDB(fileDescriptor, opts)
 		if err != nil {
 			return nil, err
 		}
 
-		schema.filesById[id] = fdSchema
+		db.filesById[id] = fdSchema
 		for name, table := range fdSchema.tablesByName {
-			if _, ok := schema.tablesByName[name]; ok {
+			if _, ok := db.tablesByName[name]; ok {
 				return nil, ormerrors.UnexpectedError.Wrapf("duplicate table %s", name)
 			}
 
-			schema.tablesByName[name] = table
+			db.tablesByName[name] = table
 		}
 	}
 
-	return schema, nil
+	return db, nil
 }
 
-func (m ModuleDB) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
+func (m moduleDB) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 	r := bytes.NewReader(k)
 	err := encodeutil.SkipPrefix(r, m.prefix)
 	if err != nil {
@@ -132,11 +139,6 @@ func (m ModuleDB) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 		return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("uint32 varint id out of range %d", id)
 	}
 
-	// schema sub-store
-	if uint32(id) == schemaSubspaceId {
-		return m.schemaSubspace.DecodeEntry(k, v)
-	}
-
 	fileSchema, ok := m.filesById[uint32(id)]
 	if !ok {
 		return nil, ormerrors.UnexpectedDecodePrefix.Wrapf("can't find FileDescriptor schema with id %d", id)
@@ -145,81 +147,16 @@ func (m ModuleDB) DecodeEntry(k, v []byte) (ormkv.Entry, error) {
 	return fileSchema.DecodeEntry(k, v)
 }
 
-func (m ModuleDB) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
+func (m moduleDB) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	tableName := entry.GetTableName()
 	table, ok := m.tablesByName[tableName]
 	if !ok {
-		table, ok = m.schemaSubspace.tablesByName[tableName]
-		if !ok {
-			return nil, nil, ormerrors.BadDecodeEntry.Wrapf("can't find table %s", tableName)
-		}
+		return nil, nil, ormerrors.BadDecodeEntry.Wrapf("can't find table %s", tableName)
 	}
 
 	return table.EncodeEntry(entry)
 }
 
-func (m ModuleDB) AutoMigrate(ctx context.Context) error {
-	moduleFileTable := m.schemaSubspace.GetTable(&ormv1alpha1.ModuleFileTable{})
-	if moduleFileTable == nil {
-		return ormerrors.UnexpectedError.Wrapf("missing ModuleFileTable")
-	}
-
-	var sortedIds []int
-	for id := range m.filesById {
-		sortedIds = append(sortedIds, int(id))
-	}
-	sort.Ints(sortedIds)
-
-	for _, id := range sortedIds {
-		id := uint32(id)
-		file := m.filesById[id]
-
-		var existing ormv1alpha1.ModuleFileTable
-		found, err := moduleFileTable.Get(ctx, &existing, id)
-		if err != nil {
-			return err
-		}
-
-		filePath := file.fileDescriptor.Path()
-		if found {
-			if existing.FileName != filePath {
-				return ormerrors.MigrationError.Wrapf(
-					"file descriptor %s with at ID %d already exists, can't replace with %s",
-					existing.FileName,
-					id,
-					filePath,
-				)
-			}
-		}
-
-		// because of the unique index on file_name, this will fail
-		// if the file was already registered with a different id
-		err = moduleFileTable.Save(ctx, &ormv1alpha1.ModuleFileTable{
-			Id:       id,
-			FileName: filePath,
-		})
-		if err != nil {
-			return err
-		}
-
-		err = file.AutoMigrate(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+func (m moduleDB) GetTable(message proto.Message) ormtable.Table {
+	return m.tablesByName[message.ProtoReflect().Descriptor().FullName()]
 }
-
-func (m ModuleDB) GetTable(message proto.Message) (ormtable.Table, error) {
-	tableName := message.ProtoReflect().Descriptor().FullName()
-	table, ok := m.tablesByName[tableName]
-	if !ok {
-		return nil, fmt.Errorf("table %T not found", tableName)
-	}
-
-	return table, nil
-}
-
-var _ ormkv.EntryCodec = &ModuleDB{}
-var _ DB = &ModuleDB{}
