@@ -2,37 +2,24 @@ package module
 
 import (
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/cosmos/cosmos-sdk/app/internal"
 )
 
-var registry = map[protoreflect.FullName]*initializer{}
-var declarations = map[protoreflect.FullName]map[interface{}]interface{}{}
-
-type initializer struct {
-	Type              protoreflect.MessageType
-	Providers         []interface{}
-	ProviderFactories []func(ModuleDeclarations)
-}
-
-type ModuleDeclarations struct {
-	Declarations map[protoreflect.FullName]map[interface{}]interface{}
-}
+type Option = internal.Option
 
 func RegisterModule(message proto.Message, options ...Option) {
-	init := &initializer{
+	init := &internal.Initializer{
 		Type:      message.ProtoReflect().Type(),
 		Providers: nil,
 	}
 
-	for _, option := range options {
-		option.apply(init)
-	}
+	// TODO
+	//for _, option := range options {
+	//	option.apply(init)
+	//}
 
-	registry[message.ProtoReflect().Descriptor().FullName()] = init
-}
-
-type Option interface {
-	apply(*initializer)
+	internal.Registry[message.ProtoReflect().Descriptor().FullName()] = init
 }
 
 func Declare(interface{}) Option {
