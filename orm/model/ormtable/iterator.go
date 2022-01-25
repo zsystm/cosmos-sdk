@@ -1,6 +1,8 @@
 package ormtable
 
 import (
+	"fmt"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -37,7 +39,7 @@ type Iterator interface {
 	// the iterator. The defer keyword should generally be used for this.
 	Close()
 
-	doNotImplement()
+	mustEmbedUnimplementedIterator()
 }
 
 func iterator(
@@ -232,8 +234,34 @@ func (i indexIterator) Close() {
 	}
 }
 
-func (indexIterator) doNotImplement() {
+func (indexIterator) mustEmbedUnimplementedIterator() {
 
 }
 
 var _ Iterator = &indexIterator{}
+
+type UnimplementedIterator struct{}
+
+func (u UnimplementedIterator) Next() bool { return false }
+
+func (u UnimplementedIterator) Keys() (indexKey, primaryKey []protoreflect.Value, err error) {
+	return nil, nil, fmt.Errorf("unimplemented")
+}
+
+func (u UnimplementedIterator) UnmarshalMessage(message proto.Message) error {
+	return fmt.Errorf("unimplemented")
+}
+
+func (u UnimplementedIterator) GetMessage() (proto.Message, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
+func (u UnimplementedIterator) Cursor() ormlist.CursorT {
+	return nil
+}
+
+func (u UnimplementedIterator) Close() {}
+
+func (u UnimplementedIterator) mustEmbedUnimplementedIterator() {}
+
+var _ Iterator = &UnimplementedIterator{}
