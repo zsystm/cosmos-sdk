@@ -20,6 +20,47 @@ import (
 // These tests use a simulated bank keeper. Addresses and balances use
 // string and uint64 types respectively for simplicity.
 
+type BankStore interface {
+	BalanceStore
+	SupplyStore
+}
+
+type BalanceStore interface {
+	Has(address string, denom string) (found bool, err error)
+	Get(address string, denom string) (*testpb.Balance, error)
+	Insert(*testpb.Balance) error
+	Update(*testpb.Balance) error
+	Save(*testpb.Balance) error
+	Delete(*testpb.Balance) error
+	List(BalanceIndexKey) (BalanceIterator, error)
+	ListRange(from, to BalanceIndexKey) (BalanceIterator, error)
+}
+
+type BalanceIndexKey interface {
+	id() uint32
+	values() []protoreflect.Value
+	balanceIndexKey()
+}
+
+type BalanceAddressDenomKey struct {
+	address, denom *string
+}
+
+type BalanceDenomAddressKey struct {
+	denom, address *string
+}
+
+type BalanceIterator interface {
+	Next() bool
+	IndexKey() BalanceIndexKey
+	PrimaryKey() BalanceIndexKey
+	Get() (*testpb.Balance, error)
+}
+
+type SupplyStore interface {
+	// TODO
+}
+
 var TestBankSchema = ormdb.ModuleSchema{
 	FileDescriptors: map[uint32]protoreflect.FileDescriptor{
 		1: testpb.File_testpb_bank_proto,
