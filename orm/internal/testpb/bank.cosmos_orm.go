@@ -4,6 +4,7 @@ package testpb
 
 import (
 	context "context"
+
 	ormdb "github.com/cosmos/cosmos-sdk/orm/model/ormdb"
 	ormlist "github.com/cosmos/cosmos-sdk/orm/model/ormlist"
 	ormtable "github.com/cosmos/cosmos-sdk/orm/model/ormtable"
@@ -15,6 +16,7 @@ type BalanceStore interface {
 	Update(ctx context.Context, balance *Balance) error
 	Save(ctx context.Context, balance *Balance) error
 	Delete(ctx context.Context, balance *Balance) error
+	DeleteBy(ctx context.Context, key BalanceIndexKey) error
 	Has(ctx context.Context, address string, denom string) (found bool, err error)
 	Get(ctx context.Context, address string, denom string) (*Balance, error)
 	List(ctx context.Context, prefixKey BalanceIndexKey, opts ...ormlist.Option) (BalanceIterator, error)
@@ -91,6 +93,10 @@ func (this balanceStore) Delete(ctx context.Context, balance *Balance) error {
 	return this.table.Delete(ctx, balance)
 }
 
+func (this balanceStore) DeleteBy(ctx context.Context, prefixKey BalanceIndexKey) error {
+	return ormtable.DeleteBy(ctx, this.table, prefixKey.values()...)
+}
+
 func (this balanceStore) Has(ctx context.Context, address string, denom string) (found bool, err error) {
 	return this.table.PrimaryKey().Has(ctx, address, denom)
 }
@@ -105,13 +111,13 @@ func (this balanceStore) Get(ctx context.Context, address string, denom string) 
 }
 
 func (this balanceStore) List(ctx context.Context, prefixKey BalanceIndexKey, opts ...ormlist.Option) (BalanceIterator, error) {
-	opts = append(opts, ormlist.Prefix(prefixKey.values()))
+	opts = append(opts, ormlist.Prefix(prefixKey.values()...))
 	it, err := this.table.GetIndexByID(prefixKey.id()).Iterator(ctx, opts...)
 	return BalanceIterator{it}, err
 }
 
 func (this balanceStore) ListRange(ctx context.Context, from, to BalanceIndexKey, opts ...ormlist.Option) (BalanceIterator, error) {
-	opts = append(opts, ormlist.Start(from.values()), ormlist.End(to))
+	opts = append(opts, ormlist.Start(from.values()...), ormlist.End(to.values()...))
 	it, err := this.table.GetIndexByID(from.id()).Iterator(ctx, opts...)
 	return BalanceIterator{it}, err
 }
@@ -133,6 +139,7 @@ type SupplyStore interface {
 	Update(ctx context.Context, supply *Supply) error
 	Save(ctx context.Context, supply *Supply) error
 	Delete(ctx context.Context, supply *Supply) error
+	DeleteBy(ctx context.Context, key SupplyIndexKey) error
 	Has(ctx context.Context, denom string) (found bool, err error)
 	Get(ctx context.Context, denom string) (*Supply, error)
 	List(ctx context.Context, prefixKey SupplyIndexKey, opts ...ormlist.Option) (SupplyIterator, error)
@@ -191,6 +198,10 @@ func (this supplyStore) Delete(ctx context.Context, supply *Supply) error {
 	return this.table.Delete(ctx, supply)
 }
 
+func (this supplyStore) DeleteBy(ctx context.Context, prefixKey SupplyIndexKey) error {
+	return ormtable.DeleteBy(ctx, this.table, prefixKey.values()...)
+}
+
 func (this supplyStore) Has(ctx context.Context, denom string) (found bool, err error) {
 	return this.table.PrimaryKey().Has(ctx, denom)
 }
@@ -205,13 +216,13 @@ func (this supplyStore) Get(ctx context.Context, denom string) (*Supply, error) 
 }
 
 func (this supplyStore) List(ctx context.Context, prefixKey SupplyIndexKey, opts ...ormlist.Option) (SupplyIterator, error) {
-	opts = append(opts, ormlist.Prefix(prefixKey.values()))
+	opts = append(opts, ormlist.Prefix(prefixKey.values()...))
 	it, err := this.table.GetIndexByID(prefixKey.id()).Iterator(ctx, opts...)
 	return SupplyIterator{it}, err
 }
 
 func (this supplyStore) ListRange(ctx context.Context, from, to SupplyIndexKey, opts ...ormlist.Option) (SupplyIterator, error) {
-	opts = append(opts, ormlist.Start(from.values()), ormlist.End(to))
+	opts = append(opts, ormlist.Start(from.values()...), ormlist.End(to.values()...))
 	it, err := this.table.GetIndexByID(from.id()).Iterator(ctx, opts...)
 	return SupplyIterator{it}, err
 }
