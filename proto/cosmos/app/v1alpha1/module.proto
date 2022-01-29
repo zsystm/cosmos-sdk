@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package cosmos.app.v1alpha1;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MessageOptions {
+  // is_module indicates that this proto type is a config object for an app module
+  // and optionally provides other descriptive information about the module.
+  ModuleDescriptor is_module = 57193479;
+}
+
+// ModuleDescriptor describes an app module.
+message ModuleDescriptor {
+  // go_import names the package that should be imported by an app to load the
+  // module in the module registry. Either go_import must be defined here
+  // or the go_package option must be defined at the file level to indicate
+  // to users where to location the module implementation. go_import takes
+  // precedence over go_package when both are defined.
+  string go_import = 1;
+}
+
