@@ -34,7 +34,7 @@ type Handler struct {
 	Handle func()
 }
 
-func (Handler) IsOnePerScopeType() {}
+func (Handler) IsOnePerModuleType() {}
 
 type Command struct {
 	Run func()
@@ -42,15 +42,15 @@ type Command struct {
 
 func (Command) IsAutoGroupType() {}
 
-func ProvideKVStoreKey(scope container.Scope) KVStoreKey {
+func ProvideKVStoreKey(scope container.ModuleKey) KVStoreKey {
 	return KVStoreKey{name: scope.Name()}
 }
 
-func ProvideModuleKey(scope container.Scope) (ModuleKey, error) {
+func ProvideModuleKey(scope container.ModuleKey) (ModuleKey, error) {
 	return ModuleKey(scope.Name()), nil
 }
 
-func ProvideMsgClientA(_ container.Scope, key ModuleKey) MsgClientA {
+func ProvideMsgClientA(_ container.ModuleKey, key ModuleKey) MsgClientA {
 	return MsgClientA{key}
 }
 
@@ -76,7 +76,7 @@ type BProvides struct {
 	Commands []Command
 }
 
-func (ModuleB) Provide(dependencies BDependencies, _ container.Scope) (BProvides, Handler, error) {
+func (ModuleB) Provide(dependencies BDependencies, _ container.ModuleKey) (BProvides, Handler, error) {
 	return BProvides{
 		KeeperB: KeeperB{
 			key:        dependencies.Key,
@@ -109,8 +109,8 @@ func TestScenario(t *testing.T) {
 				ProvideModuleKey,
 				ProvideMsgClientA,
 			),
-			container.ProvideWithScope("a", wrapMethod0(ModuleA{})),
-			container.ProvideWithScope("b", wrapMethod0(ModuleB{})),
+			container.ProvideInModule("a", wrapMethod0(ModuleA{})),
+			container.ProvideInModule("b", wrapMethod0(ModuleB{})),
 		))
 }
 
@@ -219,7 +219,7 @@ func TestScoped(t *testing.T) {
 	require.Error(t,
 		container.Run(func(int) {},
 			container.Provide(
-				func(container.Scope) int { return 0 },
+				func(container.ModuleKey) int { return 0 },
 			),
 		),
 	)
@@ -227,10 +227,10 @@ func TestScoped(t *testing.T) {
 	require.Error(t,
 		container.Run(func(float64) {},
 			container.Provide(
-				func(container.Scope) int { return 0 },
+				func(container.ModuleKey) int { return 0 },
 				func() int { return 1 },
 			),
-			container.ProvideWithScope("a",
+			container.ProvideInModule("a",
 				func(x int) float64 { return float64(x) },
 			),
 		),
@@ -240,9 +240,9 @@ func TestScoped(t *testing.T) {
 		container.Run(func(float64) {},
 			container.Provide(
 				func() int { return 0 },
-				func(container.Scope) int { return 1 },
+				func(container.ModuleKey) int { return 1 },
 			),
-			container.ProvideWithScope("a",
+			container.ProvideInModule("a",
 				func(x int) float64 { return float64(x) },
 			),
 		),
@@ -251,10 +251,10 @@ func TestScoped(t *testing.T) {
 	require.Error(t,
 		container.Run(func(float64) {},
 			container.Provide(
-				func(container.Scope) int { return 0 },
-				func(container.Scope) int { return 1 },
+				func(container.ModuleKey) int { return 0 },
+				func(container.ModuleKey) int { return 1 },
 			),
-			container.ProvideWithScope("a",
+			container.ProvideInModule("a",
 				func(x int) float64 { return float64(x) },
 			),
 		),
@@ -263,9 +263,9 @@ func TestScoped(t *testing.T) {
 	require.NoError(t,
 		container.Run(func(float64) {},
 			container.Provide(
-				func(container.Scope) int { return 0 },
+				func(container.ModuleKey) int { return 0 },
 			),
-			container.ProvideWithScope("a",
+			container.ProvideInModule("a",
 				func(x int) float64 { return float64(x) },
 			),
 		),
@@ -274,9 +274,9 @@ func TestScoped(t *testing.T) {
 	require.Error(t,
 		container.Run(func(float64) {},
 			container.Provide(
-				func(container.Scope) int { return 0 },
+				func(container.ModuleKey) int { return 0 },
 			),
-			container.ProvideWithScope("",
+			container.ProvideInModule("",
 				func(x int) float64 { return float64(x) },
 			),
 		),
@@ -285,9 +285,9 @@ func TestScoped(t *testing.T) {
 	require.NoError(t,
 		container.Run(func(float64, float32) {},
 			container.Provide(
-				func(container.Scope) int { return 0 },
+				func(container.ModuleKey) int { return 0 },
 			),
-			container.ProvideWithScope("a",
+			container.ProvideInModule("a",
 				func(x int) float64 { return float64(x) },
 				func(x int) float32 { return float32(x) },
 			),
@@ -298,7 +298,7 @@ func TestScoped(t *testing.T) {
 
 type OnePerScopeInt int
 
-func (OnePerScopeInt) IsOnePerScopeType() {}
+func (OnePerScopeInt) IsOnePerModuleType() {}
 
 func TestOnePerScope(t *testing.T) {
 	require.Error(t,
@@ -317,10 +317,10 @@ func TestOnePerScope(t *testing.T) {
 				}, x)
 				require.Equal(t, "7", y)
 			},
-			container.ProvideWithScope("a",
+			container.ProvideInModule("a",
 				func() OnePerScopeInt { return 3 },
 			),
-			container.ProvideWithScope("b",
+			container.ProvideInModule("b",
 				func() OnePerScopeInt { return 4 },
 			),
 			container.Provide(func(x map[string]OnePerScopeInt) string {
@@ -336,7 +336,7 @@ func TestOnePerScope(t *testing.T) {
 	require.Error(t,
 		container.Run(
 			func(map[string]OnePerScopeInt) {},
-			container.ProvideWithScope("a",
+			container.ProvideInModule("a",
 				func() OnePerScopeInt { return 0 },
 				func() OnePerScopeInt { return 0 },
 			),
