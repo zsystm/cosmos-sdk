@@ -1,8 +1,8 @@
 package module
 
 import (
+	"github.com/cosmos/cosmos-sdk/app/module/internal"
 	"github.com/cosmos/cosmos-sdk/container"
-	"github.com/cosmos/cosmos-sdk/container/module/internal"
 )
 
 type Option interface {
@@ -24,14 +24,6 @@ func Provide(providers ...interface{}) Option {
 }
 
 func Supply(values ...interface{}) Option {
-	return option(func(config *internal.ModuleConfig) error {
-		panic("TODO")
-	})
-}
-
-type ParamType = internal.ModuleParamType
-
-func DefineParam(params ...ParamType) Option {
 	return option(func(config *internal.ModuleConfig) error {
 		panic("TODO")
 	})

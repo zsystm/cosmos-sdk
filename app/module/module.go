@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"reflect"
 
+	"google.golang.org/protobuf/proto"
+
 	"google.golang.org/protobuf/types/descriptorpb"
 
 	appv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/app/v1alpha1"
-
-	"google.golang.org/protobuf/proto"
-
-	"github.com/cosmos/cosmos-sdk/container/module/internal"
+	"github.com/cosmos/cosmos-sdk/app/module/internal"
 )
 
 func Register(configType proto.Message, options ...Option) {

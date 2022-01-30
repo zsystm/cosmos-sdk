@@ -21,8 +21,8 @@ func init() {
 
 type ModuleSchema ormdb.ModuleSchema
 
-func (m ModuleSchema) IsOnePerScopeType() {}
-func (m ModuleSchema) IsModuleParamType() {}
+func (m ModuleSchema) IsOnePerModuleType() {}
+func (m ModuleSchema) IsModuleParamType()  {}
 
 var _ module.ParamType = ModuleSchema{}
 
@@ -33,7 +33,7 @@ func DefineModuleSchema(schema ModuleSchema) module.Option {
 type needs struct {
 	container.In
 
-	ModuleSchemas map[container.Scope]ModuleSchema
+	ModuleSchemas map[container.ModuleKey]ModuleSchema
 
 	KVStore        KVStore
 	IndexStore     IndexStore `optional:"true"`
@@ -48,7 +48,7 @@ type provides struct {
 	DB ormdb.ModuleDB
 }
 
-func provideModuleDB(scope container.Scope, inputs needs) (provides, error) {
+func provideModuleDB(scope container.ModuleKey, inputs needs) (provides, error) {
 	schema, ok := inputs.ModuleSchemas[scope]
 	if !ok {
 		return provides{}, fmt.Errorf("missing module schema for module %s", scope.Name())

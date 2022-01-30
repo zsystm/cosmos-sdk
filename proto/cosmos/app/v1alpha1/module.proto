@@ -18,5 +18,11 @@ message ModuleDescriptor {
   // to users where to location the module implementation. go_import takes
   // precedence over go_package when both are defined.
   string go_import = 1;
+
+  // use_package refers to the name of a protobuf package that this module
+  // uses and exposes to the world. In an app, only one module should "use"
+  // or own a single protobuf package. It is assumed that the module uses
+  // all of the .proto files in a single package.
+  repeated string use_package = 2;
 }
 
