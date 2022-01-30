@@ -1,8 +1,8 @@
 package module
 
 import (
+	"embed"
 	"fmt"
-	"reflect"
 
 	"google.golang.org/protobuf/proto"
 
@@ -12,7 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/app/module/internal"
 )
 
-func Register(configType proto.Message, options ...Option) {
+func Register(configType proto.Message, pinnedProtoImageFS embed.FS, options ...Option) {
 	desc := configType.ProtoReflect().Descriptor()
 	modDesc := proto.GetExtension(desc.Options(), appv1alpha1.E_IsModule).(*appv1alpha1.ModuleDescriptor)
 	if modDesc == nil {
@@ -30,9 +30,7 @@ func Register(configType proto.Message, options ...Option) {
 		}
 	}
 
-	config := &internal.ModuleConfig{
-		Params: map[reflect.Type]internal.ModuleParamType{},
-	}
+	config := &internal.ModuleConfig{}
 
 	for _, opt := range options {
 		err := opt.apply(config)

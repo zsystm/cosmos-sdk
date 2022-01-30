@@ -8,8 +8,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/orm/model/kv"
 
 	modulev1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/module/v1alpha1"
+	"github.com/cosmos/cosmos-sdk/app/module"
 	"github.com/cosmos/cosmos-sdk/container"
-	"github.com/cosmos/cosmos-sdk/container/module"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormdb"
 )
 
