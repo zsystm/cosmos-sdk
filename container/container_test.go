@@ -42,12 +42,12 @@ type Command struct {
 
 func (Command) IsAutoGroupType() {}
 
-func ProvideKVStoreKey(scope container.ModuleKey) KVStoreKey {
-	return KVStoreKey{name: scope.Name()}
+func ProvideKVStoreKey(moduleKey container.ModuleKey) KVStoreKey {
+	return KVStoreKey{name: moduleKey.Name()}
 }
 
-func ProvideModuleKey(scope container.ModuleKey) (ModuleKey, error) {
-	return ModuleKey(scope.Name()), nil
+func ProvideModuleKey(moduleKey container.ModuleKey) (ModuleKey, error) {
+	return ModuleKey(moduleKey.Name()), nil
 }
 
 func ProvideMsgClientA(_ container.ModuleKey, key ModuleKey) MsgClientA {
@@ -215,7 +215,7 @@ func TestSimple(t *testing.T) {
 	)
 }
 
-func TestScoped(t *testing.T) {
+func TestModuleScoped(t *testing.T) {
 	require.Error(t,
 		container.Run(func(int) {},
 			container.Provide(
@@ -292,38 +292,38 @@ func TestScoped(t *testing.T) {
 				func(x int) float32 { return float32(x) },
 			),
 		),
-		"use scope dep twice",
+		"use module dep twice",
 	)
 }
 
-type OnePerScopeInt int
+type OnePerModuleInt int
 
-func (OnePerScopeInt) IsOnePerModuleType() {}
+func (OnePerModuleInt) IsOnePerModuleType() {}
 
-func TestOnePerScope(t *testing.T) {
+func TestOnePerModule(t *testing.T) {
 	require.Error(t,
 		container.Run(
-			func(OnePerScopeInt) {},
+			func(OnePerModuleInt) {},
 		),
 		"bad input type",
 	)
 
 	require.NoError(t,
 		container.Run(
-			func(x map[string]OnePerScopeInt, y string) {
-				require.Equal(t, map[string]OnePerScopeInt{
+			func(x map[string]OnePerModuleInt, y string) {
+				require.Equal(t, map[string]OnePerModuleInt{
 					"a": 3,
 					"b": 4,
 				}, x)
 				require.Equal(t, "7", y)
 			},
 			container.ProvideInModule("a",
-				func() OnePerScopeInt { return 3 },
+				func() OnePerModuleInt { return 3 },
 			),
 			container.ProvideInModule("b",
-				func() OnePerScopeInt { return 4 },
+				func() OnePerModuleInt { return 4 },
 			),
-			container.Provide(func(x map[string]OnePerScopeInt) string {
+			container.Provide(func(x map[string]OnePerModuleInt) string {
 				sum := 0
 				for _, v := range x {
 					sum += int(v)
@@ -335,10 +335,10 @@ func TestOnePerScope(t *testing.T) {
 
 	require.Error(t,
 		container.Run(
-			func(map[string]OnePerScopeInt) {},
+			func(map[string]OnePerModuleInt) {},
 			container.ProvideInModule("a",
-				func() OnePerScopeInt { return 0 },
-				func() OnePerScopeInt { return 0 },
+				func() OnePerModuleInt { return 0 },
+				func() OnePerModuleInt { return 0 },
 			),
 		),
 		"duplicate",
@@ -346,9 +346,9 @@ func TestOnePerScope(t *testing.T) {
 
 	require.Error(t,
 		container.Run(
-			func(map[string]OnePerScopeInt) {},
+			func(map[string]OnePerModuleInt) {},
 			container.Provide(
-				func() OnePerScopeInt { return 0 },
+				func() OnePerModuleInt { return 0 },
 			),
 		),
 		"out of scope",
@@ -356,9 +356,9 @@ func TestOnePerScope(t *testing.T) {
 
 	require.Error(t,
 		container.Run(
-			func(map[string]OnePerScopeInt) {},
+			func(map[string]OnePerModuleInt) {},
 			container.Provide(
-				func() map[string]OnePerScopeInt { return nil },
+				func() map[string]OnePerModuleInt { return nil },
 			),
 		),
 		"bad return type",
@@ -366,7 +366,7 @@ func TestOnePerScope(t *testing.T) {
 
 	require.NoError(t,
 		container.Run(
-			func(map[string]OnePerScopeInt) {},
+			func(map[string]OnePerModuleInt) {},
 		),
 		"no providers",
 	)

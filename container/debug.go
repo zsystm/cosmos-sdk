@@ -194,7 +194,7 @@ func (c *debugConfig) addFileVisualizer(filename string, format string) {
 }
 
 func (c *debugConfig) locationGraphNode(location Location, key *moduleKey) (*cgraph.Node, error) {
-	graph := c.scopeSubGraph(key)
+	graph := c.moduleSubGraph(key)
 	node, found, err := c.findOrCreateGraphNode(graph, location.Name())
 	if err != nil {
 		return nil, err
@@ -241,7 +241,7 @@ func (c *debugConfig) findOrCreateGraphNode(subGraph *cgraph.Graph, name string)
 	return node, false, nil
 }
 
-func (c *debugConfig) scopeSubGraph(key *moduleKey) *cgraph.Graph {
+func (c *debugConfig) moduleSubGraph(key *moduleKey) *cgraph.Graph {
 	graph := c.graph
 	if key != nil {
 		gname := fmt.Sprintf("cluster_%s", key.name)
