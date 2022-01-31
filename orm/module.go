@@ -1,39 +1,32 @@
 package orm
 
 import (
+	"embed"
 	"fmt"
-
-	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
-
-	"github.com/cosmos/cosmos-sdk/orm/model/kv"
 
 	modulev1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/orm/module/v1alpha1"
 	"github.com/cosmos/cosmos-sdk/app/module"
 	"github.com/cosmos/cosmos-sdk/container"
+	"github.com/cosmos/cosmos-sdk/orm/model/kv"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormdb"
+	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 )
 
+//go:embed proto_image.bin.gz
+var pinnedProtoImage embed.FS
+
 func init() {
-	module.Register(&modulev1alpha1.Module{},
-		module.Provide(func() {}),
+	module.Register(
+		&modulev1alpha1.Module{},
+		pinnedProtoImage,
+		module.Provide(provideModuleDB),
 	)
-}
-
-type ModuleSchema ormdb.ModuleSchema
-
-func (m ModuleSchema) IsOnePerModuleType() {}
-func (m ModuleSchema) IsModuleParamType()  {}
-
-var _ module.ParamType = ModuleSchema{}
-
-func DefineModuleSchema(schema ModuleSchema) module.Option {
-	return module.DefineParam(schema)
 }
 
 type needs struct {
 	container.In
 
-	ModuleSchemas map[container.ModuleKey]ModuleSchema
+	ModuleSchemas map[container.ModuleKey]ormdb.ModuleSchema
 
 	KVStore        KVStore
 	IndexStore     IndexStore `optional:"true"`
@@ -54,7 +47,7 @@ func provideModuleDB(scope container.ModuleKey, inputs needs) (provides, error) 
 		return provides{}, fmt.Errorf("missing module schema for module %s", scope.Name())
 	}
 
-	db, err := ormdb.NewModuleDB(ormdb.ModuleSchema(schema), ormdb.ModuleDBOptions{
+	db, err := ormdb.NewModuleDB(schema, ormdb.ModuleDBOptions{
 		TypeResolver:   nil,
 		FileResolver:   nil,
 		JSONValidator:  nil,
