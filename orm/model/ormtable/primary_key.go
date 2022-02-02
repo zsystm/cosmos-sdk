@@ -81,6 +81,18 @@ func (t primaryKeyIndex) doDeleteByKey(ctx context.Context, primaryKeyValues []p
 		return err
 	}
 
+	writer := newBatchIndexCommitmentWriter(backend)
+	defer writer.Close()
+
+	err = t.doDeleteByKeyWithWriter(backend, writer, primaryKeyValues)
+	if err != nil {
+		return err
+	}
+
+	return writer.Write()
+}
+
+func (t primaryKeyIndex) doDeleteByKeyWithWriter(backend Backend, writer *batchIndexCommitmentWriter, primaryKeyValues []protoreflect.Value) error {
 	pk, err := t.EncodeKey(primaryKeyValues)
 	if err != nil {
 		return err
@@ -104,8 +116,6 @@ func (t primaryKeyIndex) doDeleteByKey(ctx context.Context, primaryKeyValues []p
 	}
 
 	// delete object
-	writer := newBatchIndexCommitmentWriter(backend)
-	defer writer.Close()
 	err = writer.CommitmentStore().Delete(pk)
 	if err != nil {
 		return err
@@ -121,7 +131,7 @@ func (t primaryKeyIndex) doDeleteByKey(ctx context.Context, primaryKeyValues []p
 		}
 	}
 
-	return writer.Write()
+	return nil
 }
 
 func (p primaryKeyIndex) getByKeyBytes(store ReadBackend, key []byte, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {

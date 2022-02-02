@@ -125,11 +125,7 @@ func runTestScenario(t *testing.T, table ormtable.Table, backend ormtable.Backen
 	assertIteratorItems(it, 0, 1)
 
 	// insert the other records
-	assert.NilError(t, err)
-	for i := 2; i < len(data); i++ {
-		err = store.Insert(ctx, data[i])
-		assert.NilError(t, err)
-	}
+	assert.NilError(t, store.Insert(ctx, data[2:]...))
 
 	// let's do a prefix query on the primary key
 	it, err = store.List(ctx, testpb.ExampleTablePrimaryKey{}.WithU32(8))

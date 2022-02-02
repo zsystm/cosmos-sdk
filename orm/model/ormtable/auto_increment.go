@@ -28,44 +28,61 @@ func (t autoIncrementTable) InsertReturningID(ctx context.Context, message proto
 		return 0, err
 	}
 
-	return t.save(backend, message, saveModeInsert)
-}
-
-func (t autoIncrementTable) Save(ctx context.Context, message proto.Message) error {
-	backend, err := t.getBackend(ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = t.save(backend, message, saveModeDefault)
-	return err
-}
-
-func (t autoIncrementTable) Insert(ctx context.Context, message proto.Message) error {
-	backend, err := t.getBackend(ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = t.save(backend, message, saveModeInsert)
-	return err
-}
-
-func (t autoIncrementTable) Update(ctx context.Context, message proto.Message) error {
-	backend, err := t.getBackend(ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = t.save(backend, message, saveModeUpdate)
-	return err
-}
-
-func (t *autoIncrementTable) save(backend Backend, message proto.Message, mode saveMode) (newId uint64, err error) {
-	messageRef := message.ProtoReflect()
-	val := messageRef.Get(t.autoIncField).Uint()
 	writer := newBatchIndexCommitmentWriter(backend)
 	defer writer.Close()
+
+	id, err := t.saveOne(writer, message, saveModeInsert)
+	if err != nil {
+		return id, err
+	}
+
+	return id, writer.Write()
+}
+
+func (t autoIncrementTable) Save(ctx context.Context, messages ...proto.Message) error {
+	backend, err := t.getBackend(ctx)
+	if err != nil {
+		return err
+	}
+
+	return t.save(backend, messages, saveModeDefault)
+}
+
+func (t autoIncrementTable) Insert(ctx context.Context, messages ...proto.Message) error {
+	backend, err := t.getBackend(ctx)
+	if err != nil {
+		return err
+	}
+
+	return t.save(backend, messages, saveModeInsert)
+}
+
+func (t autoIncrementTable) Update(ctx context.Context, messages ...proto.Message) error {
+	backend, err := t.getBackend(ctx)
+	if err != nil {
+		return err
+	}
+
+	return t.save(backend, messages, saveModeUpdate)
+}
+
+func (t *autoIncrementTable) save(backend Backend, messages []proto.Message, mode saveMode) (err error) {
+	writer := newBatchIndexCommitmentWriter(backend)
+	defer writer.Close()
+
+	for _, message := range messages {
+		_, err := t.saveOne(writer, message, mode)
+		if err != nil {
+			return err
+		}
+	}
+
+	return writer.Write()
+}
+
+func (t *autoIncrementTable) saveOne(writer *batchIndexCommitmentWriter, message proto.Message, mode saveMode) (newId uint64, err error) {
+	messageRef := message.ProtoReflect()
+	val := messageRef.Get(t.autoIncField).Uint()
 
 	if val == 0 {
 		if mode == saveModeUpdate {
@@ -148,8 +165,7 @@ func (t autoIncrementTable) ImportJSON(ctx context.Context, reader io.Reader) er
 		if id == 0 {
 			// we don't have an ID in the JSON, so we call Save to insert and
 			// generate one
-			_, err = t.save(backend, message, saveModeInsert)
-			return err
+			return t.save(backend, []proto.Message{message}, saveModeInsert)
 		} else {
 			if id > maxID {
 				return fmt.Errorf("invalid ID %d, expected a value <= %d", id, maxID)
@@ -158,7 +174,7 @@ func (t autoIncrementTable) ImportJSON(ctx context.Context, reader io.Reader) er
 			// either no ID or SAVE_MODE_UPDATE. So instead we drop one level
 			// down and insert using tableImpl which doesn't know about
 			// auto-incrementing IDs
-			return t.tableImpl.save(backend, message, saveModeInsert)
+			return t.tableImpl.save(backend, []proto.Message{message}, saveModeInsert)
 		}
 	})
 }

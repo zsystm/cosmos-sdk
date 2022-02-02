@@ -56,13 +56,13 @@ func (t tableGen) gen() {
 
 func (t tableGen) genStoreInterface() {
 	t.P("type ", t.messageStoreInterfaceName(t.msg), " interface {")
-	t.P("Insert(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
+	t.P("Insert(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " ...*", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
 	if t.table.PrimaryKey.AutoIncrement {
 		t.P("InsertReturningID(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") (uint64, error)")
 	}
-	t.P("Update(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
-	t.P("Save(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
-	t.P("Delete(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
+	t.P("Update(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " ...*", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
+	t.P("Save(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " ...*", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
+	t.P("Delete(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " ...*", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
 	t.P("Has(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (found bool, err error)")
 	t.P("Get(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (*", t.QualifiedGoIdent(t.msg.GoIdent), ", error)")
 	for _, idx := range t.uniqueIndexes {
@@ -165,8 +165,8 @@ func (t tableGen) genStoreImpl() {
 	// these methods all have the same impl sans their names. so we can just loop and replace.
 	methods := []string{"Insert", "Update", "Save", "Delete"}
 	for _, method := range methods {
-		t.P(receiver, method, "(ctx ", contextPkg.Ident("Context"), ", ", varName, " *", varTypeName, ") error {")
-		t.P("return ", receiverVar, ".table.", method, "(ctx, ", varName, ")")
+		t.P(receiver, method, "(ctx ", contextPkg.Ident("Context"), ", ", varName, " ...*", varTypeName, ") error {")
+		t.P("return ", receiverVar, ".table.", method, "(ctx, ", varName, "...)")
 		t.P("}")
 		t.P()
 	}

@@ -47,37 +47,44 @@ func (t tableImpl) GetIndexByID(id uint32) Index {
 	return t.indexesById[id]
 }
 
-func (t tableImpl) Save(ctx context.Context, message proto.Message) error {
+func (t tableImpl) Save(ctx context.Context, messages ...proto.Message) error {
 	backend, err := t.getBackend(ctx)
 	if err != nil {
 		return err
 	}
 
-	return t.save(backend, message, saveModeDefault)
+	return t.save(backend, messages, saveModeDefault)
 }
 
-func (t tableImpl) Insert(ctx context.Context, message proto.Message) error {
+func (t tableImpl) Insert(ctx context.Context, messages ...proto.Message) error {
 	backend, err := t.getBackend(ctx)
 	if err != nil {
 		return err
 	}
 
-	return t.save(backend, message, saveModeInsert)
+	return t.save(backend, messages, saveModeInsert)
 }
 
-func (t tableImpl) Update(ctx context.Context, message proto.Message) error {
+func (t tableImpl) Update(ctx context.Context, messages ...proto.Message) error {
 	backend, err := t.getBackend(ctx)
 	if err != nil {
 		return err
 	}
 
-	return t.save(backend, message, saveModeUpdate)
+	return t.save(backend, messages, saveModeUpdate)
 }
 
-func (t tableImpl) save(backend Backend, message proto.Message, mode saveMode) error {
+func (t tableImpl) save(backend Backend, messages []proto.Message, mode saveMode) error {
 	writer := newBatchIndexCommitmentWriter(backend)
 	defer writer.Close()
-	return t.doSave(writer, message, mode)
+	for _, message := range messages {
+		err := t.doSave(writer, message, mode)
+		if err != nil {
+			return err
+		}
+	}
+
+	return writer.Write()
 }
 
 func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Message, mode saveMode) error {
@@ -150,12 +157,27 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 		}
 	}
 
-	return writer.Write()
+	return nil
 }
 
-func (t tableImpl) Delete(context context.Context, message proto.Message) error {
-	pk := t.PrimaryKeyCodec.GetKeyValues(message.ProtoReflect())
-	return t.DeleteByKey(context, pk)
+func (t tableImpl) Delete(ctx context.Context, messages ...proto.Message) error {
+	backend, err := t.getBackend(ctx)
+	if err != nil {
+		return err
+	}
+
+	writer := newBatchIndexCommitmentWriter(backend)
+	defer writer.Close()
+
+	for _, message := range messages {
+		pk := t.PrimaryKeyCodec.GetKeyValues(message.ProtoReflect())
+		err = t.primaryKeyIndex.doDeleteByKeyWithWriter(backend, writer, pk)
+		if err != nil {
+			return err
+		}
+	}
+
+	return writer.Write()
 }
 
 func (t tableImpl) GetIndex(fields string) Index {
@@ -283,7 +305,7 @@ func (t tableImpl) ImportJSON(ctx context.Context, reader io.Reader) error {
 	}
 
 	return t.decodeJson(reader, func(message proto.Message) error {
-		return t.save(backend, message, saveModeDefault)
+		return t.save(backend, []proto.Message{message}, saveModeDefault)
 	})
 }
 

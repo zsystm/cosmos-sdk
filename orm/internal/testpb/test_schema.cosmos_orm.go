@@ -12,10 +12,10 @@ import (
 )
 
 type ExampleTableStore interface {
-	Insert(ctx context.Context, exampleTable *ExampleTable) error
-	Update(ctx context.Context, exampleTable *ExampleTable) error
-	Save(ctx context.Context, exampleTable *ExampleTable) error
-	Delete(ctx context.Context, exampleTable *ExampleTable) error
+	Insert(ctx context.Context, exampleTable ...*ExampleTable) error
+	Update(ctx context.Context, exampleTable ...*ExampleTable) error
+	Save(ctx context.Context, exampleTable ...*ExampleTable) error
+	Delete(ctx context.Context, exampleTable ...*ExampleTable) error
 	Has(ctx context.Context, u32 uint32, i64 int64, str string) (found bool, err error)
 	Get(ctx context.Context, u32 uint32, i64 int64, str string) (*ExampleTable, error)
 	HasByU64Str(ctx context.Context, u64 uint64, str string) (found bool, err error)
@@ -126,20 +126,20 @@ type exampleTableStore struct {
 	table ormtable.Table
 }
 
-func (this exampleTableStore) Insert(ctx context.Context, exampleTable *ExampleTable) error {
-	return this.table.Insert(ctx, exampleTable)
+func (this exampleTableStore) Insert(ctx context.Context, exampleTable ...*ExampleTable) error {
+	return this.table.Insert(ctx, exampleTable...)
 }
 
-func (this exampleTableStore) Update(ctx context.Context, exampleTable *ExampleTable) error {
-	return this.table.Update(ctx, exampleTable)
+func (this exampleTableStore) Update(ctx context.Context, exampleTable ...*ExampleTable) error {
+	return this.table.Update(ctx, exampleTable...)
 }
 
-func (this exampleTableStore) Save(ctx context.Context, exampleTable *ExampleTable) error {
-	return this.table.Save(ctx, exampleTable)
+func (this exampleTableStore) Save(ctx context.Context, exampleTable ...*ExampleTable) error {
+	return this.table.Save(ctx, exampleTable...)
 }
 
-func (this exampleTableStore) Delete(ctx context.Context, exampleTable *ExampleTable) error {
-	return this.table.Delete(ctx, exampleTable)
+func (this exampleTableStore) Delete(ctx context.Context, exampleTable ...*ExampleTable) error {
+	return this.table.Delete(ctx, exampleTable...)
 }
 
 func (this exampleTableStore) Has(ctx context.Context, u32 uint32, i64 int64, str string) (found bool, err error) {
@@ -199,11 +199,11 @@ func NewExampleTableStore(db ormdb.ModuleDB) (ExampleTableStore, error) {
 }
 
 type ExampleAutoIncrementTableStore interface {
-	Insert(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
+	Insert(ctx context.Context, exampleAutoIncrementTable ...*ExampleAutoIncrementTable) error
 	InsertReturningID(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) (uint64, error)
-	Update(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
-	Save(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
-	Delete(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
+	Update(ctx context.Context, exampleAutoIncrementTable ...*ExampleAutoIncrementTable) error
+	Save(ctx context.Context, exampleAutoIncrementTable ...*ExampleAutoIncrementTable) error
+	Delete(ctx context.Context, exampleAutoIncrementTable ...*ExampleAutoIncrementTable) error
 	Has(ctx context.Context, id uint64) (found bool, err error)
 	Get(ctx context.Context, id uint64) (*ExampleAutoIncrementTable, error)
 	HasByX(ctx context.Context, x string) (found bool, err error)
@@ -263,20 +263,20 @@ type exampleAutoIncrementTableStore struct {
 	table ormtable.AutoIncrementTable
 }
 
-func (this exampleAutoIncrementTableStore) Insert(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error {
-	return this.table.Insert(ctx, exampleAutoIncrementTable)
+func (this exampleAutoIncrementTableStore) Insert(ctx context.Context, exampleAutoIncrementTable ...*ExampleAutoIncrementTable) error {
+	return this.table.Insert(ctx, exampleAutoIncrementTable...)
 }
 
-func (this exampleAutoIncrementTableStore) Update(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error {
-	return this.table.Update(ctx, exampleAutoIncrementTable)
+func (this exampleAutoIncrementTableStore) Update(ctx context.Context, exampleAutoIncrementTable ...*ExampleAutoIncrementTable) error {
+	return this.table.Update(ctx, exampleAutoIncrementTable...)
 }
 
-func (this exampleAutoIncrementTableStore) Save(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error {
-	return this.table.Save(ctx, exampleAutoIncrementTable)
+func (this exampleAutoIncrementTableStore) Save(ctx context.Context, exampleAutoIncrementTable ...*ExampleAutoIncrementTable) error {
+	return this.table.Save(ctx, exampleAutoIncrementTable...)
 }
 
-func (this exampleAutoIncrementTableStore) Delete(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error {
-	return this.table.Delete(ctx, exampleAutoIncrementTable)
+func (this exampleAutoIncrementTableStore) Delete(ctx context.Context, exampleAutoIncrementTable ...*ExampleAutoIncrementTable) error {
+	return this.table.Delete(ctx, exampleAutoIncrementTable...)
 }
 
 func (this exampleAutoIncrementTableStore) InsertReturningID(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) (uint64, error) {

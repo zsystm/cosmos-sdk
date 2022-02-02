@@ -12,10 +12,10 @@ import (
 )
 
 type BalanceStore interface {
-	Insert(ctx context.Context, balance *Balance) error
-	Update(ctx context.Context, balance *Balance) error
-	Save(ctx context.Context, balance *Balance) error
-	Delete(ctx context.Context, balance *Balance) error
+	Insert(ctx context.Context, balance ...*Balance) error
+	Update(ctx context.Context, balance ...*Balance) error
+	Save(ctx context.Context, balance ...*Balance) error
+	Delete(ctx context.Context, balance ...*Balance) error
 	Has(ctx context.Context, address string, denom string) (found bool, err error)
 	Get(ctx context.Context, address string, denom string) (*Balance, error)
 	List(ctx context.Context, prefixKey BalanceIndexKey, opts ...ormlist.Option) (BalanceIterator, error)
@@ -78,20 +78,20 @@ type balanceStore struct {
 	table ormtable.Table
 }
 
-func (this balanceStore) Insert(ctx context.Context, balance *Balance) error {
-	return this.table.Insert(ctx, balance)
+func (this balanceStore) Insert(ctx context.Context, balance ...*Balance) error {
+	return this.table.Insert(ctx, balance...)
 }
 
-func (this balanceStore) Update(ctx context.Context, balance *Balance) error {
-	return this.table.Update(ctx, balance)
+func (this balanceStore) Update(ctx context.Context, balance ...*Balance) error {
+	return this.table.Update(ctx, balance...)
 }
 
-func (this balanceStore) Save(ctx context.Context, balance *Balance) error {
-	return this.table.Save(ctx, balance)
+func (this balanceStore) Save(ctx context.Context, balance ...*Balance) error {
+	return this.table.Save(ctx, balance...)
 }
 
-func (this balanceStore) Delete(ctx context.Context, balance *Balance) error {
-	return this.table.Delete(ctx, balance)
+func (this balanceStore) Delete(ctx context.Context, balance ...*Balance) error {
+	return this.table.Delete(ctx, balance...)
 }
 
 func (this balanceStore) Has(ctx context.Context, address string, denom string) (found bool, err error) {
@@ -132,10 +132,10 @@ func NewBalanceStore(db ormdb.ModuleDB) (BalanceStore, error) {
 }
 
 type SupplyStore interface {
-	Insert(ctx context.Context, supply *Supply) error
-	Update(ctx context.Context, supply *Supply) error
-	Save(ctx context.Context, supply *Supply) error
-	Delete(ctx context.Context, supply *Supply) error
+	Insert(ctx context.Context, supply ...*Supply) error
+	Update(ctx context.Context, supply ...*Supply) error
+	Save(ctx context.Context, supply ...*Supply) error
+	Delete(ctx context.Context, supply ...*Supply) error
 	Has(ctx context.Context, denom string) (found bool, err error)
 	Get(ctx context.Context, denom string) (*Supply, error)
 	List(ctx context.Context, prefixKey SupplyIndexKey, opts ...ormlist.Option) (SupplyIterator, error)
@@ -180,20 +180,20 @@ type supplyStore struct {
 	table ormtable.Table
 }
 
-func (this supplyStore) Insert(ctx context.Context, supply *Supply) error {
-	return this.table.Insert(ctx, supply)
+func (this supplyStore) Insert(ctx context.Context, supply ...*Supply) error {
+	return this.table.Insert(ctx, supply...)
 }
 
-func (this supplyStore) Update(ctx context.Context, supply *Supply) error {
-	return this.table.Update(ctx, supply)
+func (this supplyStore) Update(ctx context.Context, supply ...*Supply) error {
+	return this.table.Update(ctx, supply...)
 }
 
-func (this supplyStore) Save(ctx context.Context, supply *Supply) error {
-	return this.table.Save(ctx, supply)
+func (this supplyStore) Save(ctx context.Context, supply ...*Supply) error {
+	return this.table.Save(ctx, supply...)
 }
 
-func (this supplyStore) Delete(ctx context.Context, supply *Supply) error {
-	return this.table.Delete(ctx, supply)
+func (this supplyStore) Delete(ctx context.Context, supply ...*Supply) error {
+	return this.table.Delete(ctx, supply...)
 }
 
 func (this supplyStore) Has(ctx context.Context, denom string) (found bool, err error) {

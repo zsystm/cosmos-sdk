@@ -66,16 +66,16 @@ type Table interface {
 	// Save attempts to be atomic with respect to the underlying store,
 	// meaning that either the full save operation is written or the store is
 	// left unchanged, unless there is an error with the underlying store.
-	Save(context context.Context, message proto.Message) error
+	Save(context context.Context, message ...proto.Message) error
 
 	// Insert inserts the provided entry in the store and fails if there is
 	// an unique key violation. See Save for more details on behavior.
-	Insert(ctx context.Context, message proto.Message) error
+	Insert(ctx context.Context, message ...proto.Message) error
 
 	// Update updates the provided entry in the store and fails if an entry
 	// with a matching primary key does not exist. See Save for more details
 	// on behavior.
-	Update(ctx context.Context, message proto.Message) error
+	Update(ctx context.Context, message ...proto.Message) error
 
 	// Delete deletes the entry with the with primary key fields set on message
 	// if one exists. Other fields besides the primary key fields will not
@@ -87,7 +87,7 @@ type Table interface {
 	// Delete attempts to be atomic with respect to the underlying store,
 	// meaning that either the full save operation is written or the store is
 	// left unchanged, unless there is an error with the underlying store.
-	Delete(ctx context.Context, message proto.Message) error
+	Delete(ctx context.Context, message ...proto.Message) error
 
 	// DefaultJSON returns default JSON that can be used as a template for
 	// genesis files.
