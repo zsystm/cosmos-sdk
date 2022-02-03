@@ -24,6 +24,10 @@ type uniqueKeyIndex struct {
 	getReadBackend func(context.Context) (ReadBackend, error)
 }
 
+func (u uniqueKeyIndex) getPrimaryKey() *primaryKeyIndex {
+	return u.primaryKey
+}
+
 func (u uniqueKeyIndex) List(ctx context.Context, prefixKey []interface{}, options ...ormlist.Option) (Iterator, error) {
 	backend, err := u.getReadBackend(ctx)
 	if err != nil {

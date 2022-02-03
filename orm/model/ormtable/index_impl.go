@@ -24,6 +24,10 @@ type indexKeyIndex struct {
 	getReadBackend func(context.Context) (ReadBackend, error)
 }
 
+func (i indexKeyIndex) getPrimaryKey() *primaryKeyIndex {
+	return i.primaryKey
+}
+
 func (i indexKeyIndex) DeleteBy(ctx context.Context, keyValues ...interface{}) error {
 	it, err := i.List(ctx, keyValues)
 	if err != nil {

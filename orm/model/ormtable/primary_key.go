@@ -24,7 +24,11 @@ type primaryKeyIndex struct {
 	getReadBackend func(context.Context) (ReadBackend, error)
 }
 
-func (p primaryKeyIndex) List(ctx context.Context, prefixKey []interface{}, options ...ormlist.Option) (Iterator, error) {
+func (p *primaryKeyIndex) getPrimaryKey() *primaryKeyIndex {
+	return p
+}
+
+func (p *primaryKeyIndex) List(ctx context.Context, prefixKey []interface{}, options ...ormlist.Option) (Iterator, error) {
 	backend, err := p.getReadBackend(ctx)
 	if err != nil {
 		return nil, err
@@ -33,7 +37,7 @@ func (p primaryKeyIndex) List(ctx context.Context, prefixKey []interface{}, opti
 	return prefixIterator(backend.CommitmentStoreReader(), backend, p, p.KeyCodec, prefixKey, options)
 }
 
-func (p primaryKeyIndex) ListRange(ctx context.Context, from, to []interface{}, options ...ormlist.Option) (Iterator, error) {
+func (p *primaryKeyIndex) ListRange(ctx context.Context, from, to []interface{}, options ...ormlist.Option) (Iterator, error) {
 	backend, err := p.getReadBackend(ctx)
 	if err != nil {
 		return nil, err

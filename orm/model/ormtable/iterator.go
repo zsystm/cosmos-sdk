@@ -218,7 +218,27 @@ func (i *indexIterator) Update(updater BatchUpdater, message proto.Message) erro
 }
 
 func (i *indexIterator) Delete(updater BatchUpdater) error {
-	i.index.readValueFromIndexKey()
+	_, pk, err := i.Keys()
+	if err != nil {
+		return err
+	}
+
+	msg, err := i.GetMessage()
+	if err != nil {
+		return err
+	}
+
+	pkBz, err := i.index.getPrimaryKey().EncodeKey(pk)
+	if err != nil {
+		return err
+	}
+
+	err = i.index.getPrimaryKey().doDeleteWithWriteBatch(i.store, writer, pkBz, msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (i *indexIterator) PageResponse() *queryv1beta1.PageResponse {
