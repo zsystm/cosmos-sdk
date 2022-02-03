@@ -2,6 +2,12 @@ package ormtable
 
 import "github.com/cosmos/cosmos-sdk/orm/model/kv"
 
+type BatchUpdater interface {
+	WriteUpdates() error
+	Close()
+	isBatchUpdater()
+}
+
 type batchIndexCommitmentWriter struct {
 	Backend
 	commitmentWriter *batchStoreWriter
@@ -30,8 +36,8 @@ func (w *batchIndexCommitmentWriter) IndexStore() kv.Store {
 	return w.indexWriter
 }
 
-// Write flushes any pending writes.
-func (w *batchIndexCommitmentWriter) Write() error {
+// WriteUpdates flushes any pending writes.
+func (w *batchIndexCommitmentWriter) WriteUpdates() error {
 	err := flushWrites(w.Backend.CommitmentStore(), w.commitmentWriter)
 	if err != nil {
 		return err
@@ -116,4 +122,7 @@ func (b *batchStoreWriter) append(entry *batchWriterEntry) {
 	b.curBuf = append(b.curBuf, entry)
 }
 
+func (b *batchIndexCommitmentWriter) isBatchUpdater() {}
+
 var _ Backend = &batchIndexCommitmentWriter{}
+var _ BatchUpdater = &batchIndexCommitmentWriter{}

@@ -45,6 +45,10 @@ type Iterator interface {
 	// if pagination was requested in list options.
 	PageResponse() *queryv1beta1.PageResponse
 
+	Update(BatchUpdater, proto.Message) error
+
+	Delete(BatchUpdater) error
+
 	// Close closes the iterator and must always be called when done using
 	// the iterator. The defer keyword should generally be used for this.
 	Close()
@@ -206,6 +210,15 @@ type indexIterator struct {
 	primaryKey  []protoreflect.Value
 	value       []byte
 	started     bool
+}
+
+func (i *indexIterator) Update(updater BatchUpdater, message proto.Message) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (i *indexIterator) Delete(updater BatchUpdater) error {
+	i.index.readValueFromIndexKey()
 }
 
 func (i *indexIterator) PageResponse() *queryv1beta1.PageResponse {

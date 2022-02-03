@@ -183,7 +183,7 @@ func (t autoIncrementTable) decodeAutoIncJson(backend Backend, reader io.Reader,
 					if err != nil {
 						panic(err)
 					}
-					err = writer.Write()
+					err = writer.WriteUpdates()
 					if err != nil {
 						panic(err)
 					}

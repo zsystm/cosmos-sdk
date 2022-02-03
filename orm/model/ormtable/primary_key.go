@@ -132,7 +132,7 @@ func (p primaryKeyIndex) doDelete(ctx context.Context, primaryKeyValues []protor
 		return err
 	}
 
-	return writer.Write()
+	return writer.WriteUpdates()
 }
 
 func (p primaryKeyIndex) doDeleteWithWriteBatch(backend Backend, writer *batchIndexCommitmentWriter, primaryKeyBz []byte, message proto.Message) error {
@@ -194,22 +194,7 @@ func (p primaryKeyIndex) deleteByIterator(ctx context.Context, it Iterator) erro
 	defer writer.Close()
 
 	for it.Next() {
-		_, pk, err := it.Keys()
-		if err != nil {
-			return err
-		}
-
-		msg, err := it.GetMessage()
-		if err != nil {
-			return err
-		}
-
-		pkBz, err := p.EncodeKey(pk)
-		if err != nil {
-			return err
-		}
-
-		err = p.doDeleteWithWriteBatch(backend, writer, pkBz, msg)
+		err = p.deleteOneByIterator(backend, writer, it)
 		if err != nil {
 			return err
 		}
@@ -218,7 +203,31 @@ func (p primaryKeyIndex) deleteByIterator(ctx context.Context, it Iterator) erro
 	// close iterator
 	it.Close()
 	// then write batch
-	return writer.Write()
+	return writer.WriteUpdates()
+}
+
+func (p primaryKeyIndex) deleteOneByIterator(backend Backend, writer *batchIndexCommitmentWriter, it Iterator) error {
+	_, pk, err := it.Keys()
+	if err != nil {
+		return err
+	}
+
+	msg, err := it.GetMessage()
+	if err != nil {
+		return err
+	}
+
+	pkBz, err := p.EncodeKey(pk)
+	if err != nil {
+		return err
+	}
+
+	err = p.doDeleteWithWriteBatch(backend, writer, pkBz, msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 var _ UniqueIndex = &primaryKeyIndex{}

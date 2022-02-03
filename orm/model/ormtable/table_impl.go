@@ -150,7 +150,7 @@ func (t tableImpl) doSave(writer *batchIndexCommitmentWriter, message proto.Mess
 		}
 	}
 
-	return writer.Write()
+	return writer.WriteUpdates()
 }
 
 func (t tableImpl) Delete(context context.Context, message proto.Message) error {
