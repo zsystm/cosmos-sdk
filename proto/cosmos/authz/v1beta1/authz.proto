@@ -23,5 +23,5 @@ message GenericAuthorization {
 // the provide method with expiration time.
 message Grant {
   google.protobuf.Any       authorization = 1 [(cosmos_proto.accepts_interface) = "Authorization"];
-  google.protobuf.Timestamp expiration    = 2 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+  google.protobuf.Timestamp expiration    = 2 [(gogoproto.stdtime) = true];
 }
