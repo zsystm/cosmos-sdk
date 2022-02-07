@@ -32,7 +32,7 @@ func NewMsgGrant(granter sdk.AccAddress, grantee sdk.AccAddress, a Authorization
 	m := &MsgGrant{
 		Granter: granter.String(),
 		Grantee: grantee.String(),
-		Grant:   Grant{Expiration: expiration},
+		Grant:   Grant{Expiration: &expiration},
 	}
 	err := m.SetAuthorization(a)
 	if err != nil {

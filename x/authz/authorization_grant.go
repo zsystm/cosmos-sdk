@@ -12,7 +12,7 @@ import (
 // NewGrant returns new Grant
 func NewGrant(a Authorization, expiration time.Time) (Grant, error) {
 	g := Grant{
-		Expiration: expiration,
+		Expiration: &expiration,
 	}
 	msg, ok := a.(proto.Message)
 	if !ok {

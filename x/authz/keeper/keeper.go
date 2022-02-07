@@ -196,7 +196,7 @@ func (k Keeper) GetCleanAuthorization(ctx sdk.Context, grantee sdk.AccAddress, g
 		return nil, time.Time{}
 	}
 
-	return grant.GetAuthorization(), grant.Expiration
+	return grant.GetAuthorization(), *grant.Expiration
 }
 
 // IterateGrants iterates over all authorization grants
@@ -225,7 +225,7 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *authz.GenesisState {
 		entries = append(entries, authz.GrantAuthorization{
 			Granter:       granter.String(),
 			Grantee:       grantee.String(),
-			Expiration:    exp,
+			Expiration:    *exp,
 			Authorization: grant.Authorization,
 		})
 		return false

@@ -51,7 +51,7 @@ func (k Keeper) Grants(c context.Context, req *authz.QueryGrantsRequest) (*authz
 		return &authz.QueryGrantsResponse{
 			Grants: []*authz.Grant{{
 				Authorization: authorizationAny,
-				Expiration:    expiration,
+				Expiration:    &expiration,
 			}},
 		}, nil
 	}
