@@ -7,9 +7,18 @@ import (
 )
 
 type Service interface {
-	Emit(context.Context, proto.Message) error
-	EmitSilently(context.Context, proto.Message) error
-	EmitLegacy(ctx context.Context, eventType string, attrs ...LegacyEventAttribute) error
+}
+
+func Emit(context.Context, proto.Message) error {
+	return nil
+}
+
+func EmitSilently(context.Context, proto.Message) error {
+	return nil
+}
+
+func EmitLegacy(ctx context.Context, eventType string, attrs ...LegacyEventAttribute) error {
+	return nil
 }
 
 type LegacyEventAttribute struct {
