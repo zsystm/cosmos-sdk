@@ -3,6 +3,7 @@ package prefix
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/cosmos/cosmos-sdk/store/cachekv"
@@ -97,10 +98,12 @@ func (s Store) Iterator(start, end []byte) types.Iterator {
 	} else {
 		newend = cloneAppend(s.prefix, end)
 	}
+	fmt.Printf("prefix store Iterator newend=%T\n", s.parent)
 
 	iter := s.parent.Iterator(newstart, newend)
-
-	return newPrefixIterator(s.prefix, start, end, iter)
+	a := newPrefixIterator(s.prefix, start, end, iter)
+	fmt.Println("prefix store returning a=", a)
+	return a
 }
 
 // ReverseIterator implements KVStore

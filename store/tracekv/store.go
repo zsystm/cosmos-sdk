@@ -3,6 +3,7 @@ package tracekv
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/cosmos/cosmos-sdk/store/types"
@@ -93,6 +94,7 @@ func (tkv *Store) ReverseIterator(start, end []byte) types.Iterator {
 // iterator facilitates iteration over a KVStore. It delegates the necessary
 // calls to it's parent KVStore.
 func (tkv *Store) iterator(start, end []byte, ascending bool) types.Iterator {
+	fmt.Printf("trace store parent=%T\n", tkv.parent)
 	var parent types.Iterator
 
 	if ascending {
@@ -101,7 +103,9 @@ func (tkv *Store) iterator(start, end []byte, ascending bool) types.Iterator {
 		parent = tkv.parent.ReverseIterator(start, end)
 	}
 
-	return newTraceIterator(tkv.writer, parent, tkv.context)
+	a := newTraceIterator(tkv.writer, parent, tkv.context)
+	fmt.Println("trace store returning a=", a)
+	return a
 }
 
 type traceIterator struct {

@@ -1,6 +1,7 @@
 package listenkv
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/cosmos/cosmos-sdk/store/types"
@@ -66,6 +67,7 @@ func (s *Store) ReverseIterator(start, end []byte) types.Iterator {
 // iterator facilitates iteration over a KVStore. It delegates the necessary
 // calls to it's parent KVStore.
 func (s *Store) iterator(start, end []byte, ascending bool) types.Iterator {
+	fmt.Printf("listen store parent=%T\n", s)
 	var parent types.Iterator
 
 	if ascending {
@@ -74,7 +76,9 @@ func (s *Store) iterator(start, end []byte, ascending bool) types.Iterator {
 		parent = s.parent.ReverseIterator(start, end)
 	}
 
-	return newTraceIterator(parent, s.listeners)
+	a := newTraceIterator(parent, s.listeners)
+	fmt.Println("listen store returning a=", a)
+	return a
 }
 
 type listenIterator struct {

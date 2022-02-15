@@ -1,6 +1,7 @@
 package gaskv
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/cosmos/cosmos-sdk/store/types"
@@ -98,6 +99,7 @@ func (gs *Store) CacheWrapWithListeners(_ types.StoreKey, _ []types.WriteListene
 }
 
 func (gs *Store) iterator(start, end []byte, ascending bool) types.Iterator {
+	fmt.Printf("gas store Iterator newend=%T\n", gs.parent)
 	var parent types.Iterator
 	if ascending {
 		parent = gs.parent.Iterator(start, end)
@@ -107,6 +109,8 @@ func (gs *Store) iterator(start, end []byte, ascending bool) types.Iterator {
 
 	gi := newGasIterator(gs.gasMeter, gs.gasConfig, parent)
 	gi.(*gasIterator).consumeSeekGas()
+
+	fmt.Println("gas store return gi=", gi)
 
 	return gi
 }

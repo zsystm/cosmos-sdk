@@ -2,6 +2,7 @@ package cachekv
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sort"
 	"sync"
@@ -174,6 +175,7 @@ func (store *Store) ReverseIterator(start, end []byte) types.Iterator {
 }
 
 func (store *Store) iterator(start, end []byte, ascending bool) types.Iterator {
+	fmt.Printf("cachekv store Iterator newend=%T\n", store.parent)
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 
@@ -185,10 +187,15 @@ func (store *Store) iterator(start, end []byte, ascending bool) types.Iterator {
 		parent = store.parent.ReverseIterator(start, end)
 	}
 
+	fmt.Println("cachekv store calling store.dirtyItems()")
 	store.dirtyItems(start, end)
+	fmt.Println("cachekv store calling newMemIterator()")
 	cache = newMemIterator(start, end, store.sortedCache, store.deleted, ascending)
+	fmt.Println("cachekv store cache=something")
 
-	return newCacheMergeIterator(parent, cache, ascending)
+	a := newCacheMergeIterator(parent, cache, ascending)
+	fmt.Println("cachekv store returning a=", a)
+	return a
 }
 
 func findStartIndex(strL []string, startQ string) int {

@@ -2,6 +2,7 @@ package orm
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
@@ -89,7 +90,9 @@ func (i MultiKeyIndex) Get(store sdk.KVStore, searchKey interface{}) (Iterator, 
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("MultiKeyIndex get err=", err)
 	it := pStore.Iterator(PrefixRange(encodedKey))
+	fmt.Println("MultiKeyIndex it=", it)
 	return indexIterator{store: store, it: it, rowGetter: i.rowGetter, indexKey: i.indexKey}, nil
 }
 
@@ -287,5 +290,6 @@ func PrefixRange(prefix []byte) ([]byte, []byte) {
 	if l == 0 && end[0] == 0 {
 		end = nil
 	}
+	fmt.Println("PrefixRange returning prefix=", prefix, "end=", end)
 	return prefix, end
 }

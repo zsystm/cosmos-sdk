@@ -107,6 +107,7 @@ func NewKeeper(storeKey storetypes.StoreKey, cdc codec.Codec, router *authmiddle
 	}
 	k.groupMemberByGroupIndex, err = orm.NewIndex(groupMemberTable, GroupMemberByGroupIndexPrefix, func(val interface{}) ([]interface{}, error) {
 		group := val.(*group.GroupMember).GroupId
+		fmt.Println("CREAATING INDEX GroupId=", group)
 		return []interface{}{group}, nil
 	}, group.GroupMember{}.GroupId)
 	if err != nil {

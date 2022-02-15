@@ -138,7 +138,6 @@ func TallyVotesInvariantHelper(ctx sdk.Context, prevCtx sdk.Context, key storety
 }
 
 func GroupTotalWeightInvariantHelper(ctx sdk.Context, key storetypes.StoreKey, groupTable orm.AutoUInt64Table, groupMemberByGroupIndex orm.Index) (string, bool) {
-
 	var msg string
 	var broken bool
 
@@ -152,50 +151,63 @@ func GroupTotalWeightInvariantHelper(ctx sdk.Context, key storetypes.StoreKey, g
 	}
 	defer groupIt.Close()
 
+	i := 0
 	for {
 		membersWeight, err := groupmath.NewNonNegativeDecFromString("0")
 		if err != nil {
 			msg += fmt.Sprintf("error while parsing positive dec zero for group member\n%v\n", err)
 			return msg, broken
 		}
-		_, err = groupIt.LoadNext(&groupInfo)
+		iRowID, err := groupIt.LoadNext(&groupInfo)
+		fmt.Println("i=", i, "iRowID=", iRowID)
 		if errors.ErrORMIteratorDone.Is(err) {
 			break
 		}
+		fmt.Println("i=", i, "groupInfo=", groupInfo)
 		memIt, err := groupMemberByGroupIndex.Get(ctx.KVStore(key), groupInfo.GroupId)
+		fmt.Println("i=", i, "memIt=", memIt, "err=", err)
 		if err != nil {
 			msg += fmt.Sprintf("error while returning group member iterator for group with ID %d\n%v\n", groupInfo.GroupId, err)
 			return msg, broken
 		}
+		fmt.Println("i=", i, "memIt=", memIt)
 		defer memIt.Close()
 
+		j := 0
 		for {
-			_, err = memIt.LoadNext(&groupMember)
+			jRowID, err := memIt.LoadNext(&groupMember)
+			fmt.Println("i=", i, "j=", j, "jRowID=", jRowID)
 			if errors.ErrORMIteratorDone.Is(err) {
 				break
 			}
+			fmt.Println("i=", i, "j=", j, "groupMember=", groupMember)
 			curMemWeight, err := groupmath.NewNonNegativeDecFromString(groupMember.GetMember().GetWeight())
 			if err != nil {
 				msg += fmt.Sprintf("error while parsing non-nengative decimal for group member %s\n%v\n", groupMember.Member.Address, err)
 				return msg, broken
 			}
+			fmt.Println("i=", i, "j=", j, "curMemWeight=", curMemWeight)
 			membersWeight, err = groupmath.Add(membersWeight, curMemWeight)
 			if err != nil {
 				msg += fmt.Sprintf("decimal addition error while adding group member voting weight to total voting weight\n%v\n", err)
 				return msg, broken
 			}
+			fmt.Println("i=", i, "j=", j, "membersWeight=", membersWeight)
 		}
 		groupWeight, err := groupmath.NewNonNegativeDecFromString(groupInfo.GetTotalWeight())
 		if err != nil {
 			msg += fmt.Sprintf("error while parsing non-nengative decimal for group with ID %d\n%v\n", groupInfo.GroupId, err)
 			return msg, broken
 		}
+		fmt.Println("i=", i, "groupWeight=", groupWeight)
+		fmt.Println("i=", i, "membersWeight=", membersWeight)
 
 		if groupWeight.Cmp(membersWeight) != 0 {
 			broken = true
 			msg += fmt.Sprintf("group's TotalWeight must be equal to the sum of its members' weights\ngroup weight: %s\nSum of group members weights: %s\n", groupWeight.String(), membersWeight.String())
 			break
 		}
+		i++
 	}
 	return msg, broken
 }

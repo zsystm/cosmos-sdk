@@ -1,6 +1,7 @@
 package dbadapter
 
 import (
+	"fmt"
 	"io"
 
 	dbm "github.com/tendermint/tm-db"
@@ -53,10 +54,14 @@ func (dsa Store) Delete(key []byte) {
 
 // Iterator wraps the underlying DB's Iterator method panicing on error.
 func (dsa Store) Iterator(start, end []byte) types.Iterator {
+	fmt.Println("dbadapter store")
 	iter, err := dsa.DB.Iterator(start, end)
+
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println("dbadapter store returning iter=", iter, "err=", err)
 
 	return iter
 }
