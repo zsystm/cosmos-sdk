@@ -11,6 +11,8 @@ type Service interface {
 }
 
 type BlockInfo interface {
+	ChainID() string
 	Height() int64
 	Time() *timestamppb.Timestamp
+	Hash() []byte
 }
