@@ -321,9 +321,6 @@ message MsgVote {
   // option is the voter's choice on the proposal.
   VoteOption option = 3;
 
-  // metadata is any arbitrary metadata to attached to the vote.
-  bytes metadata = 4;
-
   // exec defines whether the proposal should be executed
   // immediately after voting or not.
   Exec exec = 5;

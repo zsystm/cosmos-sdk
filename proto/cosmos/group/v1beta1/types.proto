@@ -281,9 +281,6 @@ message Vote {
   // option is the voter's choice on the proposal.
   VoteOption option = 3;
 
-  // metadata is any arbitrary metadata to attached to the vote.
-  bytes metadata = 4;
-
   // submit_time is the timestamp when the vote was submitted.
   google.protobuf.Timestamp submit_time = 5 [(gogoproto.nullable) = false, (gogoproto.stdtime) = true];
 }
