@@ -73,6 +73,10 @@ func SignTxWithSignerAddress(txFactory tx.Factory, clientCtx client.Context, add
 	if txFactory.SignMode() == signing.SignMode_SIGN_MODE_UNSPECIFIED {
 		txFactory = txFactory.WithSignMode(signing.SignMode_SIGN_MODE_LEGACY_AMINO_JSON)
 	}
+	fmt.Println("================================")
+	fmt.Println(addr)
+	fmt.Println(txBuilder.GetTx().GetSigners())
+	fmt.Println("================================")
 
 	// check whether the address is a signer
 	if !isTxSigner(addr, txBuilder.GetTx().GetSigners()) {
@@ -80,11 +84,13 @@ func SignTxWithSignerAddress(txFactory tx.Factory, clientCtx client.Context, add
 	}
 
 	if !offline {
+		fmt.Println("[[[[[[[[[[[[[[[[[[[[[[[[")
 		txFactory, err = populateAccountFromState(txFactory, clientCtx, addr)
 		if err != nil {
 			return err
 		}
 	}
+	fmt.Println("hhhhhhhhh")
 
 	return tx.Sign(txFactory, name, txBuilder, overwrite)
 }
@@ -146,6 +152,7 @@ func populateAccountFromState(
 	txBldr tx.Factory, clientCtx client.Context, addr sdk.AccAddress,
 ) (tx.Factory, error) {
 
+	fmt.Println("wwwwwwwwwwwwwww")
 	num, seq, err := clientCtx.AccountRetriever.GetAccountNumberSequence(clientCtx, addr)
 	if err != nil {
 		return txBldr, err

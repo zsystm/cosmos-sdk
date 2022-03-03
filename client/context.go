@@ -2,6 +2,7 @@ package client
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 
@@ -49,9 +50,9 @@ type Context struct {
 	FeePayer          sdk.AccAddress
 	FeeGranter        sdk.AccAddress
 	Viper             *viper.Viper
-	
+
 	// IsAux is true when the signer is an auxiliary signer (e.g. the tipper).
-	IsAux             bool
+	IsAux bool
 
 	// TODO: Deprecated (remove).
 	LegacyAmino *codec.LegacyAmino
@@ -333,6 +334,9 @@ func GetFromFields(kr keyring.Keyring, from string, genOnly bool) (sdk.AccAddres
 	}
 
 	var k *keyring.Record
+	fmt.Println("777777777777777")
+	fmt.Println(from)
+	fmt.Println("7777777777777")
 	if addr, err := sdk.AccAddressFromBech32(from); err == nil {
 		k, err = kr.KeyByAddress(addr)
 		if err != nil {

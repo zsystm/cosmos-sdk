@@ -237,6 +237,7 @@ func Sign(txf Factory, name string, txBuilder client.TxBuilder, overwriteSig boo
 		signMode = txf.txConfig.SignModeHandler().DefaultMode()
 	}
 
+	fmt.Println("0000000000000000")
 	k, err := txf.keybase.Key(name)
 	if err != nil {
 		return err
