@@ -255,7 +255,9 @@ func makeSignCmd() func(cmd *cobra.Command, args []string) error {
 				fmt.Println("sssssssss")
 				fmt.Println(multisigAddr)
 				fmt.Println("ssss")
-				return fmt.Errorf("error getting account from keybase: %w", err)
+				if multisigAddr == nil {
+					return fmt.Errorf("error getting account from keybase: %w", err)
+				}
 			}
 			err = authclient.SignTxWithSignerAddress(
 				txF, clientCtx, multisigAddr, fromName, txBuilder, clientCtx.Offline, overwrite)
