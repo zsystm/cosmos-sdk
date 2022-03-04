@@ -250,13 +250,11 @@ func makeSignCmd() func(cmd *cobra.Command, args []string) error {
 			fmt.Println(multisigAddr, kname)
 			fmt.Println("0-0000000000")
 			if err != nil {
-				// fmt.Println("ssssssss")
-				multisigAddr, _ = sdk.AccAddressFromBech32(multisig)
-				fmt.Println("sssssssss")
-				fmt.Println(multisigAddr)
-				fmt.Println("ssss")
 				if multisigAddr == nil {
-					return fmt.Errorf("error getting account from keybase: %w", err)
+					multisigAddr, err = sdk.AccAddressFromBech32(multisig)
+					if multisigAddr == nil || err != nil {
+						return fmt.Errorf("error getting multisig address: %w", err)
+					}
 				}
 			}
 			err = authclient.SignTxWithSignerAddress(
