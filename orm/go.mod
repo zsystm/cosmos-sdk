@@ -3,6 +3,7 @@ module github.com/cosmos/cosmos-sdk/orm
 go 1.17
 
 require (
+	github.com/aaronc/gocuke v0.4.0
 	github.com/cosmos/cosmos-proto v1.0.0-alpha7
 	github.com/cosmos/cosmos-sdk/api v0.1.0-alpha5
 	github.com/cosmos/cosmos-sdk/errors v1.0.0-beta.3
@@ -19,12 +20,16 @@ require (
 require (
 	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
+	github.com/cockroachdb/apd/v3 v3.1.0 // indirect
 	github.com/cosmos/gorocksdb v1.2.0 // indirect
+	github.com/cucumber/gherkin-go/v19 v19.0.3 // indirect
+	github.com/cucumber/messages-go/v16 v16.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
 	github.com/dgraph-io/ristretto v0.0.3 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3 // indirect
