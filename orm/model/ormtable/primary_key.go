@@ -63,19 +63,19 @@ func (p primaryKeyIndex) has(backend ReadBackend, values []protoreflect.Value) (
 	return backend.CommitmentStoreReader().Has(keyBz)
 }
 
-func (p primaryKeyIndex) Get(ctx context.Context, message proto.Message, values ...interface{}) (found bool, err error) {
+func (p primaryKeyIndex) Get(ctx context.Context, message proto.Message, values ...interface{}) error {
 	backend, err := p.getBackend(ctx)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	return p.get(backend, message, encodeutil.ValuesOf(values...))
 }
 
-func (p primaryKeyIndex) get(backend ReadBackend, message proto.Message, values []protoreflect.Value) (found bool, err error) {
+func (p primaryKeyIndex) get(backend ReadBackend, message proto.Message, values []protoreflect.Value) error {
 	key, err := p.EncodeKey(values)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	return p.getByKeyBytes(backend, key, values, message)
@@ -132,13 +132,9 @@ func (p primaryKeyIndex) doDelete(ctx context.Context, primaryKeyValues []protor
 	}
 
 	msg := p.MessageType().New().Interface()
-	found, err := p.getByKeyBytes(backend, pk, primaryKeyValues, msg)
+	err = p.getByKeyBytes(backend, pk, primaryKeyValues, msg)
 	if err != nil {
 		return err
-	}
-
-	if !found {
-		return nil
 	}
 
 	err = p.doDeleteWithWriteBatch(ctx, backend, writer, pk, msg)
@@ -182,17 +178,17 @@ func (p primaryKeyIndex) doDeleteWithWriteBatch(ctx context.Context, backend Bac
 	return nil
 }
 
-func (p primaryKeyIndex) getByKeyBytes(store ReadBackend, key []byte, keyValues []protoreflect.Value, message proto.Message) (found bool, err error) {
+func (p primaryKeyIndex) getByKeyBytes(store ReadBackend, key []byte, keyValues []protoreflect.Value, message proto.Message) error {
 	bz, err := store.CommitmentStoreReader().Get(key)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if bz == nil {
-		return false, nil
+		return ormerrors.NotFound
 	}
 
-	return true, p.Unmarshal(keyValues, bz, message)
+	return p.Unmarshal(keyValues, bz, message)
 }
 
 func (p primaryKeyIndex) readValueFromIndexKey(_ ReadBackend, primaryKey []protoreflect.Value, value []byte, message proto.Message) error {

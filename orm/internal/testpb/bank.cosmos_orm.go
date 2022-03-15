@@ -101,12 +101,9 @@ func (this balanceTable) Has(ctx context.Context, address string, denom string) 
 
 func (this balanceTable) Get(ctx context.Context, address string, denom string) (*Balance, error) {
 	var balance Balance
-	found, err := this.table.PrimaryKey().Get(ctx, &balance, address, denom)
+	err := this.table.PrimaryKey().Get(ctx, &balance, address, denom)
 	if err != nil {
 		return nil, err
-	}
-	if !found {
-		return nil, ormerrors.NotFound
 	}
 	return &balance, nil
 }
@@ -215,12 +212,9 @@ func (this supplyTable) Has(ctx context.Context, denom string) (found bool, err 
 
 func (this supplyTable) Get(ctx context.Context, denom string) (*Supply, error) {
 	var supply Supply
-	found, err := this.table.PrimaryKey().Get(ctx, &supply, denom)
+	err := this.table.PrimaryKey().Get(ctx, &supply, denom)
 	if err != nil {
 		return nil, err
-	}
-	if !found {
-		return nil, ormerrors.NotFound
 	}
 	return &supply, nil
 }

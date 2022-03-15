@@ -3,6 +3,7 @@ package ormtable
 import (
 	"context"
 	"encoding/json"
+	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 	"io"
 
 	"google.golang.org/protobuf/proto"
@@ -13,6 +14,14 @@ import (
 // singleton implements a Table instance for singletons.
 type singleton struct {
 	*tableImpl
+}
+
+func (t singleton) Get(ctx context.Context, message proto.Message) error {
+	err := t.tableImpl.Get(ctx, message)
+	if ormerrors.IsNotFound(err) {
+		return nil
+	}
+	return err
 }
 
 func (t singleton) DefaultJSON() json.RawMessage {
@@ -65,8 +74,11 @@ func (t singleton) ImportJSON(ctx context.Context, reader io.Reader) error {
 
 func (t singleton) ExportJSON(ctx context.Context, writer io.Writer) error {
 	msg := t.MessageType().New().Interface()
-	found, err := t.Get(ctx, msg)
-	if err != nil {
+	err := t.Get(ctx, msg)
+	found := true
+	if ormerrors.IsNotFound(err) {
+
+	} else if err != nil {
 		return err
 	}
 

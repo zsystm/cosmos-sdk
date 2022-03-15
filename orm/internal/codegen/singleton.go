@@ -61,7 +61,7 @@ func (s singletonGen) genMethods() {
 	// Get
 	s.P(receiver, "Get(ctx ", contextPkg.Ident("Context"), ") (*", s.msg.GoIdent.GoName, ", error) {")
 	s.P(varName, " := &", s.msg.GoIdent.GoName, "{}")
-	s.P("_, err := x.table.Get(ctx, ", varName, ")")
+	s.P("err := x.table.Get(ctx, ", varName, ")")
 	s.P("return ", varName, ", err")
 	s.P("}")
 	s.P()

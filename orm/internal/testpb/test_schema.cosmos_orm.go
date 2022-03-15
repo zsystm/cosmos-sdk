@@ -151,12 +151,9 @@ func (this exampleTableTable) Has(ctx context.Context, u32 uint32, i64 int64, st
 
 func (this exampleTableTable) Get(ctx context.Context, u32 uint32, i64 int64, str string) (*ExampleTable, error) {
 	var exampleTable ExampleTable
-	found, err := this.table.PrimaryKey().Get(ctx, &exampleTable, u32, i64, str)
+	err := this.table.PrimaryKey().Get(ctx, &exampleTable, u32, i64, str)
 	if err != nil {
 		return nil, err
-	}
-	if !found {
-		return nil, ormerrors.NotFound
 	}
 	return &exampleTable, nil
 }
@@ -170,15 +167,12 @@ func (this exampleTableTable) HasByU64Str(ctx context.Context, u64 uint64, str s
 
 func (this exampleTableTable) GetByU64Str(ctx context.Context, u64 uint64, str string) (*ExampleTable, error) {
 	var exampleTable ExampleTable
-	found, err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &exampleTable,
+	err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &exampleTable,
 		u64,
 		str,
 	)
 	if err != nil {
 		return nil, err
-	}
-	if !found {
-		return nil, ormerrors.NotFound
 	}
 	return &exampleTable, nil
 }
@@ -308,12 +302,9 @@ func (this exampleAutoIncrementTableTable) Has(ctx context.Context, id uint64) (
 
 func (this exampleAutoIncrementTableTable) Get(ctx context.Context, id uint64) (*ExampleAutoIncrementTable, error) {
 	var exampleAutoIncrementTable ExampleAutoIncrementTable
-	found, err := this.table.PrimaryKey().Get(ctx, &exampleAutoIncrementTable, id)
+	err := this.table.PrimaryKey().Get(ctx, &exampleAutoIncrementTable, id)
 	if err != nil {
 		return nil, err
-	}
-	if !found {
-		return nil, ormerrors.NotFound
 	}
 	return &exampleAutoIncrementTable, nil
 }
@@ -326,14 +317,11 @@ func (this exampleAutoIncrementTableTable) HasByX(ctx context.Context, x string)
 
 func (this exampleAutoIncrementTableTable) GetByX(ctx context.Context, x string) (*ExampleAutoIncrementTable, error) {
 	var exampleAutoIncrementTable ExampleAutoIncrementTable
-	found, err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &exampleAutoIncrementTable,
+	err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &exampleAutoIncrementTable,
 		x,
 	)
 	if err != nil {
 		return nil, err
-	}
-	if !found {
-		return nil, ormerrors.NotFound
 	}
 	return &exampleAutoIncrementTable, nil
 }
@@ -382,7 +370,7 @@ var _ ExampleSingletonTable = exampleSingletonTable{}
 
 func (x exampleSingletonTable) Get(ctx context.Context) (*ExampleSingleton, error) {
 	exampleSingleton := &ExampleSingleton{}
-	_, err := x.table.Get(ctx, exampleSingleton)
+	err := x.table.Get(ctx, exampleSingleton)
 	return exampleSingleton, err
 }
 
@@ -490,12 +478,9 @@ func (this exampleTimestampTable) Has(ctx context.Context, id uint64) (found boo
 
 func (this exampleTimestampTable) Get(ctx context.Context, id uint64) (*ExampleTimestamp, error) {
 	var exampleTimestamp ExampleTimestamp
-	found, err := this.table.PrimaryKey().Get(ctx, &exampleTimestamp, id)
+	err := this.table.PrimaryKey().Get(ctx, &exampleTimestamp, id)
 	if err != nil {
 		return nil, err
-	}
-	if !found {
-		return nil, ormerrors.NotFound
 	}
 	return &exampleTimestamp, nil
 }
@@ -620,12 +605,9 @@ func (this simpleExampleTable) Has(ctx context.Context, name string) (found bool
 
 func (this simpleExampleTable) Get(ctx context.Context, name string) (*SimpleExample, error) {
 	var simpleExample SimpleExample
-	found, err := this.table.PrimaryKey().Get(ctx, &simpleExample, name)
+	err := this.table.PrimaryKey().Get(ctx, &simpleExample, name)
 	if err != nil {
 		return nil, err
-	}
-	if !found {
-		return nil, ormerrors.NotFound
 	}
 	return &simpleExample, nil
 }
@@ -638,14 +620,11 @@ func (this simpleExampleTable) HasByUnique(ctx context.Context, unique string) (
 
 func (this simpleExampleTable) GetByUnique(ctx context.Context, unique string) (*SimpleExample, error) {
 	var simpleExample SimpleExample
-	found, err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &simpleExample,
+	err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &simpleExample,
 		unique,
 	)
 	if err != nil {
 		return nil, err
-	}
-	if !found {
-		return nil, ormerrors.NotFound
 	}
 	return &simpleExample, nil
 }

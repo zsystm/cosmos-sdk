@@ -59,30 +59,25 @@ func (u uniqueKeyIndex) Has(ctx context.Context, values ...interface{}) (found b
 	return backend.IndexStoreReader().Has(key)
 }
 
-func (u uniqueKeyIndex) Get(ctx context.Context, message proto.Message, keyValues ...interface{}) (found bool, err error) {
+func (u uniqueKeyIndex) Get(ctx context.Context, message proto.Message, keyValues ...interface{}) error {
 	backend, err := u.getReadBackend(ctx)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	key, err := u.GetKeyCodec().EncodeKey(encodeutil.ValuesOf(keyValues...))
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	value, err := backend.IndexStoreReader().Get(key)
 	if err != nil {
-		return false, err
-	}
-
-	// for unique keys, value can be empty and the entry still exists
-	if value == nil {
-		return false, nil
+		return err
 	}
 
 	_, pk, err := u.DecodeIndexKey(key, value)
 	if err != nil {
-		return true, err
+		return err
 	}
 
 	return u.primaryKey.get(backend, message, pk)
@@ -174,16 +169,7 @@ func (u uniqueKeyIndex) onDelete(store kv.Store, message protoreflect.Message) e
 }
 
 func (u uniqueKeyIndex) readValueFromIndexKey(store ReadBackend, primaryKey []protoreflect.Value, _ []byte, message proto.Message) error {
-	found, err := u.primaryKey.get(store, message, primaryKey)
-	if err != nil {
-		return err
-	}
-
-	if !found {
-		return ormerrors.UnexpectedError.Wrapf("can't find primary key")
-	}
-
-	return nil
+	return u.primaryKey.get(store, message, primaryKey)
 }
 
 func (u uniqueKeyIndex) Fields() string {

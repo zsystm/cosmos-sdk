@@ -70,7 +70,7 @@ type UniqueIndex interface {
 	Has(context context.Context, keyValues ...interface{}) (found bool, err error)
 
 	// Get retrieves the message if one exists for the provided key values.
-	Get(context context.Context, message proto.Message, keyValues ...interface{}) (found bool, err error)
+	Get(context context.Context, message proto.Message, keyValues ...interface{}) error
 }
 
 type indexer interface {

@@ -9,8 +9,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/orm/model/ormlist"
 
-	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
-
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -106,16 +104,7 @@ func (i indexKeyIndex) onDelete(store kv.Store, message protoreflect.Message) er
 }
 
 func (i indexKeyIndex) readValueFromIndexKey(backend ReadBackend, primaryKey []protoreflect.Value, _ []byte, message proto.Message) error {
-	found, err := i.primaryKey.get(backend, message, primaryKey)
-	if err != nil {
-		return err
-	}
-
-	if !found {
-		return ormerrors.UnexpectedError.Wrapf("can't find primary key")
-	}
-
-	return nil
+	return i.primaryKey.get(backend, message, primaryKey)
 }
 
 func (p indexKeyIndex) Fields() string {

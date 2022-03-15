@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormtable"
-	"github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -26,6 +25,7 @@ type suite struct {
 	table ormtable.Table
 	ctx   context.Context
 	err   error
+	key   string
 }
 
 func (s *suite) Before() {
@@ -59,27 +59,20 @@ func (s *suite) IUpdate(a gocuke.DocString) {
 }
 
 func (s *suite) ExpectAError(a string) {
-	assert.ErrorIs(s, s.err, s.toError(a), s.err.Error())
-}
-
-func (s *suite) toError(str string) error {
-	switch str {
-	case "already exists":
-		return ormerrors.AlreadyExists
-	case "not found":
-		return ormerrors.NotFound
-	case "constraint violation":
-		return ormerrors.ConstraintViolation
-	case "unique key violation":
-		return ormerrors.UniqueKeyViolation
-	default:
-		s.Fatalf("missing case for error %s", str)
-		return nil
-	}
+	assert.ErrorContains(s, s.err, a)
 }
 
 func (s *suite) ExpectGrpcErrorCode(a string) {
 	var code codes.Code
 	assert.NilError(s, code.UnmarshalJSON([]byte(fmt.Sprintf("%q", a))))
 	assert.Equal(s, code, status.Code(s.err))
+}
+
+func (s *suite) AKey(a string) {
+	s.key = a
+}
+
+func (s *suite) IGetAnEntityByTheKey(a string) {
+	var ex testpb.SimpleExample
+	s.err = s.table.GetUniqueIndex(a).Get(s.ctx, &ex, s.key)
 }

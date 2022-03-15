@@ -25,9 +25,10 @@ type View interface {
 	Has(ctx context.Context, message proto.Message) (found bool, err error)
 
 	// Get retrieves the message if one exists for the primary key fields
-	// set on the message. Other fields besides the primary key fields will not
-	// be used for retrieval.
-	Get(ctx context.Context, message proto.Message) (found bool, err error)
+	// set on the message. Other fields besides
+	// the primary key fields will not be used for retrieval.
+	// ormerrors.IsNotFound can be used to test if the message was found.
+	Get(ctx context.Context, message proto.Message) error
 
 	// GetIndex returns the index referenced by the provided fields if
 	// one exists or nil. Note that some concrete indexes can be retrieved by

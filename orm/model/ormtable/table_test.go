@@ -500,9 +500,8 @@ func testUniqueIndex(t *testing.T, model *IndexModel) {
 		assert.Assert(t, found)
 
 		msg := model.table.MessageType().New().Interface()
-		found, err = index.Get(model.context, msg, values...)
+		err = index.Get(model.context, msg, values...)
 		assert.NilError(t, err)
-		assert.Assert(t, found)
 		assert.DeepEqual(t, x, msg, protocmp.Transform())
 	}
 }

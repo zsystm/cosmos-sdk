@@ -194,12 +194,9 @@ func (t tableGen) genTableImpl() {
 	// Get
 	t.P(receiver, "Get(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (*", varTypeName, ", error) {")
 	t.P("var ", varName, " ", varTypeName)
-	t.P("found, err := ", receiverVar, ".table.PrimaryKey().Get(ctx, &", varName, ", ", t.primaryKeyFields.String(), ")")
+	t.P("err := ", receiverVar, ".table.PrimaryKey().Get(ctx, &", varName, ", ", t.primaryKeyFields.String(), ")")
 	t.P("if err != nil {")
 	t.P("return nil, err")
-	t.P("}")
-	t.P("if !found {")
-	t.P("return nil, ", ormErrPkg.Ident("NotFound"))
 	t.P("}")
 	t.P("return &", varName, ", nil")
 	t.P("}")
@@ -225,7 +222,7 @@ func (t tableGen) genTableImpl() {
 		varTypeName := t.msg.GoIdent.GoName
 		t.P("func (", receiverVar, " ", t.messageTableReceiverName(t.msg), ") ", getName, "{")
 		t.P("var ", varName, " ", varTypeName)
-		t.P("found, err := ", receiverVar, ".table.GetIndexByID(", idx.Id, ").(",
+		t.P("err := ", receiverVar, ".table.GetIndexByID(", idx.Id, ").(",
 			ormTablePkg.Ident("UniqueIndex"), ").Get(ctx, &", varName, ",")
 		for _, field := range fields {
 			t.P(field, ",")
@@ -233,9 +230,6 @@ func (t tableGen) genTableImpl() {
 		t.P(")")
 		t.P("if err != nil {")
 		t.P("return nil, err")
-		t.P("}")
-		t.P("if !found {")
-		t.P("return nil, ", ormErrPkg.Ident("NotFound"))
 		t.P("}")
 		t.P("return &", varName, ", nil")
 		t.P("}")

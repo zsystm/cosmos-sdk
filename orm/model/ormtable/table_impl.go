@@ -88,8 +88,11 @@ func (t tableImpl) doSave(ctx context.Context, writer *batchIndexCommitmentWrite
 	}
 
 	existing := mref.New().Interface()
-	haveExisting, err := t.getByKeyBytes(writer, pk, pkValues, existing)
-	if err != nil {
+	haveExisting := true
+	err = t.getByKeyBytes(writer, pk, pkValues, existing)
+	if ormerrors.IsNotFound(err) {
+		haveExisting = false
+	} else if err != nil {
 		return err
 	}
 
@@ -404,10 +407,10 @@ func (t tableImpl) Has(ctx context.Context, message proto.Message) (found bool, 
 // Get retrieves the message if one exists for the primary key fields
 // set on the message. Other fields besides the primary key fields will not
 // be used for retrieval.
-func (t tableImpl) Get(ctx context.Context, message proto.Message) (found bool, err error) {
+func (t tableImpl) Get(ctx context.Context, message proto.Message) error {
 	backend, err := t.getBackend(ctx)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	keyValues := t.primaryKeyIndex.PrimaryKeyCodec.GetKeyValues(message.ProtoReflect())
