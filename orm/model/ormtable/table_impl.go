@@ -106,7 +106,7 @@ func (t tableImpl) doSave(ctx context.Context, writer *batchIndexCommitmentWrite
 		}
 	} else {
 		if mode == saveModeUpdate {
-			return ormerrors.NotFoundOnUpdate.Wrapf("%q", mref.Descriptor().FullName())
+			return ormerrors.NotFound.Wrapf("%q", mref.Descriptor().FullName())
 		}
 
 		if validateHooks := writer.ValidateHooks(); validateHooks != nil {
