@@ -1,6 +1,9 @@
 package ormerrors
 
-import "github.com/cosmos/cosmos-sdk/errors"
+import (
+	"github.com/cosmos/cosmos-sdk/errors"
+	"google.golang.org/grpc/codes"
+)
 
 var codespace = "orm"
 
@@ -38,6 +41,8 @@ var (
 	InvalidFileDescriptorID       = errors.New(codespace, 26, "invalid file descriptor ID")
 	TableNotFound                 = errors.New(codespace, 27, "table not found")
 	JSONValidationError           = errors.New(codespace, 28, "invalid JSON")
-	NotFound                      = errors.New(codespace, 29, "not found")
+	NotFound                      = errors.RegisterWithGRPCCode(codespace, 29, codes.NotFound, "not found")
 	ReadOnly                      = errors.New(codespace, 30, "database is read-only")
+	AlreadyExists                 = errors.RegisterWithGRPCCode(codespace, 31, codes.AlreadyExists, "already exists")
+	ConstraintViolation           = errors.RegisterWithGRPCCode(codespace, 32, codes.FailedPrecondition, "failed precondition")
 )

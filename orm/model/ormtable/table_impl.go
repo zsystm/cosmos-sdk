@@ -95,7 +95,7 @@ func (t tableImpl) doSave(ctx context.Context, writer *batchIndexCommitmentWrite
 
 	if haveExisting {
 		if mode == saveModeInsert {
-			return ormerrors.PrimaryKeyConstraintViolation.Wrapf("%q:%+v", mref.Descriptor().FullName(), pkValues)
+			return ormerrors.AlreadyExists.Wrapf("%q:%+v", mref.Descriptor().FullName(), pkValues)
 		}
 
 		if validateHooks := writer.ValidateHooks(); validateHooks != nil {
