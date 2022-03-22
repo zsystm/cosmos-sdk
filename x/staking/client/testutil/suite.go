@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/suite"
@@ -21,6 +22,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	banktestutil "github.com/cosmos/cosmos-sdk/x/bank/client/testutil"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
@@ -32,8 +34,195 @@ type IntegrationTestSuite struct {
 	network *network.Network
 }
 
+type UnbondTestSuite struct {
+	suite.Suite
+
+	cfg     network.Config
+	network *network.Network
+}
+
 func NewIntegrationTestSuite(cfg network.Config) *IntegrationTestSuite {
 	return &IntegrationTestSuite{cfg: cfg}
+}
+
+func NewTestSuiteUnbond(cfg network.Config) *UnbondTestSuite {
+	return &UnbondTestSuite{cfg: cfg}
+}
+
+func (s *UnbondTestSuite) SetupSuite() {
+	network, err := network.New(s.T(), s.T().TempDir(), s.cfg)
+	s.Require().Nil(err)
+
+	s.network = network
+
+	_, err = s.network.WaitForHeight(1)
+	s.Require().NoError(err)
+}
+
+func (s *UnbondTestSuite) TearDownSuite() {
+	s.T().Log("tearing down integration test suite")
+	s.network.Cleanup()
+}
+
+func (s *UnbondTestSuite) TestUnbond() {
+	val := s.network.Validators[0]
+	clientCtx := val.ClientCtx
+
+	// read the bonded tokens from default testnet
+	s.Require().NotNil(s.network)
+	s.Require().NotNil(s.network.Config)
+	s.Require().NotNil(s.network.Config.BondedTokens)
+	bonded := s.network.Config.BondedTokens
+	staked := sdk.NewCoin(s.cfg.BondDenom, bonded)
+
+	// creat a new account.
+	k, _, err := val.ClientCtx.Keyring.NewMnemonic("newAddr1", keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
+	s.Require().NoError(err)
+
+	pub, err := k.GetPubKey()
+	s.Require().NoError(err)
+
+	// send some tokens to the new account ex: 300
+	newAddr := sdk.AccAddress(pub.Address())
+	_, err = banktestutil.MsgSendExec(
+		val.ClientCtx,
+		val.Address,
+		newAddr,
+		sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(300))), fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	)
+	s.Require().NoError(err)
+
+	// stake some tokens to a validator ex: 200
+	stake200 := sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(200))
+	out, err := clitestutil.ExecTestCLICmd(
+		val.ClientCtx,
+		cli.NewDelegateCmd(),
+		[]string{
+			val.ValAddress.String(),
+			stake200.String(),
+			fmt.Sprintf("--%s=%s", flags.FlagFrom, newAddr),
+			fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+			fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+			fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+		},
+	)
+	s.Require().NoError(err)
+
+	var txRes sdk.TxResponse
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txRes))
+	s.Require().Equal(uint32(0), txRes.Code)
+	_, err = s.network.WaitForHeight(1)
+	s.Require().NoError(err)
+
+	// check the available balance of the `newAddr`, unbonded tokens shouldn't be added immediately.
+	out, err = banktestutil.QueryBalancesExec(val.ClientCtx, newAddr)
+	s.Require().NoError(err)
+
+	var balRes banktypes.QueryAllBalancesResponse
+	err = val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &balRes)
+	s.Require().NoError(err)
+	availableAfterStake := balRes.Balances.AmountOf(s.cfg.BondDenom)
+
+	// unbond the validator
+	_, err = MsgUnbondExec(val.ClientCtx, val.Address, val.ValAddress, staked)
+	s.Require().NoError(err)
+
+	out, err = clitestutil.ExecTestCLICmd(clientCtx, cli.GetCmdQueryValidator(), []string{val.ValAddress.String(), fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	s.Require().NoError(err)
+	var result types.Validator
+	s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &result))
+
+	// check the status of validator after unbond, should be in unbonding stage
+	s.Require().True(result.IsUnbonding())
+
+	// wait for the unbonding period (in this case started testnet with 5s unbonding period)
+	time.Sleep(time.Second * 20)
+
+	// get the validator info after unbonding period.
+	out, err = clitestutil.ExecTestCLICmd(clientCtx, cli.GetCmdQueryValidator(), []string{val.ValAddress.String(), fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	var result1 types.Validator
+	s.Require().NoError(err)
+	s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &result1))
+
+	// check the status of the validator after unbonding period, should be in unbonded status.
+	s.Require().True(result1.IsUnbonded())
+
+	// now try to unbond some of the tokens delegated from the `newAddr` (90stake)
+	unbond90 := sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(90))
+	_, err = MsgUnbondExec(val.ClientCtx, newAddr, val.ValAddress, unbond90)
+	s.Require().NoError(err)
+
+	// check the available balance of the `newAddr`, unbonded tokens shouldn't be added immediately.
+	out, err = banktestutil.QueryBalancesExec(val.ClientCtx, newAddr)
+	s.Require().NoError(err)
+
+	err = val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &balRes)
+	s.Require().NoError(err)
+	availableAfterUnbond1 := balRes.Balances.AmountOf(s.cfg.BondDenom)
+	rewards := availableAfterUnbond1.Sub(availableAfterStake)
+
+	// if the unbonded tokens added directly to the available balances this check should fail.
+	s.Require().True(rewards.LT(unbond90.Amount))
+
+	out, err = clitestutil.ExecTestCLICmd(val.ClientCtx, cli.GetCmdQueryUnbondingDelegations(), []string{
+		newAddr.String(),
+		fmt.Sprintf("--%s=json", tmcli.OutputFlag),
+	})
+
+	s.Require().NoError(err)
+	var ubds types.QueryDelegatorUnbondingDelegationsResponse
+	err = val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &ubds)
+	s.Require().NoError(err)
+	s.Require().Len(ubds.UnbondingResponses, 1)
+	s.Require().Equal(ubds.UnbondingResponses[0].DelegatorAddress, newAddr.String())
+
+	// now unbond remaining tokens (110stake)
+	unbond110 := sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(110))
+	_, err = MsgUnbondExec(val.ClientCtx, newAddr, val.ValAddress, unbond110)
+	s.Require().NoError(err)
+
+	// check the available balance of the `newAddr`, unbonded tokens shouldn't be added immediately.
+	// any unbondings before of this unbonding shouldn't be added within the unbonding period.
+	out, err = banktestutil.QueryBalancesExec(val.ClientCtx, newAddr)
+	s.Require().NoError(err)
+
+	err = val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &balRes)
+	s.Require().NoError(err)
+	availableAfterUnbond2 := balRes.Balances.AmountOf(s.cfg.BondDenom)
+	rewards = availableAfterUnbond2.Sub(availableAfterStake)
+
+	// if the unbonded tokens added directly to the available balances this check should fail.
+	s.Require().True(rewards.LT(unbond90.Amount))
+
+	out, err = clitestutil.ExecTestCLICmd(val.ClientCtx, cli.GetCmdQueryUnbondingDelegations(), []string{
+		newAddr.String(),
+		fmt.Sprintf("--%s=json", tmcli.OutputFlag),
+	})
+	s.Require().NoError(err)
+
+	err = val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &ubds)
+	s.Require().NoError(err)
+	s.Require().Len(ubds.UnbondingResponses, 1)
+	s.Require().Equal(ubds.UnbondingResponses[0].DelegatorAddress, newAddr.String())
+	s.Require().Len(ubds.UnbondingResponses[0].Entries, 2)
+	s.Require().Equal(ubds.UnbondingResponses[0].Entries[0].Balance, unbond90.Amount)  // check the 1st undelegation (90stake)
+	s.Require().Equal(ubds.UnbondingResponses[0].Entries[1].Balance, unbond110.Amount) // check the second undelegation (110stake)
+
+	// wait for the unbonding period (in this case started testnet with 5s unbonding period)
+	time.Sleep(time.Second * 20)
+
+	// check for the unbondings after unbonding period, should be empty.
+	out, err = clitestutil.ExecTestCLICmd(val.ClientCtx, cli.GetCmdQueryUnbondingDelegations(), []string{
+		newAddr.String(),
+		fmt.Sprintf("--%s=json", tmcli.OutputFlag),
+	})
+	s.Require().NoError(err)
+
+	err = val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &ubds)
+	s.Require().NoError(err)
+	s.Require().Len(ubds.UnbondingResponses, 0)
 }
 
 func (s *IntegrationTestSuite) SetupSuite() {
