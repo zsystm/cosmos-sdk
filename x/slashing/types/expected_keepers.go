@@ -53,6 +53,9 @@ type StakingKeeper interface {
 
 	// MaxValidators returns the maximum amount of bonded validators
 	MaxValidators(sdk.Context) uint32
+
+	// return if the validator is jailed
+	IsValidatorJailed(ctx sdk.Context, addr sdk.ConsAddress) bool
 }
 
 // StakingHooks event hooks for staking validator object (noalias)
@@ -61,10 +64,4 @@ type StakingHooks interface {
 	AfterValidatorRemoved(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress) error // Must be called when a validator is deleted
 
 	AfterValidatorBonded(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress) error // Must be called when a validator is bonded
-}
-
-// SlashingHooks event hooks for jailing and slashing validator
-type SlashingHooks interface {
-	// Is triggered when the validator missed too many blocks
-	AfterValidatorDowntime(ctx sdk.Context, consAddr sdk.ConsAddress, power int64)
 }
