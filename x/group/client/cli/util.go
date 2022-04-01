@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -49,15 +50,21 @@ type CLIProposal struct {
 	Proposers []string
 }
 
-func parseCLIProposal(path string) (CLIProposal, error) {
+func parseCLIProposal(clientCtx client.Context, path string) (CLIProposal, error) {
 	var p CLIProposal
 
 	contents, err := os.ReadFile(path)
 	if err != nil {
 		return CLIProposal{}, err
 	}
+	fmt.Println("==========")
+	fmt.Println(string(contents))
 
-	err = json.Unmarshal(contents, &p)
+	// err = json.Unmarshal(contents, &p)
+	err = clientCtx.Codec.UnmarshalJSON(contents, &p)
+	fmt.Println("[[[[[[[[[")
+	fmt.Print(p.GroupPolicyAddress)
+	fmt.Println(".............")
 	if err != nil {
 		return CLIProposal{}, err
 	}
