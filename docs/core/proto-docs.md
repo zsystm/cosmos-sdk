@@ -6375,8 +6375,11 @@ recent HistoricalInfo
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `header` | [tendermint.types.Header](#tendermint.types.Header) |  |  |
 | `valset` | [Validator](#cosmos.staking.v1beta1.Validator) | repeated |  |
+| `height` | [int64](#int64) |  |  |
+| `time` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
+| `app_hash` | [bytes](#bytes) |  |  |
+| `next_validators_hash` | [bytes](#bytes) |  |  |
 
 
 

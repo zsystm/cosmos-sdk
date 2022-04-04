@@ -8,7 +8,6 @@ import "google/protobuf/timestamp.proto";
 
 import "cosmos_proto/cosmos.proto";
 import "cosmos/base/v1beta1/coin.proto";
-import "tendermint/types/types.proto";
 
 option go_package = "github.com/cosmos/cosmos-sdk/x/staking/types";
 
@@ -17,8 +16,11 @@ option go_package = "github.com/cosmos/cosmos-sdk/x/staking/types";
 // recent HistoricalInfo
 // (`n` is set by the staking module's `historical_entries` parameter).
 message HistoricalInfo {
-  tendermint.types.Header header = 1 [(gogoproto.nullable) = false];
-  repeated Validator      valset = 2 [(gogoproto.nullable) = false];
+  repeated Validator        valset               = 2 [(gogoproto.nullable) = false];
+  int64                     height               = 3;
+  google.protobuf.Timestamp time                 = 4 [(gogoproto.nullable) = false, (gogoproto.stdtime) = true];
+  bytes                     app_hash             = 5;
+  bytes                     next_validators_hash = 6;
 }
 
 // CommissionRates defines the initial commission rates to be used for creating
