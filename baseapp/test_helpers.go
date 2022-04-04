@@ -1,7 +1,7 @@
 package baseapp
 
 import (
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -32,15 +32,15 @@ func (app *BaseApp) Deliver(txEncoder sdk.TxEncoder, tx sdk.Tx) (sdk.GasInfo, *s
 }
 
 // Context with current {check, deliver}State of the app used by tests.
-func (app *BaseApp) NewContext(isCheckTx bool, header tmproto.Header) sdk.Context {
+func (app *BaseApp) NewContext(isCheckTx bool, chainId string, height int64, time time.Time, appHash, nextValidatorsHash []byte) sdk.Context {
 	if isCheckTx {
-		return sdk.NewContext(app.checkState.ms, header, true, app.logger).
+		return sdk.NewContext(app.checkState.ms, chainId, height, time, appHash, nextValidatorsHash, true, app.logger).
 			WithMinGasPrices(app.minGasPrices)
 	}
 
-	return sdk.NewContext(app.deliverState.ms, header, false, app.logger)
+	return sdk.NewContext(app.deliverState.ms, chainId, height, time, appHash, nextValidatorsHash, false, app.logger)
 }
 
-func (app *BaseApp) NewUncachedContext(isCheckTx bool, header tmproto.Header) sdk.Context {
-	return sdk.NewContext(app.cms, header, isCheckTx, app.logger)
+func (app *BaseApp) NewUncachedContext(isCheckTx bool, chainId string, height int64, time time.Time, appHash, nextValidatorsHash []byte) sdk.Context {
+	return sdk.NewContext(app.cms, chainId, height, time, appHash, nextValidatorsHash, isCheckTx, app.logger)
 }

@@ -12,7 +12,6 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 
@@ -28,13 +27,14 @@ import (
 func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
 	// On a new chain, we consider the init chain block height as 0, even though
 	// req.InitialHeight is 1 by default.
-	initHeader := tmproto.Header{ChainID: req.ChainId, Time: req.Time}
+	app.chainId = req.ChainId
+	var height int64
 
 	// If req.InitialHeight is > 1, then we set the initial version in the
 	// stores.
 	if req.InitialHeight > 1 {
 		app.initialHeight = req.InitialHeight
-		initHeader = tmproto.Header{ChainID: req.ChainId, Height: req.InitialHeight, Time: req.Time}
+		height = req.InitialHeight
 		err := app.cms.SetInitialVersion(req.InitialHeight)
 		if err != nil {
 			panic(err)
@@ -42,8 +42,8 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	}
 
 	// initialize the deliver state and check state with a correct header
-	app.setDeliverState(initHeader)
-	app.setCheckState(initHeader)
+	app.setDeliverState(app.chainId, height, req.Time, []byte{}, []byte{})
+	app.setCheckState(app.chainId, height, req.Time, []byte{}, []byte{})
 
 	// Store the consensus params in the BaseApp's paramstore. Note, this must be
 	// done after the deliver state and context have been set as it's persisted
@@ -94,6 +94,7 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 		appHash = emptyHash[:]
 	}
 
+	app.deliverState.ctx = app.deliverState.ctx.WithAppHash(appHash)
 	// NOTE: We don't commit, but BeginBlock for block `initial_height` starts from this
 	// deliverState.
 	return abci.ResponseInitChain{
@@ -146,7 +147,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
-			map[string]interface{}{"blockHeight": req.Header.Height},
+			map[string]interface{}{"blockHeight": req.Height},
 		))
 	}
 
@@ -158,13 +159,14 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	// already be initialized in InitChain. Otherwise app.deliverState will be
 	// nil, since it is reset on Commit.
 	if app.deliverState == nil {
-		app.setDeliverState(req.Header)
+		app.setDeliverState(app.chainId, req.Height, req.Time, app.LastCommitID().Hash, req.NextValidatorsHash)
 	} else {
 		// In the first block, app.deliverState.ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
 		app.deliverState.ctx = app.deliverState.ctx.
-			WithBlockHeader(req.Header).
-			WithBlockHeight(req.Header.Height)
+			WithBlockHeight(req.Height).
+			WithBlockTime(req.Time).
+			WithNextValidatorsHash(req.NextValidatorsHash)
 	}
 
 	// add block gas meter
@@ -297,8 +299,13 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	defer telemetry.MeasureSince(time.Now(), "abci", "commit")
 
-	header := app.deliverState.ctx.BlockHeader()
-	retainHeight := app.GetBlockRetentionHeight(header.Height)
+	chainId := app.deliverState.ctx.ChainID()
+	height := app.deliverState.ctx.BlockHeight()
+	time := app.deliverState.ctx.BlockTime()
+	appHash := app.deliverState.ctx.AppHash()
+	nextValidatorsHash := app.deliverState.ctx.NextValidatorsHash()
+
+	retainHeight := app.GetBlockRetentionHeight(height)
 
 	// Write the DeliverTx state into branched storage and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
@@ -311,7 +318,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	//
 	// NOTE: This is safe because Tendermint holds a lock on the mempool for
 	// Commit. Use the header from this latest block.
-	app.setCheckState(header)
+	app.setCheckState(chainId, height, time, appHash, nextValidatorsHash)
 
 	// empty/reset the deliver state
 	app.deliverState = nil
@@ -319,10 +326,10 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	var halt bool
 
 	switch {
-	case app.haltHeight > 0 && uint64(header.Height) >= app.haltHeight:
+	case app.haltHeight > 0 && uint64(height) >= app.haltHeight:
 		halt = true
 
-	case app.haltTime > 0 && header.Time.Unix() >= int64(app.haltTime):
+	case app.haltTime > 0 && time.Unix() >= int64(app.haltTime):
 		halt = true
 	}
 
@@ -334,8 +341,8 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 		app.halt()
 	}
 
-	if app.snapshotInterval > 0 && uint64(header.Height)%app.snapshotInterval == 0 {
-		go app.snapshot(header.Height)
+	if app.snapshotInterval > 0 && uint64(height)%app.snapshotInterval == 0 {
+		go app.snapshot(height)
 	}
 
 	return abci.ResponseCommit{
@@ -645,7 +652,8 @@ func (app *BaseApp) createQueryContext(height int64, prove bool) (sdk.Context, e
 
 	// branch the commit-multistore for safety
 	ctx := sdk.NewContext(
-		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
+		cacheMS, app.checkState.ctx.ChainID(), app.checkState.ctx.BlockHeight(), app.checkState.ctx.BlockTime(),
+		app.checkState.ctx.AppHash(), app.checkState.ctx.NextValidatorsHash(), true, app.logger,
 	).WithMinGasPrices(app.minGasPrices)
 
 	return ctx, nil

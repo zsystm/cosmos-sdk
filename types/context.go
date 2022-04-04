@@ -8,7 +8,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	"github.com/tendermint/tendermint/libs/log"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/store/gaskv"
 	stypes "github.com/cosmos/cosmos-sdk/store/types"
@@ -23,21 +22,24 @@ but please do not over-use it. We try to keep all data structured
 and standard additions here would be better just to add to the Context struct
 */
 type Context struct {
-	ctx           context.Context
-	ms            MultiStore
-	header        tmproto.Header
-	headerHash    tmbytes.HexBytes
-	chainID       string
-	txBytes       []byte
-	logger        log.Logger
-	voteInfo      []abci.VoteInfo
-	gasMeter      GasMeter
-	blockGasMeter GasMeter
-	checkTx       bool
-	recheckTx     bool // if recheckTx == true, then checkTx must also be true
-	minGasPrice   DecCoins
-	consParams    *abci.ConsensusParams
-	eventManager  *EventManager
+	ctx                context.Context
+	ms                 MultiStore
+	height             int64
+	time               time.Time
+	appHash            []byte
+	nextValidatorsHash []byte
+	headerHash         tmbytes.HexBytes
+	chainID            string
+	txBytes            []byte
+	logger             log.Logger
+	voteInfo           []abci.VoteInfo
+	gasMeter           GasMeter
+	blockGasMeter      GasMeter
+	checkTx            bool
+	recheckTx          bool // if recheckTx == true, then checkTx must also be true
+	minGasPrice        DecCoins
+	consParams         *abci.ConsensusParams
+	eventManager       *EventManager
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -46,8 +48,8 @@ type Request = Context
 // Read-only accessors
 func (c Context) Context() context.Context    { return c.ctx }
 func (c Context) MultiStore() MultiStore      { return c.ms }
-func (c Context) BlockHeight() int64          { return c.header.Height }
-func (c Context) BlockTime() time.Time        { return c.header.Time }
+func (c Context) BlockHeight() int64          { return c.height }
+func (c Context) BlockTime() time.Time        { return c.time }
 func (c Context) ChainID() string             { return c.chainID }
 func (c Context) TxBytes() []byte             { return c.txBytes }
 func (c Context) Logger() log.Logger          { return c.logger }
@@ -59,16 +61,22 @@ func (c Context) IsReCheckTx() bool           { return c.recheckTx }
 func (c Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c Context) EventManager() *EventManager { return c.eventManager }
 
-// clone the header before returning
-func (c Context) BlockHeader() tmproto.Header {
-	var msg = proto.Clone(&c.header).(*tmproto.Header)
-	return *msg
-}
-
 // HeaderHash returns a copy of the header hash obtained during abci.RequestBeginBlock
 func (c Context) HeaderHash() tmbytes.HexBytes {
 	hash := make([]byte, len(c.headerHash))
 	copy(hash, c.headerHash)
+	return hash
+}
+
+func (c Context) NextValidatorsHash() tmbytes.HexBytes {
+	hash := make([]byte, len(c.nextValidatorsHash))
+	copy(hash, c.nextValidatorsHash)
+	return hash
+}
+
+func (c Context) AppHash() tmbytes.HexBytes {
+	hash := make([]byte, len(c.appHash))
+	copy(hash, c.appHash)
 	return hash
 }
 
@@ -77,19 +85,22 @@ func (c Context) ConsensusParams() *abci.ConsensusParams {
 }
 
 // create a new context
-func NewContext(ms MultiStore, header tmproto.Header, isCheckTx bool, logger log.Logger) Context {
+func NewContext(ms MultiStore, chainId string, height int64, time time.Time, appHash, nextValidatorsHash []byte, isCheckTx bool, logger log.Logger) Context {
 	// https://github.com/gogo/protobuf/issues/519
-	header.Time = header.Time.UTC()
+	time = time.UTC()
 	return Context{
-		ctx:          context.Background(),
-		ms:           ms,
-		header:       header,
-		chainID:      header.ChainID,
-		checkTx:      isCheckTx,
-		logger:       logger,
-		gasMeter:     stypes.NewInfiniteGasMeter(),
-		minGasPrice:  DecCoins{},
-		eventManager: NewEventManager(),
+		ctx:                context.Background(),
+		ms:                 ms,
+		chainID:            chainId,
+		height:             height,
+		time:               time,
+		appHash:            appHash,
+		nextValidatorsHash: nextValidatorsHash,
+		checkTx:            isCheckTx,
+		logger:             logger,
+		gasMeter:           stypes.NewInfiniteGasMeter(),
+		minGasPrice:        DecCoins{},
+		eventManager:       NewEventManager(),
 	}
 }
 
@@ -105,11 +116,19 @@ func (c Context) WithMultiStore(ms MultiStore) Context {
 	return c
 }
 
-// WithBlockHeader returns a Context with an updated tendermint block header in UTC time.
-func (c Context) WithBlockHeader(header tmproto.Header) Context {
-	// https://github.com/gogo/protobuf/issues/519
-	header.Time = header.Time.UTC()
-	c.header = header
+func (c Context) WithAppHash(hash []byte) Context {
+	temp := make([]byte, len(hash))
+	copy(temp, hash)
+
+	c.appHash = temp
+	return c
+}
+
+func (c Context) WithNextValidatorsHash(hash []byte) Context {
+	temp := make([]byte, len(hash))
+	copy(temp, hash)
+
+	c.nextValidatorsHash = temp
 	return c
 }
 
@@ -124,24 +143,14 @@ func (c Context) WithHeaderHash(hash []byte) Context {
 
 // WithBlockTime returns a Context with an updated tendermint block header time in UTC time
 func (c Context) WithBlockTime(newTime time.Time) Context {
-	newHeader := c.BlockHeader()
-	// https://github.com/gogo/protobuf/issues/519
-	newHeader.Time = newTime.UTC()
-	return c.WithBlockHeader(newHeader)
-}
-
-// WithProposer returns a Context with an updated proposer consensus address.
-func (c Context) WithProposer(addr ConsAddress) Context {
-	newHeader := c.BlockHeader()
-	newHeader.ProposerAddress = addr.Bytes()
-	return c.WithBlockHeader(newHeader)
+	c.time = newTime.UTC()
+	return c
 }
 
 // WithBlockHeight returns a Context with an updated block height.
 func (c Context) WithBlockHeight(height int64) Context {
-	newHeader := c.BlockHeader()
-	newHeader.Height = height
-	return c.WithBlockHeader(newHeader)
+	c.height = height
+	return c
 }
 
 // WithChainID returns a Context with an updated chain identifier.

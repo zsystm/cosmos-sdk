@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -133,6 +134,8 @@ type BaseApp struct { // nolint: maligned
 	// indexEvents defines the set of events in the form {eventType}.{attributeKey},
 	// which informs Tendermint what to index. If empty, all events will be indexed.
 	indexEvents map[string]struct{}
+
+	chainId string
 }
 
 // NewBaseApp returns a reference to an initialized BaseApp. It accepts a
@@ -300,7 +303,7 @@ func (app *BaseApp) init() error {
 	}
 
 	// needed for the export command which inits from store but never calls initchain
-	app.setCheckState(tmproto.Header{})
+	app.setCheckState("", 0, time.Now(), []byte{}, []byte{})
 	app.Seal()
 
 	// make sure the snapshot interval is a multiple of the pruning KeepEvery interval
@@ -376,11 +379,11 @@ func (app *BaseApp) IsSealed() bool { return app.sealed }
 // (i.e. a CacheMultiStore) and a new Context with the same multi-store branch,
 // provided header, and minimum gas prices set. It is set on InitChain and reset
 // on Commit.
-func (app *BaseApp) setCheckState(header tmproto.Header) {
+func (app *BaseApp) setCheckState(chainId string, height int64, time time.Time, appHash, nextValidatorsHash []byte) {
 	ms := app.cms.CacheMultiStore()
 	app.checkState = &state{
 		ms:  ms,
-		ctx: sdk.NewContext(ms, header, true, app.logger).WithMinGasPrices(app.minGasPrices),
+		ctx: sdk.NewContext(ms, chainId, height, time, appHash, nextValidatorsHash, true, app.logger).WithMinGasPrices(app.minGasPrices),
 	}
 }
 
@@ -388,11 +391,11 @@ func (app *BaseApp) setCheckState(header tmproto.Header) {
 // (i.e. a CacheMultiStore) and a new Context with the same multi-store branch,
 // and provided header. It is set on InitChain and BeginBlock and set to nil on
 // Commit.
-func (app *BaseApp) setDeliverState(header tmproto.Header) {
+func (app *BaseApp) setDeliverState(chainId string, height int64, time time.Time, appHash, nextValidatorsHash []byte) {
 	ms := app.cms.CacheMultiStore()
 	app.deliverState = &state{
 		ms:  ms,
-		ctx: sdk.NewContext(ms, header, false, app.logger),
+		ctx: sdk.NewContext(ms, chainId, height, time, appHash, nextValidatorsHash, false, app.logger),
 	}
 }
 
@@ -475,8 +478,8 @@ func (app *BaseApp) getMaximumBlockGas(ctx sdk.Context) uint64 {
 }
 
 func (app *BaseApp) validateHeight(req abci.RequestBeginBlock) error {
-	if req.Header.Height < 1 {
-		return fmt.Errorf("invalid height: %d", req.Header.Height)
+	if req.Height < 1 {
+		return fmt.Errorf("invalid height: %d", req.Height)
 	}
 
 	// expectedHeight holds the expected height to validate.
@@ -494,8 +497,8 @@ func (app *BaseApp) validateHeight(req abci.RequestBeginBlock) error {
 		expectedHeight = app.LastBlockHeight() + 1
 	}
 
-	if req.Header.Height != expectedHeight {
-		return fmt.Errorf("invalid height: %d; expected: %d", req.Header.Height, expectedHeight)
+	if req.Height != expectedHeight {
+		return fmt.Errorf("invalid height: %d; expected: %d", req.Height, expectedHeight)
 	}
 
 	return nil
