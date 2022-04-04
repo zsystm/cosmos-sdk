@@ -185,7 +185,7 @@ func SimulateMsgEditValidator(ak types.AccountKeeper, bk types.BankKeeper, k kee
 
 		newCommissionRate := simtypes.RandomDecAmount(r, val.Commission.MaxRate)
 
-		if err := val.Commission.ValidateNewRate(newCommissionRate, ctx.BlockHeader().Time); err != nil {
+		if err := val.Commission.ValidateNewRate(newCommissionRate, ctx.BlockTime()); err != nil {
 			// skip as the commission is invalid
 			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgEditValidator, "invalid commission rate"), nil, nil
 		}

@@ -186,7 +186,7 @@ func (k Keeper) GetCleanAuthorization(ctx sdk.Context, grantee sdk.AccAddress, g
 	if !found {
 		return nil, time.Time{}
 	}
-	if grant.Expiration.Before(ctx.BlockHeader().Time) {
+	if grant.Expiration.Before(ctx.BlockTime()) {
 		k.DeleteGrant(ctx, grantee, granter, msgType)
 		return nil, time.Time{}
 	}

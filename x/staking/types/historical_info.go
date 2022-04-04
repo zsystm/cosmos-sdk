@@ -1,10 +1,9 @@
 package types
 
 import (
+	"bytes"
 	"sort"
-
-	"github.com/gogo/protobuf/proto"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -14,15 +13,18 @@ import (
 
 // NewHistoricalInfo will create a historical information struct from header and valset
 // it will first sort valset before inclusion into historical info
-func NewHistoricalInfo(header tmproto.Header, valSet Validators, powerReduction sdk.Int) HistoricalInfo {
+func NewHistoricalInfo(height int64, time time.Time, apphash, nextValidatorsHash []byte, valSet Validators, powerReduction sdk.Int) HistoricalInfo {
 	// Must sort in the same way that tendermint does
 	sort.SliceStable(valSet, func(i, j int) bool {
 		return ValidatorsByVotingPower(valSet).Less(i, j, powerReduction)
 	})
 
 	return HistoricalInfo{
-		Header: header,
-		Valset: valSet,
+		Height:             height, // Not really needed, as it is also the key
+		Time:               time,
+		AppHash:            apphash,
+		NextValidatorsHash: nextValidatorsHash,
+		Valset:             valSet,
 	}
 }
 
@@ -57,7 +59,16 @@ func ValidateBasic(hi HistoricalInfo) error {
 
 // Equal checks if receiver is equal to the parameter
 func (hi *HistoricalInfo) Equal(hi2 *HistoricalInfo) bool {
-	if !proto.Equal(&hi.Header, &hi2.Header) {
+	if &hi.Height != &hi2.Height {
+		return false
+	}
+	if !hi.Time.Equal(hi2.Time) {
+		return false
+	}
+	if bytes.Compare(hi.AppHash, hi2.AppHash) != 0 {
+		return false
+	}
+	if bytes.Compare(hi.NextValidatorsHash, hi2.NextValidatorsHash) != 0 {
 		return false
 	}
 	if len(hi.Valset) != len(hi2.Valset) {

@@ -29,7 +29,7 @@ func (keeper Keeper) SubmitProposal(ctx sdk.Context, content types.Content) (typ
 		return types.Proposal{}, err
 	}
 
-	submitTime := ctx.BlockHeader().Time
+	submitTime := ctx.BlockTime()
 	depositPeriod := keeper.GetDepositParams(ctx).MaxDepositPeriod
 
 	proposal, err := types.NewProposal(content, proposalID, submitTime, submitTime.Add(depositPeriod))
@@ -184,7 +184,7 @@ func (keeper Keeper) SetProposalID(ctx sdk.Context, proposalID uint64) {
 }
 
 func (keeper Keeper) ActivateVotingPeriod(ctx sdk.Context, proposal types.Proposal) {
-	proposal.VotingStartTime = ctx.BlockHeader().Time
+	proposal.VotingStartTime = ctx.BlockTime()
 	votingPeriod := keeper.GetVotingParams(ctx).VotingPeriod
 	proposal.VotingEndTime = proposal.VotingStartTime.Add(votingPeriod)
 	proposal.Status = types.StatusVotingPeriod

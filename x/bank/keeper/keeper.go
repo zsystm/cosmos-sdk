@@ -457,7 +457,7 @@ func (k BaseKeeper) trackDelegation(ctx sdk.Context, addr sdk.AccAddress, balanc
 	vacc, ok := acc.(vestexported.VestingAccount)
 	if ok {
 		// TODO: return error on account.TrackDelegation
-		vacc.TrackDelegation(ctx.BlockHeader().Time, balance, amt)
+		vacc.TrackDelegation(ctx.BlockTime(), balance, amt)
 		k.ak.SetAccount(ctx, acc)
 	}
 

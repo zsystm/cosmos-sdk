@@ -298,7 +298,7 @@ func (k Keeper) DequeueAllMatureUBDQueue(ctx sdk.Context, currTime time.Time) (m
 	store := ctx.KVStore(k.storeKey)
 
 	// gets an iterator for all timeslices from time 0 until the current Blockheader time
-	unbondingTimesliceIterator := k.UBDQueueIterator(ctx, ctx.BlockHeader().Time)
+	unbondingTimesliceIterator := k.UBDQueueIterator(ctx, ctx.BlockTime())
 	defer unbondingTimesliceIterator.Close()
 
 	for ; unbondingTimesliceIterator.Valid(); unbondingTimesliceIterator.Next() {
@@ -526,7 +526,7 @@ func (k Keeper) DequeueAllMatureRedelegationQueue(ctx sdk.Context, currTime time
 	store := ctx.KVStore(k.storeKey)
 
 	// gets an iterator for all timeslices from time 0 until the current Blockheader time
-	redelegationTimesliceIterator := k.RedelegationQueueIterator(ctx, ctx.BlockHeader().Time)
+	redelegationTimesliceIterator := k.RedelegationQueueIterator(ctx, ctx.BlockTime())
 	defer redelegationTimesliceIterator.Close()
 
 	for ; redelegationTimesliceIterator.Valid(); redelegationTimesliceIterator.Next() {
@@ -701,7 +701,7 @@ func (k Keeper) getBeginInfo(
 	switch {
 	case !found || validator.IsBonded():
 		// the longest wait - just unbonding period from now
-		completionTime = ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx))
+		completionTime = ctx.BlockTime().Add(k.UnbondingTime(ctx))
 		height = ctx.BlockHeight()
 
 		return completionTime, height, false
@@ -744,7 +744,7 @@ func (k Keeper) Undelegate(
 		k.bondedTokensToNotBonded(ctx, returnAmount)
 	}
 
-	completionTime := ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx))
+	completionTime := ctx.BlockTime().Add(k.UnbondingTime(ctx))
 	ubd := k.SetUnbondingDelegationEntry(ctx, delAddr, valAddr, ctx.BlockHeight(), completionTime, returnAmount)
 	k.InsertUBDQueue(ctx, ubd, completionTime)
 
@@ -762,7 +762,7 @@ func (k Keeper) CompleteUnbonding(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 
 	bondDenom := k.GetParams(ctx).BondDenom
 	balances := sdk.NewCoins()
-	ctxTime := ctx.BlockHeader().Time
+	ctxTime := ctx.BlockTime()
 
 	delegatorAddress, err := sdk.AccAddressFromBech32(ubd.DelegatorAddress)
 	if err != nil {
@@ -870,7 +870,7 @@ func (k Keeper) CompleteRedelegation(
 
 	bondDenom := k.GetParams(ctx).BondDenom
 	balances := sdk.NewCoins()
-	ctxTime := ctx.BlockHeader().Time
+	ctxTime := ctx.BlockTime()
 
 	// loop through all the entries and complete mature redelegation entries
 	for i := 0; i < len(red.Entries); i++ {

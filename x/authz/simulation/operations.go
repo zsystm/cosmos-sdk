@@ -236,7 +236,7 @@ func SimulateMsgExec(ak authz.AccountKeeper, bk authz.BankKeeper, k keeper.Keepe
 			return simtypes.NoOpMsg(authz.ModuleName, TypeMsgRevoke, "Account not found"), nil, sdkerrors.Wrapf(sdkerrors.ErrNotFound, "granter account not found")
 		}
 
-		if targetGrant.Expiration.Before(ctx.BlockHeader().Time) {
+		if targetGrant.Expiration.Before(ctx.BlockTime()) {
 			return simtypes.NoOpMsg(authz.ModuleName, TypeMsgExec, "grant expired"), nil, nil
 		}
 

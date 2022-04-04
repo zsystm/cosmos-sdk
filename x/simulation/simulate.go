@@ -165,7 +165,7 @@ func SimulateFromSeed(
 		logWriter.AddEntry(BeginBlockEntry(int64(height)))
 		app.BeginBlock(request)
 
-		ctx := app.NewContext(false, header)
+		ctx := app.NewContext(false, header.ChainID, header.Height, header.Time, header.AppHash, header.NextValidatorsHash)
 
 		// Run queued operations. Ignores blocksize if blocksize is too small
 		numQueuedOpsRan := runQueuedOperations(

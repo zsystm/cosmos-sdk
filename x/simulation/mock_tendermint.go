@@ -122,7 +122,9 @@ func RandomRequestBeginBlock(r *rand.Rand, params Params,
 	event func(route, op, evResult string), header tmproto.Header) abci.RequestBeginBlock {
 	if len(validators) == 0 {
 		return abci.RequestBeginBlock{
-			Header: header,
+			Height:             header.Height,
+			Time:               header.Time,
+			NextValidatorsHash: header.NextValidatorsHash,
 		}
 	}
 
@@ -166,7 +168,9 @@ func RandomRequestBeginBlock(r *rand.Rand, params Params,
 	// return if no past times
 	if len(pastTimes) == 0 {
 		return abci.RequestBeginBlock{
-			Header: header,
+			Height:             header.Height,
+			Time:               header.Time,
+			NextValidatorsHash: header.NextValidatorsHash,
 			LastCommitInfo: abci.LastCommitInfo{
 				Votes: voteInfos,
 			},
@@ -209,7 +213,9 @@ func RandomRequestBeginBlock(r *rand.Rand, params Params,
 	}
 
 	return abci.RequestBeginBlock{
-		Header: header,
+		Height:             header.Height,
+		Time:               header.Time,
+		NextValidatorsHash: header.NextValidatorsHash,
 		LastCommitInfo: abci.LastCommitInfo{
 			Votes: voteInfos,
 		},
