@@ -15,6 +15,9 @@ type ReadBackend interface {
 	// IndexStoreReader returns the reader for the index store.
 	IndexStoreReader() kv.ReadonlyStore
 
+	// GasMeter returns the gas meter if one is present in the backend or nil.
+	GasMeter() GasMeter
+
 	private()
 }
 
@@ -57,11 +60,18 @@ type ReadBackendOptions struct {
 	// IndexStoreReader is an optional reader for the index store.
 	// If it is nil the CommitmentStoreReader will be used.
 	IndexStoreReader kv.ReadonlyStore
+
+	GasMeter GasMeter
 }
 
 type readBackend struct {
 	commitmentReader kv.ReadonlyStore
 	indexReader      kv.ReadonlyStore
+	gasMeter         GasMeter
+}
+
+func (r readBackend) GasMeter() GasMeter {
+	return r.gasMeter
 }
 
 func (r readBackend) CommitmentStoreReader() kv.ReadonlyStore {
@@ -83,6 +93,7 @@ func NewReadBackend(options ReadBackendOptions) ReadBackend {
 	return &readBackend{
 		commitmentReader: options.CommitmentStoreReader,
 		indexReader:      indexReader,
+		gasMeter:         options.GasMeter,
 	}
 }
 
@@ -91,6 +102,11 @@ type backend struct {
 	indexStore      kv.Store
 	validateHooks   ValidateHooks
 	writeHooks      WriteHooks
+	gasMeter        GasMeter
+}
+
+func (c backend) GasMeter() GasMeter {
+	return c.gasMeter
 }
 
 func (c backend) ValidateHooks() ValidateHooks {
@@ -147,6 +163,8 @@ type BackendOptions struct {
 	ValidateHooks ValidateHooks
 
 	WriteHooks WriteHooks
+
+	GasMeter GasMeter
 }
 
 // NewBackend creates a new Backend.
@@ -160,6 +178,7 @@ func NewBackend(options BackendOptions) Backend {
 		indexStore:      indexStore,
 		validateHooks:   options.ValidateHooks,
 		writeHooks:      options.WriteHooks,
+		gasMeter:        options.GasMeter,
 	}
 }
 
