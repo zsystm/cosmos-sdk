@@ -72,7 +72,6 @@ func Logger(logger func(string)) DebugOption {
 func Debug() DebugOption {
 	return DebugOptions(
 		StdoutLogger(),
-		LogVisualizer(),
 		FileVisualizer("container_dump.svg", "svg"),
 	)
 }

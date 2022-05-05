@@ -10,14 +10,13 @@ import (
 
 type Inputs struct {
 	container.In
-
-	Options []BaseAppOption
 }
 
 type Outputs struct {
 	container.Out
 	InterfaceRegistry codectypes.InterfaceRegistry
 	Codec             codec.Codec
+	StoreKeyRegistrar func(store.StoreKey)
 }
 
 var Module = container.Options(
@@ -29,39 +28,30 @@ var Module = container.Options(
 	),
 )
 
-type BaseAppOption struct{ F func(*BaseApp) }
-
-func (BaseAppOption) IsAutoGroupType() {}
-
 func provide(inputs Inputs) (Outputs, error) {
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
 	codec := codec.NewProtoCodec(interfaceRegistry)
 	return Outputs{
 		InterfaceRegistry: interfaceRegistry,
 		Codec:             codec,
+		StoreKeyRegistrar: func(store.StoreKey) {},
 	}, nil
 }
 
-func provideKVStoreKey(key container.ModuleKey) (*store.KVStoreKey, BaseAppOption) {
+func provideKVStoreKey(key container.ModuleKey, registrar func(store.StoreKey)) *store.KVStoreKey {
 	storeKey := store.NewKVStoreKey(key.Name())
-	opt := func(app *BaseApp) {
-		app.MountStores(storeKey)
-	}
-	return storeKey, BaseAppOption{opt}
+	registrar(storeKey)
+	return storeKey
 }
 
-func provideTransientStoreKey(key container.ModuleKey) (*store.TransientStoreKey, BaseAppOption) {
+func provideTransientStoreKey(key container.ModuleKey, registrar func(store.StoreKey)) *store.TransientStoreKey {
 	storeKey := store.NewTransientStoreKey(key.Name())
-	opt := func(app *BaseApp) {
-		app.MountStores(storeKey)
-	}
-	return storeKey, BaseAppOption{opt}
+	registrar(storeKey)
+	return storeKey
 }
 
-func provideMemoryStoreKey(key container.ModuleKey) (*store.MemoryStoreKey, BaseAppOption) {
+func provideMemoryStoreKey(key container.ModuleKey, registrar func(store.StoreKey)) *store.MemoryStoreKey {
 	storeKey := store.NewMemoryStoreKey(key.Name())
-	opt := func(app *BaseApp) {
-		app.MountStores(storeKey)
-	}
-	return storeKey, BaseAppOption{opt}
+	registrar(storeKey)
+	return storeKey
 }
