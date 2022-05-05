@@ -547,3 +547,9 @@ func DefaultMigrationsOrder(modules []string) []string {
 	}
 	return out
 }
+
+type AppModuleWiringWrapper struct {
+	AppModule
+}
+
+func (AppModuleWiringWrapper) IsOnePerModuleType() {}

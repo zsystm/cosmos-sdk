@@ -15,6 +15,8 @@ import (
 	tmos "github.com/tendermint/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
 
+	"github.com/cosmos/cosmos-sdk/container"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
@@ -208,6 +210,19 @@ func NewSimApp(
 	homePath string, invCheckPeriod uint, encodingConfig simappparams.EncodingConfig,
 	appOpts servertypes.AppOptions, baseAppOptions ...func(*baseapp.BaseApp),
 ) *SimApp {
+	err := container.RunDebug(func(keeper nftkeeper.Keeper) {
+
+	},
+		container.Debug(),
+		baseapp.Module,
+		container.Provide(params.ProvideSubSpace),
+		container.ProvideInModule(authtypes.ModuleName, auth.Provide),
+		container.ProvideInModule(nft.ModuleName, nftmodule.Provide),
+		container.ProvideInModule(paramstypes.ModuleName, params.Provide),
+	)
+	if err != nil {
+		panic(err)
+	}
 
 	appCodec := encodingConfig.Codec
 	legacyAmino := encodingConfig.Amino

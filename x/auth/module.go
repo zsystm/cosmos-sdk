@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/cosmos/cosmos-sdk/container"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	"github.com/spf13/cobra"
@@ -14,6 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -21,6 +23,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/simulation"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 var (
@@ -184,4 +187,27 @@ func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
 // WeightedOperations doesn't return any auth module operation.
 func (AppModule) WeightedOperations(_ module.SimulationState) []simtypes.WeightedOperation {
 	return nil
+}
+
+type Inputs struct {
+	container.In
+
+	StoreKey *store.KVStoreKey
+	Codec    codec.Codec
+	Subspace paramtypes.Subspace
+}
+
+type Outputs struct {
+	container.Out
+	Keeper    keeper.AccountKeeper
+	AppModule module.AppModuleWiringWrapper
+}
+
+func Provide(inputs Inputs) (Outputs, error) {
+	k := keeper.NewAccountKeeper(inputs.Codec, inputs.StoreKey, inputs.Subspace, nil, nil, "")
+	m := NewAppModule(inputs.Codec, k, nil)
+	return Outputs{
+		Keeper:    k,
+		AppModule: module.AppModuleWiringWrapper{AppModule: m},
+	}, nil
 }

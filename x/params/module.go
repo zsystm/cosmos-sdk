@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math/rand"
 
+	"github.com/cosmos/cosmos-sdk/container"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -12,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -147,4 +149,32 @@ func (AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 // EndBlock performs a no-op.
 func (AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
+}
+
+type Inputs struct {
+	container.In
+
+	StoreKey    *store.KVStoreKey
+	Codec       codec.Codec
+	LegacyAmino *codec.LegacyAmino
+	TStoreKey   *store.TransientStoreKey
+}
+
+type Outputs struct {
+	container.Out
+	AppModule module.AppModuleWiringWrapper
+	Keeper    keeper.Keeper
+}
+
+func Provide(inputs Inputs) (Outputs, error) {
+	k := keeper.NewKeeper(inputs.Codec, inputs.LegacyAmino, inputs.StoreKey, inputs.TStoreKey)
+	m := NewAppModule(k)
+	return Outputs{
+		AppModule: module.AppModuleWiringWrapper{AppModule: m},
+		Keeper:    k,
+	}, nil
+}
+
+func ProvideSubSpace(key container.ModuleKey, k keeper.Keeper) types.Subspace {
+	return k.Subspace(key.Name())
 }
