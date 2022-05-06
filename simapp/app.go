@@ -214,13 +214,13 @@ func NewSimApp(
 	app := &SimApp{}
 	var appCreator *runtime.AppCreator
 	var appCodec codec.Codec
-	err := container.RunDebug(func(
+	err := container.Run(func(
 		creator *runtime.AppCreator,
 		accKeeper authkeeper.AccountKeeper, paramsKeeper paramskeeper.Keeper,
 		amino *codec.LegacyAmino, cdc codec.Codec, registry types.InterfaceRegistry,
 	) {
 		appCreator = creator
-		app.App = creator.Create(logger, db, traceStore, appOpts, baseAppOptions...)
+		app.App = creator.Create(logger, db, traceStore, baseAppOptions...)
 		app.legacyAmino = amino
 		app.AccountKeeper = accKeeper
 		app.ParamsKeeper = paramsKeeper
@@ -228,7 +228,6 @@ func NewSimApp(
 		app.appCodec = cdc
 		appCodec = cdc
 	},
-		container.Debug(),
 		coreconfig.LoadYAML(appConfig),
 	)
 	if err != nil {

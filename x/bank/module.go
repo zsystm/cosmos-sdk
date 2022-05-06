@@ -15,7 +15,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/container"
 	coremodule "github.com/cosmos/cosmos-sdk/core/module"
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
@@ -202,49 +201,28 @@ func (am AppModule) WeightedOperations(simState module.SimulationState) []simtyp
 	)
 }
 
-type Inputs struct {
-	container.In
-
-	StoreKey      *store.KVStoreKey
-	Codec         codec.Codec
-	Subspace      paramtypes.Subspace
-	AccountKeeper authkeeper.AccountKeeper
-}
-
-type Outputs struct {
-	container.Out
-
-	AppModule module.AppModuleWiringWrapper
-	Keeper    keeper.Keeper
-}
-
-func Provide(inputs Inputs) (Outputs, error) {
-	k := keeper.NewBaseKeeper(inputs.Codec, inputs.StoreKey, inputs.AccountKeeper, inputs.Subspace, nil)
-	m := NewAppModule(inputs.Codec, k, inputs.AccountKeeper)
-	return Outputs{
-		Keeper:    k,
-		AppModule: module.AppModuleWiringWrapper{AppModule: m},
-	}, nil
-}
-
 func init() {
 	coremodule.Register(&modulev1.Module{},
-		coremodule.Provide(func(
-			config *modulev1.Module,
-			key *store.KVStoreKey,
-			cdc codec.Codec,
-			subspace paramtypes.Subspace,
-			accountKeeper authkeeper.AccountKeeper,
-		) (keeper.Keeper, module.AppModuleWiringWrapper) {
-
-			blockedAddrs := map[string]bool{}
-			for _, address := range config.BlockedAddresses {
-				blockedAddrs[address] = true
-			}
-			k := keeper.NewBaseKeeper(cdc, key, accountKeeper, subspace, blockedAddrs)
-			m := NewAppModule(cdc, k, accountKeeper)
-			return k, module.AppModuleWiringWrapper{AppModule: m}
-
-		}),
+		coremodule.Provide(provideModuleBasic, provideModule),
 	)
+}
+
+func provideModuleBasic() module.AppModuleBasicWiringWrapper {
+	return module.AppModuleBasicWiringWrapper{AppModuleBasic: AppModuleBasic{}}
+}
+
+func provideModule(
+	config *modulev1.Module,
+	key *store.KVStoreKey,
+	cdc codec.Codec,
+	subspace paramtypes.Subspace,
+	accountKeeper authkeeper.AccountKeeper,
+) (keeper.Keeper, module.AppModuleWiringWrapper) {
+	blockedAddrs := map[string]bool{}
+	for _, address := range config.BlockedAddresses {
+		blockedAddrs[address] = true
+	}
+	k := keeper.NewBaseKeeper(cdc, key, accountKeeper, subspace, blockedAddrs)
+	m := NewAppModule(cdc, k, accountKeeper)
+	return k, module.AppModuleWiringWrapper{AppModule: m}
 }

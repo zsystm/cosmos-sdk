@@ -196,7 +196,13 @@ func (AppModule) WeightedOperations(_ module.SimulationState) []simtypes.Weighte
 //
 
 func init() {
-	coremodule.Register(&modulev1.Module{}, coremodule.Provide(provideModule))
+	coremodule.Register(&modulev1.Module{},
+		coremodule.Provide(provideModuleBasic, provideModule),
+	)
+}
+
+func provideModuleBasic() module.AppModuleBasicWiringWrapper {
+	return module.AppModuleBasicWiringWrapper{AppModuleBasic: AppModuleBasic{}}
 }
 
 func provideModule(

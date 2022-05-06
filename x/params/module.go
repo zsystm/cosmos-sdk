@@ -6,6 +6,8 @@ import (
 	"math/rand"
 
 	modulev1 "github.com/cosmos/cosmos-sdk/api/cosmos/params/module/v1"
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	runtime2 "github.com/cosmos/cosmos-sdk/baseapp/runtime"
 	"github.com/cosmos/cosmos-sdk/container"
 	coremodule "github.com/cosmos/cosmos-sdk/core/module"
 
@@ -156,7 +158,15 @@ func (AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.Validato
 
 func init() {
 	coremodule.Register(&modulev1.Module{},
-		coremodule.Provide(provideModule, provideSubSpace))
+		coremodule.Provide(
+			provideModuleBasic,
+			provideModule,
+			provideSubSpace,
+		))
+}
+
+func provideModuleBasic() module.AppModuleBasicWiringWrapper {
+	return module.AppModuleBasicWiringWrapper{AppModuleBasic: AppModuleBasic{}}
 }
 
 func provideModule(
@@ -164,11 +174,13 @@ func provideModule(
 	transientStoreKey *store.TransientStoreKey,
 	cdc codec.Codec,
 	amino *codec.LegacyAmino,
-) (keeper.Keeper, module.AppModuleWiringWrapper) {
+) (keeper.Keeper, module.AppModuleWiringWrapper, runtime2.BaseAppOption) {
 
 	k := keeper.NewKeeper(cdc, amino, kvStoreKey, transientStoreKey)
 	m := NewAppModule(k)
-	return k, module.AppModuleWiringWrapper{AppModule: m}
+	return k, module.AppModuleWiringWrapper{AppModule: m}, func(app *baseapp.BaseApp) {
+		app.SetParamStore(k.Subspace(baseapp.Paramspace).WithKeyTable(types.ConsensusParamsKeyTable()))
+	}
 }
 
 func provideSubSpace(key container.ModuleKey, k keeper.Keeper) types.Subspace {

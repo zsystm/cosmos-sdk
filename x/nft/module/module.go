@@ -9,10 +9,12 @@ import (
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	modulev1 "github.com/cosmos/cosmos-sdk/api/cosmos/nft/module/v1"
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/container"
+	coremodule "github.com/cosmos/cosmos-sdk/core/module"
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -20,7 +22,6 @@ import (
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-
 	"github.com/cosmos/cosmos-sdk/x/nft"
 	"github.com/cosmos/cosmos-sdk/x/nft/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/nft/keeper"
@@ -221,4 +222,28 @@ func Provide(inputs Inputs) (Outputs, error) {
 		Keeper:    k,
 		AppModule: module.AppModuleWiringWrapper{AppModule: m},
 	}, nil
+}
+
+func init() {
+	coremodule.Register(&modulev1.Module{},
+		coremodule.Provide(
+			provideModuleBasic,
+			provideModule,
+		))
+}
+
+func provideModuleBasic() module.AppModuleBasicWiringWrapper {
+	return module.AppModuleBasicWiringWrapper{AppModuleBasic: AppModuleBasic{}}
+}
+
+func provideModule(
+	kvStoreKey *store.KVStoreKey,
+	cdc codec.Codec,
+	accKeeper authkeeper.AccountKeeper,
+	bankKeeper bankkeeper.Keeper,
+	interfaceRegistry cdctypes.InterfaceRegistry) (keeper.Keeper, module.AppModuleWiringWrapper) {
+
+	k := keeper.NewKeeper(kvStoreKey, cdc, accKeeper, bankKeeper)
+	m := NewAppModule(cdc, k, accKeeper, bankKeeper, interfaceRegistry)
+	return k, module.AppModuleWiringWrapper{AppModule: m}
 }

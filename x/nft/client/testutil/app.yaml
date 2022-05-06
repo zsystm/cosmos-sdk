@@ -1,0 +1,26 @@
+modules:
+  - name: runtime
+    config:
+      "@type": cosmos.base.runtime.v1.Module
+      begin_blockers: [ auth, bank, nft, params ]
+      end_blockers: [ auth, bank, nft, params ]
+      init_genesis: [ auth, bank, nft, params ]
+  - name: auth
+    config:
+      "@type": cosmos.auth.module.v1.Module
+      bech32_prefix: cosmos
+      module_account_permissions:
+        - account: bonded_tokens_pool
+          permissions: [ burner, staking ]
+        - account: not_bonded_tokens_pool
+          permissions: [ burner, staking ]
+        - account: nft
+  - name: bank
+    config:
+      "@type": cosmos.bank.module.v1.Module
+  - name: params
+    config:
+      "@type": cosmos.params.module.v1.Module
+  - name: nft
+    config:
+      "@type": cosmos.nft.module.v1.Module

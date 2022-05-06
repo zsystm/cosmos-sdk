@@ -17,11 +17,12 @@ import (
 
 type App struct {
 	*baseapp.BaseApp
-	config        *runtimev1.Module
-	builder       *appBuilder
-	mm            *module.Manager
-	beginBlockers []func(sdk.Context, abci.RequestBeginBlock)
-	endBlockers   []func(sdk.Context, abci.RequestEndBlock) []abci.ValidatorUpdate
+	config         *runtimev1.Module
+	builder        *appBuilder
+	mm             *module.Manager
+	beginBlockers  []func(sdk.Context, abci.RequestBeginBlock)
+	endBlockers    []func(sdk.Context, abci.RequestEndBlock) []abci.ValidatorUpdate
+	baseAppOptions []BaseAppOption
 }
 
 func (a App) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {

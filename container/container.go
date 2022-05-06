@@ -170,7 +170,7 @@ func (c *container) addNode(provider *ProviderDescriptor, key *moduleKey) (inter
 		c.addGraphEdge(typeGraphNode, providerGraphNode)
 	}
 
-	if key != nil || !hasModuleKeyParam {
+	if !hasModuleKeyParam {
 		c.logf("Registering %s", provider.Location.String())
 		c.indentLogger()
 		defer c.dedentLogger()
