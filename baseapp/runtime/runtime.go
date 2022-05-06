@@ -50,7 +50,16 @@ func (a App) SimulationManager() *module.SimulationManager {
 
 var _ SimappLikeApp = &App{}
 
-func (a App) RegisterAPIRoutes(server *api.Server, config config.APIConfig) {}
+func (a App) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIConfig) {
+	clientCtx := apiSvr.ClientCtx
+	basics := module.BasicManager{}
+
+	for name, mod := range a.mm.Modules {
+		basics[name] = mod
+	}
+
+	basics.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+}
 
 func (a App) RegisterTxService(clientCtx client.Context) {}
 
