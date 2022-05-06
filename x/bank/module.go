@@ -14,15 +14,19 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/container"
+	store "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	v040 "github.com/cosmos/cosmos-sdk/x/bank/migrations/v042"
 	"github.com/cosmos/cosmos-sdk/x/bank/simulation"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 var (
@@ -194,4 +198,29 @@ func (am AppModule) WeightedOperations(simState module.SimulationState) []simtyp
 	return simulation.WeightedOperations(
 		simState.AppParams, simState.Cdc, am.accountKeeper, am.keeper,
 	)
+}
+
+type Inputs struct {
+	container.In
+
+	StoreKey      *store.KVStoreKey
+	Codec         codec.Codec
+	Subspace      paramtypes.Subspace
+	AccountKeeper authkeeper.AccountKeeper
+}
+
+type Outputs struct {
+	container.Out
+
+	AppModule module.AppModuleWiringWrapper
+	Keeper    keeper.Keeper
+}
+
+func Provide(inputs Inputs) (Outputs, error) {
+	k := keeper.NewBaseKeeper(inputs.Codec, inputs.StoreKey, inputs.AccountKeeper, inputs.Subspace, nil)
+	m := NewAppModule(inputs.Codec, k, inputs.AccountKeeper)
+	return Outputs{
+		Keeper:    k,
+		AppModule: module.AppModuleWiringWrapper{AppModule: m},
+	}, nil
 }

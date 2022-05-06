@@ -219,6 +219,7 @@ func NewSimApp(
 		container.ProvideInModule(authtypes.ModuleName, auth.Provide),
 		container.ProvideInModule(nft.ModuleName, nftmodule.Provide),
 		container.ProvideInModule(paramstypes.ModuleName, params.Provide),
+		container.ProvideInModule(banktypes.ModuleName, bank.Provide),
 	)
 	if err != nil {
 		panic(err)

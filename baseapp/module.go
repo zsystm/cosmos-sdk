@@ -14,8 +14,9 @@ type Inputs struct {
 
 type Outputs struct {
 	container.Out
-	InterfaceRegistry codectypes.InterfaceRegistry
-	Codec             codec.Codec
+	codectypes.InterfaceRegistry
+	codec.Codec
+	*codec.LegacyAmino
 	StoreKeyRegistrar func(store.StoreKey)
 }
 
@@ -30,10 +31,11 @@ var Module = container.Options(
 
 func provide(inputs Inputs) (Outputs, error) {
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
-	codec := codec.NewProtoCodec(interfaceRegistry)
+	cdc := codec.NewProtoCodec(interfaceRegistry)
 	return Outputs{
 		InterfaceRegistry: interfaceRegistry,
-		Codec:             codec,
+		Codec:             cdc,
+		LegacyAmino:       codec.NewLegacyAmino(),
 		StoreKeyRegistrar: func(store.StoreKey) {},
 	}, nil
 }

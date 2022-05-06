@@ -326,8 +326,8 @@ func (c *container) resolve(in ProviderInput, moduleKey *moduleKey, caller Locat
 		}
 
 		markGraphNodeAsFailed(typeGraphNode)
-		return reflect.Value{}, errors.Errorf("can't resolve type %v for %s:\n%s",
-			in.Type, caller, c.formatResolveStack())
+		return reflect.Value{}, errors.Errorf("can't resolve type %s for %s:\n%s",
+			moreUsefulTypeString(in.Type), caller, c.formatResolveStack())
 	}
 
 	res, err := vr.resolve(c, moduleKey, caller)
