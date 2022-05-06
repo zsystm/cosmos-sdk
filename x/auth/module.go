@@ -210,7 +210,7 @@ func provideModule(
 		maccPerms[permission.Account] = permission.Permissions
 	}
 
-	k := keeper.NewAccountKeeper(cdc, key, subspace, nil, maccPerms, config.Bech32Prefix)
-	m := NewAppModule(cdc, k, nil)
+	k := keeper.NewAccountKeeper(cdc, key, subspace, types.ProtoBaseAccount, maccPerms, config.Bech32Prefix)
+	m := NewAppModule(cdc, k, simulation.RandomGenesisAccounts)
 	return k, module.AppModuleWiringWrapper{AppModule: m}
 }
