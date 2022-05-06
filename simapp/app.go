@@ -1,6 +1,7 @@
 package simapp
 
 import (
+	_ "embed"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -15,13 +16,13 @@ import (
 	tmos "github.com/tendermint/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/cosmos/cosmos-sdk/container"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/container"
+	coreconfig "github.com/cosmos/cosmos-sdk/core/config"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -149,6 +150,9 @@ var (
 	_ servertypes.Application = (*SimApp)(nil)
 )
 
+//go:embed app.yaml
+var appConfig []byte
+
 // SimApp extends an ABCI application, but with most of its parameters exported.
 // They are exported for convenience in creating helper functions, as object
 // capabilities aren't needed for testing.
@@ -210,16 +214,12 @@ func NewSimApp(
 	homePath string, invCheckPeriod uint, encodingConfig simappparams.EncodingConfig,
 	appOpts servertypes.AppOptions, baseAppOptions ...func(*baseapp.BaseApp),
 ) *SimApp {
-	err := container.RunDebug(func(keeper nftkeeper.Keeper) {
+	err := container.RunDebug(func(keeper authkeeper.AccountKeeper) {
 
 	},
 		container.Debug(),
 		baseapp.Module,
-		container.Provide(params.ProvideSubSpace),
-		container.ProvideInModule(authtypes.ModuleName, auth.Provide),
-		container.ProvideInModule(nft.ModuleName, nftmodule.Provide),
-		container.ProvideInModule(paramstypes.ModuleName, params.Provide),
-		container.ProvideInModule(banktypes.ModuleName, bank.Provide),
+		coreconfig.LoadYAML(appConfig),
 	)
 	if err != nil {
 		panic(err)

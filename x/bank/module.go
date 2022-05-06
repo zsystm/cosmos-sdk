@@ -11,10 +11,12 @@ import (
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	modulev1 "github.com/cosmos/cosmos-sdk/api/cosmos/bank/module/v1"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/container"
+	coremodule "github.com/cosmos/cosmos-sdk/core/module"
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -223,4 +225,26 @@ func Provide(inputs Inputs) (Outputs, error) {
 		Keeper:    k,
 		AppModule: module.AppModuleWiringWrapper{AppModule: m},
 	}, nil
+}
+
+func init() {
+	coremodule.Register(&modulev1.Module{},
+		coremodule.Provide(func(
+			config *modulev1.Module,
+			key *store.KVStoreKey,
+			cdc codec.Codec,
+			subspace paramtypes.Subspace,
+			accountKeeper authkeeper.AccountKeeper,
+		) (keeper.Keeper, module.AppModuleWiringWrapper) {
+
+			blockedAddrs := map[string]bool{}
+			for _, address := range config.BlockedAddresses {
+				blockedAddrs[address] = true
+			}
+			k := keeper.NewBaseKeeper(cdc, key, accountKeeper, subspace, blockedAddrs)
+			m := NewAppModule(cdc, k, accountKeeper)
+			return k, module.AppModuleWiringWrapper{AppModule: m}
+
+		}),
+	)
 }

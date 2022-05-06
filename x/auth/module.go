@@ -6,16 +6,19 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/cosmos/cosmos-sdk/container"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	modulev1 "github.com/cosmos/cosmos-sdk/api/cosmos/auth/module/v1"
+	store "github.com/cosmos/cosmos-sdk/store/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	store "github.com/cosmos/cosmos-sdk/store/types"
+	coremodule "github.com/cosmos/cosmos-sdk/core/module"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -23,7 +26,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/simulation"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 var (
@@ -189,25 +191,26 @@ func (AppModule) WeightedOperations(_ module.SimulationState) []simtypes.Weighte
 	return nil
 }
 
-type Inputs struct {
-	container.In
+//
+// New App Wiring Setup
+//
 
-	StoreKey *store.KVStoreKey
-	Codec    codec.Codec
-	Subspace paramtypes.Subspace
+func init() {
+	coremodule.Register(&modulev1.Module{}, coremodule.Provide(provideModule))
 }
 
-type Outputs struct {
-	container.Out
-	Keeper    keeper.AccountKeeper
-	AppModule module.AppModuleWiringWrapper
-}
+func provideModule(
+	config *modulev1.Module,
+	key *store.KVStoreKey,
+	cdc codec.Codec,
+	subspace paramtypes.Subspace) (keeper.AccountKeeper, module.AppModuleWiringWrapper) {
 
-func Provide(inputs Inputs) (Outputs, error) {
-	k := keeper.NewAccountKeeper(inputs.Codec, inputs.StoreKey, inputs.Subspace, nil, nil, "")
-	m := NewAppModule(inputs.Codec, k, nil)
-	return Outputs{
-		Keeper:    k,
-		AppModule: module.AppModuleWiringWrapper{AppModule: m},
-	}, nil
+	maccPerms := map[string][]string{}
+	for _, permission := range config.ModuleAccountPermissions {
+		maccPerms[permission.Account] = permission.Permissions
+	}
+
+	k := keeper.NewAccountKeeper(cdc, key, subspace, nil, maccPerms, config.Bech32Prefix)
+	m := NewAppModule(cdc, k, nil)
+	return k, module.AppModuleWiringWrapper{AppModule: m}
 }
