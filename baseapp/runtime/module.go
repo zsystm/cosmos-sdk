@@ -27,19 +27,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/version"
 )
 
-type inputs struct {
-	container.In
-}
-
-type outputs struct {
-	container.Out
-
-	codectypes.InterfaceRegistry
-	codec.Codec
-	*codec.LegacyAmino
-	Builder *appBuilder
-}
-
 type appBuilder struct {
 	storeKeys         []storetypes.StoreKey
 	interfaceRegistry codectypes.InterfaceRegistry
@@ -67,7 +54,11 @@ var Module = container.Options(
 	container.Provide(),
 )
 
-func provideBuilder() (outputs, error) {
+func provideBuilder() (
+	codectypes.InterfaceRegistry,
+	codec.Codec,
+	*codec.LegacyAmino,
+	*appBuilder) {
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
 	cdc := codec.NewProtoCodec(interfaceRegistry)
 	amino := codec.NewLegacyAmino()
@@ -77,27 +68,20 @@ func provideBuilder() (outputs, error) {
 		cdc:               cdc,
 		amino:             amino,
 	}
-	return outputs{
-		InterfaceRegistry: interfaceRegistry,
-		Codec:             cdc,
-		LegacyAmino:       amino,
-		Builder:           builder,
-	}, nil
+
+	return interfaceRegistry, cdc, amino, builder
 }
 
 type AppCreator struct {
-	builder *appBuilder
-	modules map[string]module.AppModuleWiringWrapper
-	app     *App
-	config  *runtimev1.Module
+	app *App
 }
 
 func (a *AppCreator) RegisterModules(modules ...module.AppModule) error {
 	for _, appModule := range modules {
-		if _, ok := a.modules[appModule.Name()]; ok {
+		if _, ok := a.app.mm.Modules[appModule.Name()]; ok {
 			return fmt.Errorf("module named %q already exists", appModule.Name())
 		}
-		a.modules[appModule.Name()] = module.AppModuleWiringWrapper{AppModule: appModule}
+		a.app.mm.Modules[appModule.Name()] = appModule
 	}
 	return nil
 }
@@ -146,14 +130,13 @@ func (a *AppCreator) Create(logger log.Logger, db dbm.DB, traceStore io.Writer, 
 		baseapp.SetSnapshot(snapshotStore, snapshotOptions),
 	)
 
-	bApp := baseapp.NewBaseApp(a.config.AppName, logger, db, baseAppOptions...)
+	bApp := baseapp.NewBaseApp(a.app.config.AppName, logger, db, baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetVersion(version.Version)
-	bApp.SetInterfaceRegistry(a.builder.interfaceRegistry)
+	bApp.SetInterfaceRegistry(a.app.builder.interfaceRegistry)
+	bApp.MountStores(a.app.builder.storeKeys...)
 
-	a.app = &App{
-		BaseApp: bApp,
-	}
+	a.app.BaseApp = bApp
 	return a.app
 }
 
@@ -162,27 +145,12 @@ func (a *AppCreator) Finish(loadLatest bool) error {
 		return fmt.Errorf("app not created yet, can't finish")
 	}
 
-	// Begin Blockers
-	for _, blocker := range a.config.BeginBlockers {
-		mod, ok := a.modules[blocker]
-		if !ok {
-			return fmt.Errorf("can't find module named %q registered as a begin blocker", blocker)
-		}
-
-		a.app.beginBlockers = append(a.app.beginBlockers, mod.BeginBlock)
-	}
-	a.app.SetBeginBlocker(a.app.BeginBlocker)
-
-	// End Blockers
-	for _, blocker := range a.config.EndBlockers {
-		mod, ok := a.modules[blocker]
-		if !ok {
-			return fmt.Errorf("can't find module named %q registered as an end blocker", blocker)
-		}
-
-		a.app.endBlockers = append(a.app.endBlockers, mod.EndBlock)
-	}
-	a.app.SetEndBlocker(a.app.EndBlocker)
+	a.app.mm.SetOrderInitGenesis(a.app.config.InitGenesis...)
+	a.app.mm.SetOrderBeginBlockers(a.app.config.BeginBlockers...)
+	a.app.mm.SetOrderEndBlockers(a.app.config.EndBlockers...)
+	a.app.SetBeginBlocker(a.app.mm.BeginBlock)
+	a.app.SetEndBlocker(a.app.mm.EndBlock)
+	a.app.SetInitChainer(a.app.InitChainer)
 
 	if loadLatest {
 		if err := a.app.LoadLatestVersion(); err != nil {
@@ -194,10 +162,19 @@ func (a *AppCreator) Finish(loadLatest bool) error {
 }
 
 func provideApp(config *runtimev1.Module, builder *appBuilder, modules map[string]module.AppModuleWiringWrapper) *AppCreator {
+	mm := &module.Manager{}
+	for name, wrapper := range modules {
+		mm.Modules[name] = wrapper.AppModule
+	}
 	return &AppCreator{
-		config:  config,
-		builder: builder,
-		modules: modules,
+		app: &App{
+			BaseApp:       nil,
+			config:        config,
+			builder:       builder,
+			mm:            mm,
+			beginBlockers: nil,
+			endBlockers:   nil,
+		},
 	}
 }
 
