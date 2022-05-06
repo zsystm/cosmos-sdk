@@ -3,6 +3,7 @@ package runtime
 import (
 	"encoding/json"
 
+	"github.com/gogo/protobuf/grpc"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	runtimev1 "github.com/cosmos/cosmos-sdk/api/cosmos/base/runtime/v1"
@@ -13,16 +14,19 @@ import (
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/types/tx"
 )
 
 type App struct {
 	*baseapp.BaseApp
-	config         *runtimev1.Module
-	builder        *appBuilder
-	mm             *module.Manager
-	beginBlockers  []func(sdk.Context, abci.RequestBeginBlock)
-	endBlockers    []func(sdk.Context, abci.RequestEndBlock) []abci.ValidatorUpdate
-	baseAppOptions []BaseAppOption
+	config              *runtimev1.Module
+	builder             *appBuilder
+	mm                  *module.Manager
+	beginBlockers       []func(sdk.Context, abci.RequestBeginBlock)
+	endBlockers         []func(sdk.Context, abci.RequestEndBlock) []abci.ValidatorUpdate
+	baseAppOptions      []BaseAppOption
+	txHandler           tx.Handler
+	msgServiceRegistrar grpc.Server
 }
 
 func (a App) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {

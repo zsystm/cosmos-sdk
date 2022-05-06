@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/gogo/protobuf/grpc"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
@@ -13,8 +14,10 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/container"
 	coremodule "github.com/cosmos/cosmos-sdk/core/module"
+	"github.com/cosmos/cosmos-sdk/std"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/version"
 )
 
@@ -49,13 +52,19 @@ func provideBuilder(moduleBasics map[string]module.AppModuleBasicWiringWrapper) 
 	codectypes.InterfaceRegistry,
 	codec.Codec,
 	*codec.LegacyAmino,
-	*appBuilder) {
+	*appBuilder,
+	codec.ProtoCodecMarshaler) {
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
 	amino := codec.NewLegacyAmino()
+
+	// build codecs
 	for _, wrapper := range moduleBasics {
 		wrapper.RegisterInterfaces(interfaceRegistry)
 		wrapper.RegisterLegacyAminoCodec(amino)
 	}
+	std.RegisterInterfaces(interfaceRegistry)
+	std.RegisterLegacyAminoCodec(amino)
+
 	cdc := codec.NewProtoCodec(interfaceRegistry)
 	builder := &appBuilder{
 		storeKeys:         nil,
@@ -64,7 +73,7 @@ func provideBuilder(moduleBasics map[string]module.AppModuleBasicWiringWrapper) 
 		amino:             amino,
 	}
 
-	return interfaceRegistry, cdc, amino, builder
+	return interfaceRegistry, cdc, amino, builder, cdc
 }
 
 type AppCreator struct {
@@ -90,6 +99,7 @@ func (a *AppCreator) Create(logger log.Logger, db dbm.DB, traceStore io.Writer, 
 	bApp.SetVersion(version.Version)
 	bApp.SetInterfaceRegistry(a.app.builder.interfaceRegistry)
 	bApp.MountStores(a.app.builder.storeKeys...)
+	bApp.SetTxHandler(a.app.txHandler)
 
 	a.app.BaseApp = bApp
 	return a.app
@@ -100,6 +110,8 @@ func (a *AppCreator) Finish(loadLatest bool) error {
 		return fmt.Errorf("app not created yet, can't finish")
 	}
 
+	configurator := module.NewConfigurator(a.app.builder.cdc, a.app.msgServiceRegistrar, a.app.GRPCQueryRouter())
+	a.app.mm.RegisterServices(configurator)
 	a.app.mm.SetOrderInitGenesis(a.app.config.InitGenesis...)
 	a.app.mm.SetOrderBeginBlockers(a.app.config.BeginBlockers...)
 	a.app.mm.SetOrderEndBlockers(a.app.config.EndBlockers...)
@@ -116,20 +128,29 @@ func (a *AppCreator) Finish(loadLatest bool) error {
 	return nil
 }
 
-func provideApp(config *runtimev1.Module, builder *appBuilder, modules map[string]module.AppModuleWiringWrapper, baseAppOptions []BaseAppOption) *AppCreator {
+func provideApp(
+	config *runtimev1.Module,
+	builder *appBuilder,
+	modules map[string]module.AppModuleWiringWrapper,
+	baseAppOptions []BaseAppOption,
+	txHandler tx.Handler,
+	msgServiceRegistrar grpc.Server,
+) *AppCreator {
 	mm := &module.Manager{Modules: map[string]module.AppModule{}}
 	for name, wrapper := range modules {
 		mm.Modules[name] = wrapper.AppModule
 	}
 	return &AppCreator{
 		app: &App{
-			BaseApp:        nil,
-			baseAppOptions: baseAppOptions,
-			config:         config,
-			builder:        builder,
-			mm:             mm,
-			beginBlockers:  nil,
-			endBlockers:    nil,
+			BaseApp:             nil,
+			baseAppOptions:      baseAppOptions,
+			config:              config,
+			builder:             builder,
+			mm:                  mm,
+			beginBlockers:       nil,
+			endBlockers:         nil,
+			txHandler:           txHandler,
+			msgServiceRegistrar: msgServiceRegistrar,
 		},
 	}
 }
