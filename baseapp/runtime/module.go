@@ -52,7 +52,7 @@ func (a *appBuilder) registerStoreKey(key storetypes.StoreKey) {
 }
 
 func init() {
-	coremodule.Register(nil,
+	coremodule.Register(&runtimev1.Module{},
 		coremodule.Provide(
 			provideBuilder,
 			provideApp,
@@ -162,13 +162,27 @@ func (a *AppCreator) Finish(loadLatest bool) error {
 		return fmt.Errorf("app not created yet, can't finish")
 	}
 
+	// Begin Blockers
 	for _, blocker := range a.config.BeginBlockers {
 		mod, ok := a.modules[blocker]
 		if !ok {
 			return fmt.Errorf("can't find module named %q registered as a begin blocker", blocker)
 		}
 
+		a.app.beginBlockers = append(a.app.beginBlockers, mod.BeginBlock)
 	}
+	a.app.SetBeginBlocker(a.app.BeginBlocker)
+
+	// End Blockers
+	for _, blocker := range a.config.EndBlockers {
+		mod, ok := a.modules[blocker]
+		if !ok {
+			return fmt.Errorf("can't find module named %q registered as an end blocker", blocker)
+		}
+
+		a.app.endBlockers = append(a.app.endBlockers, mod.EndBlock)
+	}
+	a.app.SetEndBlocker(a.app.EndBlocker)
 
 	if loadLatest {
 		if err := a.app.LoadLatestVersion(); err != nil {
