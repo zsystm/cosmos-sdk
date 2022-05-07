@@ -15,7 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
-	coremodule "github.com/cosmos/cosmos-sdk/core/module"
+	"github.com/cosmos/cosmos-sdk/core/appmodule"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
@@ -115,8 +115,8 @@ func (am AppModule) ExportGenesis(_ sdk.Context, cdc codec.JSONCodec) json.RawMe
 func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 func init() {
-	coremodule.Register(&modulev1.Module{},
-		coremodule.Provide(provideModuleBasic, provideModule),
+	appmodule.Register(&modulev1.Module{},
+		appmodule.Provide(provideModuleBasic, provideModule),
 	)
 }
 

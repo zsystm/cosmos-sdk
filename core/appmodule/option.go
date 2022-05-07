@@ -1,8 +1,9 @@
-package module
+package appmodule
 
 import (
 	"github.com/cosmos/cosmos-sdk/container"
-	"github.com/cosmos/cosmos-sdk/core/internal"
+
+	"cosmossdk.io/core/internal"
 )
 
 type Option interface {

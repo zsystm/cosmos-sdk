@@ -14,7 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
-	coremodule "github.com/cosmos/cosmos-sdk/core/module"
+	"github.com/cosmos/cosmos-sdk/core/appmodule"
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -208,8 +208,8 @@ func (am AppModule) WeightedOperations(simState module.SimulationState) []simtyp
 }
 
 func init() {
-	coremodule.Register(&modulev1.Module{},
-		coremodule.Provide(provideModuleBasic, provideModule),
+	appmodule.Register(&modulev1.Module{},
+		appmodule.Provide(provideModuleBasic, provideModule),
 	)
 }
 

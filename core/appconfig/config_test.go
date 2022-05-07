@@ -1,15 +1,16 @@
-package config_test
+package appconfig_test
 
 import (
 	"testing"
 
 	"gotest.tools/v3/assert"
 
-	appv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/app/v1alpha1"
-
-	modulev1 "github.com/cosmos/cosmos-sdk/api/cosmos/auth/module/v1"
 	"github.com/cosmos/cosmos-sdk/container"
-	"github.com/cosmos/cosmos-sdk/core/config"
+
+	appv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/app/v1alpha1"
+	modulev1 "github.com/cosmos/cosmos-sdk/api/cosmos/auth/module/v1"
+
+	"cosmossdk.io/core/appconfig"
 )
 
 func expectContainerErrorContains(t *testing.T, option container.Option, contains string) {
@@ -19,14 +20,14 @@ func expectContainerErrorContains(t *testing.T, option container.Option, contain
 }
 
 func TestComposeErrors(t *testing.T) {
-	opt := config.Compose(&appv1alpha1.Config{
+	opt := appconfig.Compose(&appv1alpha1.Config{
 		Modules: []*appv1alpha1.ModuleConfig{
 			{},
 		},
 	})
 	expectContainerErrorContains(t, opt, "module is missing name")
 
-	opt = config.Compose(&appv1alpha1.Config{
+	opt = appconfig.Compose(&appv1alpha1.Config{
 		Modules: []*appv1alpha1.ModuleConfig{
 			{
 				Name: "auth",
@@ -35,21 +36,21 @@ func TestComposeErrors(t *testing.T) {
 	})
 	expectContainerErrorContains(t, opt, "missing a config object")
 
-	opt = config.Compose(&appv1alpha1.Config{
+	opt = appconfig.Compose(&appv1alpha1.Config{
 		Modules: []*appv1alpha1.ModuleConfig{
 			{
 				Name:   "auth",
-				Config: config.MustWrapAny(&appv1alpha1.ModuleConfig{}),
+				Config: appconfig.MustWrapAny(&appv1alpha1.ModuleConfig{}),
 			},
 		},
 	})
 	expectContainerErrorContains(t, opt, "does not have the option")
 
-	opt = config.Compose(&appv1alpha1.Config{
+	opt = appconfig.Compose(&appv1alpha1.Config{
 		Modules: []*appv1alpha1.ModuleConfig{
 			{
 				Name:   "auth",
-				Config: config.MustWrapAny(&modulev1.Module{}),
+				Config: appconfig.MustWrapAny(&modulev1.Module{}),
 			},
 		},
 	})

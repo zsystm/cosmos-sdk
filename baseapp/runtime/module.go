@@ -8,12 +8,13 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
+	"cosmossdk.io/core/appmodule"
+
 	runtimev1 "github.com/cosmos/cosmos-sdk/api/cosmos/base/runtime/v1"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/container"
-	coremodule "github.com/cosmos/cosmos-sdk/core/module"
 	"github.com/cosmos/cosmos-sdk/std"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -37,8 +38,8 @@ func (a *appBuilder) registerStoreKey(key storetypes.StoreKey) {
 }
 
 func init() {
-	coremodule.Register(&runtimev1.Module{},
-		coremodule.Provide(
+	appmodule.Register(&runtimev1.Module{},
+		appmodule.Provide(
 			provideBuilder,
 			provideApp,
 			provideKVStoreKey,

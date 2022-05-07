@@ -14,6 +14,7 @@ import (
 
 	modulev1 "github.com/cosmos/cosmos-sdk/api/cosmos/auth/module/v1"
 	"github.com/cosmos/cosmos-sdk/container"
+	"github.com/cosmos/cosmos-sdk/core/appmodule"
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	authmiddleware "github.com/cosmos/cosmos-sdk/x/auth/middleware"
@@ -25,7 +26,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	coremodule "github.com/cosmos/cosmos-sdk/core/module"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -203,8 +203,8 @@ func (AppModule) WeightedOperations(_ module.SimulationState) []simtypes.Weighte
 //
 
 func init() {
-	coremodule.Register(&modulev1.Module{},
-		coremodule.Provide(provideModuleBasic, provideTxConfig, provideModule, provideTxHandler),
+	appmodule.Register(&modulev1.Module{},
+		appmodule.Provide(provideModuleBasic, provideTxConfig, provideModule, provideTxHandler),
 	)
 }
 

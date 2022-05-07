@@ -1,4 +1,4 @@
-package config
+package appconfig
 
 import (
 	"fmt"
@@ -11,10 +11,11 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"sigs.k8s.io/yaml"
 
+	"github.com/cosmos/cosmos-sdk/container"
+
 	appv1alpha1 "github.com/cosmos/cosmos-sdk/api/cosmos/app/v1alpha1"
 
-	"github.com/cosmos/cosmos-sdk/container"
-	"github.com/cosmos/cosmos-sdk/core/internal"
+	"cosmossdk.io/core/internal"
 )
 
 func LoadJSON(bz []byte) container.Option {
@@ -37,7 +38,10 @@ func LoadYAML(bz []byte) container.Option {
 }
 
 func Compose(appConfig *appv1alpha1.Config) container.Option {
-	var opts []container.Option
+	opts := []container.Option{
+		container.Supply(appConfig),
+	}
+
 	for _, module := range appConfig.Modules {
 		if module.Name == "" {
 			return container.Error(fmt.Errorf("module is missing name"))

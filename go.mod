@@ -5,6 +5,7 @@ module github.com/cosmos/cosmos-sdk
 require (
 	cosmossdk.io/errors v1.0.0-beta.6
 	cosmossdk.io/math v1.0.0-beta.2
+	cosmossdk.io/core v0.0.0
 	github.com/99designs/keyring v1.1.6
 	github.com/armon/go-metrics v0.3.11
 	github.com/bgentry/speakeasy v0.1.0
@@ -165,6 +166,7 @@ replace (
 	github.com/cosmos/cosmos-sdk/api => ./api
 	github.com/cosmos/cosmos-sdk/container => ./container
 	github.com/cosmos/cosmos-sdk/db => ./db
+	cosmossdk.io/core => ./core
 
 	// Fix upstream GHSA-h395-qcrw-5vmq vulnerability.
 	// TODO Remove it: https://github.com/cosmos/cosmos-sdk/issues/10409

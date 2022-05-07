@@ -1,11 +1,11 @@
-package module
+package appmodule
 
 import (
 	"reflect"
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/cosmos/cosmos-sdk/core/internal"
+	"cosmossdk.io/core/internal"
 )
 
 func Register(msg proto.Message, options ...Option) {

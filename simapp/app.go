@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"cosmossdk.io/core/appconfig"
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cast"
@@ -24,7 +25,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/container"
-	coreconfig "github.com/cosmos/cosmos-sdk/core/config"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -228,7 +228,7 @@ func NewSimApp(
 		app.appCodec = cdc
 		appCodec = cdc
 	},
-		coreconfig.LoadYAML(appConfig),
+		appconfig.LoadYAML(appConfig),
 	)
 	if err != nil {
 		panic(err)

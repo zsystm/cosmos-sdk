@@ -11,7 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/baseapp/runtime"
 	"github.com/cosmos/cosmos-sdk/container"
-	coreconfig "github.com/cosmos/cosmos-sdk/core/config"
+	"github.com/cosmos/cosmos-sdk/core/appconfig"
 	pruningtypes "github.com/cosmos/cosmos-sdk/pruning/types"
 	"github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
@@ -36,6 +36,6 @@ func TestIntegrationTestSuite(t *testing.T) {
 		suite.Run(t, NewIntegrationTestSuite(cfg))
 	},
 		container.Debug(),
-		coreconfig.LoadYAML(appConfig))
+		appconfig.LoadYAML(appConfig))
 	require.NoError(t, err)
 }
