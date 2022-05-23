@@ -59,49 +59,37 @@ func (h MultiStakingHooks) AfterValidatorBeginUnbonding(ctx sdk.Context, consAdd
 	return nil
 }
 
-func (h MultiStakingHooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (h MultiStakingHooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
 	for i := range h {
-		if err := h[i].BeforeDelegationCreated(ctx, delAddr, valAddr); err != nil {
-			return err
-		}
+		h[i].BeforeDelegationCreated(ctx, delAddr, valAddr)
 	}
-	return nil
 }
 
-func (h MultiStakingHooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (h MultiStakingHooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
 	for i := range h {
-		if err := h[i].BeforeDelegationSharesModified(ctx, delAddr, valAddr); err != nil {
-			return err
-		}
+		h[i].BeforeDelegationSharesModified(ctx, delAddr, valAddr)
 	}
-	return nil
 }
 
-func (h MultiStakingHooks) BeforeDelegationRemoved(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (h MultiStakingHooks) BeforeDelegationRemoved(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
 	for i := range h {
-		if err := h[i].BeforeDelegationRemoved(ctx, delAddr, valAddr); err != nil {
-			return err
-		}
+		h[i].BeforeDelegationRemoved(ctx, delAddr, valAddr)
 	}
-	return nil
+
 }
 
-func (h MultiStakingHooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (h MultiStakingHooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
 	for i := range h {
-		if err := h[i].AfterDelegationModified(ctx, delAddr, valAddr); err != nil {
-			return err
-		}
+		h[i].AfterDelegationModified(ctx, delAddr, valAddr)
 	}
-	return nil
+
 }
 
-func (h MultiStakingHooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) error {
+func (h MultiStakingHooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
 	for i := range h {
-		if err := h[i].BeforeValidatorSlashed(ctx, valAddr, fraction); err != nil {
-			return err
-		}
+		h[i].BeforeValidatorSlashed(ctx, valAddr, fraction)
 	}
-	return nil
+
 }
 func (h MultiStakingHooks) AfterUnbondingInitiated(ctx sdk.Context, id uint64) {
 	for i := range h {

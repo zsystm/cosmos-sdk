@@ -26,8 +26,6 @@ func (k Keeper) AfterValidatorBonded(ctx sdk.Context, address sdk.ConsAddress, _
 	}
 
 	k.SetValidatorSigningInfo(ctx, address, signingInfo)
-
-	return nil
 }
 
 // AfterValidatorCreated adds the address-pubkey relation when a validator is created.
@@ -62,7 +60,7 @@ func (k Keeper) Hooks() Hooks {
 
 // Implements sdk.ValidatorHooks
 func (h Hooks) AfterValidatorBonded(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress) error {
-	return h.k.AfterValidatorBonded(ctx, consAddr, valAddr)
+	h.k.AfterValidatorBonded(ctx, consAddr, valAddr)
 }
 
 // Implements sdk.ValidatorHooks
