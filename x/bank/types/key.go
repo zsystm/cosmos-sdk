@@ -23,16 +23,24 @@ const (
 var (
 	// BalancesPrefix is the prefix for the account balances store. We use a byte
 	// (instead of `[]byte("balances")` to save some disk space).
-	BalancesPrefix      = []byte{0x02}
-	SupplyKey           = []byte{0x00}
-	DenomMetadataPrefix = []byte{0x1}
-	SupplyOffsetKey     = []byte{0x88}
+	BalancesPrefix             = []byte{0x02}
+	SupplyKey                  = []byte{0x00}
+	DenomMetadataPrefix        = []byte{0x1}
+	DenomMetadataReversePrefix = []byte{0x2}
+	SupplyOffsetKey            = []byte{0x88}
 )
 
 // DenomMetadataKey returns the denomination metadata key.
 func DenomMetadataKey(denom string) []byte {
 	d := []byte(denom)
 	return append(DenomMetadataPrefix, d...)
+}
+
+// DenomMetadataUnitKey returns prefix key for storing a reverse lookup of a
+// denom unit to a denom metadata.
+func DenomMetadataReverseKey(denom string) []byte {
+	d := []byte(denom)
+	return append(DenomMetadataReversePrefix, d...)
 }
 
 // AddressFromBalancesStore returns an account address from a balances prefix

@@ -328,13 +328,23 @@ func (k BaseKeeper) IterateAllDenomMetaData(ctx sdk.Context, cb func(types.Metad
 	}
 }
 
-// SetDenomMetaData sets the denominations metadata
-func (k BaseKeeper) SetDenomMetaData(ctx sdk.Context, denomMetaData types.Metadata) {
+// SetDenomMetaData sets denomination metadata. Note, it is the caller's
+// responsibility to ensure they are not overwriting denomination metadata for
+// assets with the same base denom, or rather to ensure that metadata cannot
+// exist for more than one base denom.
+func (k BaseKeeper) SetDenomMetaData(ctx sdk.Context, denomMetadata types.Metadata) {
 	store := ctx.KVStore(k.storeKey)
-	denomMetaDataStore := prefix.NewStore(store, types.DenomMetadataKey(denomMetaData.Base))
+	denomMetaDataStore := prefix.NewStore(store, types.DenomMetadataKey(denomMetadata.Base))
 
-	m := k.cdc.MustMarshal(&denomMetaData)
-	denomMetaDataStore.Set([]byte(denomMetaData.Base), m)
+	m := k.cdc.MustMarshal(&denomMetadata)
+	denomMetaDataStore.Set([]byte(denomMetadata.Base), m)
+
+	// Store denom units under a separate store that act as a reverse lookup to
+	// the base denom and the corresponding metadata.
+	denomMetadataReverseStore := prefix.NewStore(store, types.DenomMetadataReversePrefix)
+	for _, unit := range denomMetadata.DenomUnits {
+		denomMetadataReverseStore.Set([]byte(unit.Denom), []byte(denomMetadata.Base))
+	}
 }
 
 // SendCoinsFromModuleToAccount transfers coins from a ModuleAccount to an AccAddress.
