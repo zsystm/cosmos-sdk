@@ -353,7 +353,7 @@ func NewSimApp(
 	app.configurator = module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
 	app.mm.RegisterServices(app.configurator)
 
-	const UpgradeName = "anil-test-upgrade"
+	const UpgradeName = "module-rename-test-upgrade"
 
 	app.UpgradeKeeper.SetUpgradeHandler(UpgradeName,
 		func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
