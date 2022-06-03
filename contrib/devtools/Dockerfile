@@ -7,15 +7,14 @@ FROM bufbuild/buf:1.1.0 as BUILDER
 FROM golang:1.18-alpine
 
 RUN apk add --no-cache \
-  nodejs \
-  npm \
-  git \
-  make
+    nodejs \
+    npm \
+    git \
+    make
 
 ENV GOLANG_PROTOBUF_VERSION=1.28.0 \
-  GOGO_PROTOBUF_VERSION=1.3.2 \
-  GRPC_GATEWAY_VERSION=1.16.0
-
+    GOGO_PROTOBUF_VERSION=1.3.2 \
+    GRPC_GATEWAY_VERSION=1.16.0
 
 RUN go install github.com/cosmos/cosmos-proto/cmd/protoc-gen-go-pulsar@latest
 RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v${GOLANG_PROTOBUF_VERSION}
@@ -35,5 +34,8 @@ RUN git clone https://github.com/regen-network/cosmos-proto.git; \
     go install .
 
 RUN npm install -g swagger-combine
+
+RUN addgroup -S protogen && adduser -S protogen -G protogen
+USER protogen
 
 COPY --from=BUILDER /usr/local/bin /usr/local/bin
