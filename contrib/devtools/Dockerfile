@@ -1,6 +1,6 @@
 ## To test locally:
-# docker build --pull --rm -f "contrib/devtools/Dockerfile" -t cosmossdk-proto:latest "contrib/devtools"
-# docker run --rm -v $(pwd):/workspace --workdir /workspace cosmossdk-proto sh ./scripts/protocgen.sh
+# docker build --pull --rm -f "contrib/devtools/Dockerfile" -t tendermintdev/sdk-proto-gen:debug "contrib/devtools"
+# docker run --rm -v $(pwd):/workspace --workdir /workspace tendermintdev/sdk-proto-gen:debug sh ./scripts/protocgen.sh
 
 FROM bufbuild/buf:1.1.0 as BUILDER
 
