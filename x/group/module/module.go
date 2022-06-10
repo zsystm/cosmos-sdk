@@ -4,11 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
-	"gopkg.in/yaml.v3"
+	"time"
 
 	"math/rand"
-	"time"
 
 	"cosmossdk.io/core/appmodule"
 	gwruntime "github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -191,22 +189,17 @@ type groupInputs struct {
 	MsgServiceRouter *baseapp.MsgServiceRouter
 }
 
-type Temp struct {
-	MaxExecutionPeriod time.Duration
-}
-
 func provideModule(in groupInputs) (keeper.Keeper, runtime.AppModuleWrapper) {
 	/*
 		Example of setting group params:
 		in.Config.MaxMetadataLen = 1000
 	*/
 
-	var tmp Temp
-	if err := yaml.Unmarshal([]byte(fmt.Sprintf("max_execution_period: %ss", in.Config.MaxExecutionPeriod.String()[8:])), &tmp); err != nil {
+	maxExecutionPeriod, err := time.ParseDuration(in.Config.MaxExecutionPeriod)
+	if err != nil {
 		panic(err)
 	}
-
-	k := keeper.NewKeeper(in.Key, in.Cdc, in.MsgServiceRouter, in.AccountKeeper, group.Config{MaxExecutionPeriod: tmp.MaxExecutionPeriod, MaxMetadataLen: in.Config.MaxMetadataLen})
+	k := keeper.NewKeeper(in.Key, in.Cdc, in.MsgServiceRouter, in.AccountKeeper, group.Config{MaxExecutionPeriod: maxExecutionPeriod, MaxMetadataLen: in.Config.MaxMetadataLen})
 	m := NewAppModule(in.Cdc, k, in.AccountKeeper, in.BankKeeper, in.Registry)
 	return k, runtime.WrapAppModule(m)
 }
