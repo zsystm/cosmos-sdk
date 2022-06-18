@@ -197,12 +197,14 @@ func (sgcd SigGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 // CONTRACT: Tx must implement SigVerifiableTx interface
 type SigVerificationDecorator struct {
 	ak              AccountKeeper
+	sk              StakingKeeper
 	signModeHandler authsigning.SignModeHandler
 }
 
-func NewSigVerificationDecorator(ak AccountKeeper, signModeHandler authsigning.SignModeHandler) SigVerificationDecorator {
+func NewSigVerificationDecorator(ak AccountKeeper, sk StakingKeeper, signModeHandler authsigning.SignModeHandler) SigVerificationDecorator {
 	return SigVerificationDecorator{
 		ak:              ak,
+		sk:              sk,
 		signModeHandler: signModeHandler,
 	}
 }
@@ -269,12 +271,15 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// retrieve signer data
-		genesis := ctx.BlockHeight() == 0
+		lastTotalPower := svd.sk.GetLastTotalPower(ctx)
+		genesis := ctx.BlockHeight() == ctx.InitialHeight() && lastTotalPower.IsZero()
 		chainID := ctx.ChainID()
+
 		var accNum uint64
 		if !genesis {
 			accNum = acc.GetAccountNumber()
 		}
+
 		signerData := authsigning.SignerData{
 			ChainID:       chainID,
 			AccountNumber: accNum,

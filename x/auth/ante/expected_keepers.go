@@ -18,3 +18,7 @@ type AccountKeeper interface {
 type FeegrantKeeper interface {
 	UseGrantedFees(ctx sdk.Context, granter, grantee sdk.AccAddress, fee sdk.Coins, msgs []sdk.Msg) error
 }
+
+type StakingKeeper interface {
+	GetLastTotalPower(ctx sdk.Context) sdk.Int
+}
