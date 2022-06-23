@@ -153,6 +153,65 @@ func SetupWithBaseAppOption(appConfig depinject.Config, baseAppOption runtime.Ba
 	return app, nil
 }
 
+func SetupWithGenesisState(
+	appConfig depinject.Config,
+	baseAppOption runtime.BaseAppOption,
+	valSet *tmtypes.ValidatorSet,
+	genesisState map[string]json.RawMessage,
+	genesis bool,
+	extraOutputs ...interface{}) (*runtime.App, error) {
+
+	var (
+		app        *runtime.App
+		appBuilder *runtime.AppBuilder
+		codec      codec.Codec
+	)
+
+	if err := depinject.Inject(
+		appConfig,
+		append(extraOutputs, &appBuilder, &codec)...,
+	); err != nil {
+		return nil, fmt.Errorf("failed to inject dependencies: %w", err)
+	}
+
+	if baseAppOption != nil {
+		app = appBuilder.Build(log.NewNopLogger(), dbm.NewMemDB(), nil, baseAppOption)
+	} else {
+		app = appBuilder.Build(log.NewNopLogger(), dbm.NewMemDB(), nil)
+	}
+	if err := app.Load(true); err != nil {
+		return nil, fmt.Errorf("failed to load app: %w", err)
+	}
+
+	// init chain must be called to stop deliverState from being nil
+	stateBytes, err := tmjson.MarshalIndent(genesisState, "", " ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal default genesis state: %w", err)
+	}
+
+	// init chain will set the validator set and initialize the genesis accounts
+	app.InitChain(
+		abci.RequestInitChain{
+			Validators:      []abci.ValidatorUpdate{},
+			ConsensusParams: DefaultConsensusParams,
+			AppStateBytes:   stateBytes,
+		},
+	)
+
+	// commit genesis changes
+	if !genesis {
+		app.Commit()
+		app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{
+			Height:             app.LastBlockHeight() + 1,
+			AppHash:            app.LastCommitID().Hash,
+			ValidatorsHash:     valSet.Hash(),
+			NextValidatorsHash: valSet.Hash(),
+		}})
+	}
+
+	return app, nil
+}
+
 // GenesisStateWithValSet returns a new genesis state with the validator set
 func GenesisStateWithValSet(codec codec.Codec, genesisState map[string]json.RawMessage,
 	valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount,
