@@ -18,7 +18,7 @@ import (
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktestutil "github.com/cosmos/cosmos-sdk/x/bank/testutil"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 var (
@@ -83,9 +83,9 @@ func (s *TestSuite) TestKeeper() {
 	err = s.authzKeeper.SaveGrant(ctx, granteeAddr, granterAddr, sendAutz, &expire)
 	require.NoError(err)
 
-	authorizations, err = s.authzKeeper.GetAuthorizations(ctx, granteeAddr, granterAddr)
-	require.NoError(err)
-	require.Len(authorizations, 1)
+	s.T().Log("verify fetching authorization with wrong msg type fails")
+	authorization, _ = app.AuthzKeeper.GetCleanAuthorization(ctx, granteeAddr, granterAddr, sdk.MsgTypeURL(&govtypes.MsgDeposit{}))
+	s.Require().Nil(authorization)
 
 	err = s.authzKeeper.DeleteGrant(ctx, granteeAddr, granterAddr, sendAutz.MsgTypeURL())
 	require.NoError(err)
