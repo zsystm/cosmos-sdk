@@ -4,6 +4,7 @@ package tx_test
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"testing"
@@ -690,6 +691,37 @@ func (s IntegrationTestSuite) TestGetBlockWithTxs_GRPCGateway() {
 
 func TestIntegrationTestSuite(t *testing.T) {
 	suite.Run(t, new(IntegrationTestSuite))
+}
+
+func (s IntegrationTestSuite) TestQueryBySig() {
+	// broadcast tx
+	txb := s.mkTxBuilder()
+	txbz, err := s.cfg.TxConfig.TxEncoder()(txb.GetTx())
+	s.Require().NoError(err)
+	_, err = s.queryClient.BroadcastTx(context.Background(), &tx.BroadcastTxRequest{TxBytes: txbz, Mode: tx.BroadcastMode_BROADCAST_MODE_BLOCK})
+	s.Require().NoError(err)
+
+	// get the signature out of the builder
+	sigs, err := txb.GetTx().GetSignaturesV2()
+	s.Require().NoError(err)
+	s.Require().Len(sigs, 1)
+	sig, ok := sigs[0].Data.(*signing.SingleSignatureData)
+	s.Require().True(ok)
+
+	// encode, format, query
+	b64Sig := base64.StdEncoding.EncodeToString(sig.Signature)
+	sigFormatted := fmt.Sprintf("%s.%s='%s'", sdk.EventTypeTx, sdk.AttributeKeySignature, b64Sig)
+	res, err := s.queryClient.GetTxsEvent(context.Background(), &tx.GetTxsEventRequest{
+		Events:  []string{sigFormatted},
+		OrderBy: 0,
+		Page:    0,
+		Limit:   10,
+	})
+	s.Require().NoError(err)
+	// fails with:
+	// rpc error: code = InvalidArgument desc = rpc error: code = InvalidArgument desc = invalid event;
+	// event tx.signature='hXu2FMTOBt7RzVdItIPvrStsmcCXYsvkIAH88bgqOalywxPMChuhAgdnOysz8JoKCG2W7Vnl60CWYC2z8fq6Zw=='
+	// should be of the format: {eventType}.{eventAttribute}={value}: invalid request
 }
 
 func (s IntegrationTestSuite) mkTxBuilder() client.TxBuilder {
