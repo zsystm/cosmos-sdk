@@ -3,11 +3,31 @@ package keeper_test
 import (
 	"time"
 
+	"github.com/golang/mock/gomock"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	evidencetestutil "github.com/cosmos/cosmos-sdk/x/evidence/testutil"
+
 	"github.com/cosmos/cosmos-sdk/x/evidence/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/staking/teststaking"
 )
+
+func (suite *KeeperTestSuite) populateValidators(ctx sdk.Context) {
+	// gomock initlializations
+	ctrl := gomock.NewController(suite.T())
+	bankKeeper := evidencetestutil.NewMockBankKeeper(ctrl)
+
+	// add accounts and set total supply
+	totalSupplyAmt := initAmt.MulRaw(int64(len(valAddresses)))
+	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, totalSupplyAmt))
+	suite.NoError(bankKeeper.MintCoins(ctx, minttypes.ModuleName, totalSupply))
+
+	for _, addr := range valAddresses {
+		suite.NoError(bankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, (sdk.AccAddress)(addr), initCoins))
+	}
+}
 
 func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	ctx := suite.ctx.WithIsCheckTx(false).WithBlockHeight(1)
@@ -101,7 +121,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 		ConsensusAddress: sdk.ConsAddress(val.Address()).String(),
 	}
 
-	cp := suite.app.BaseApp.GetConsensusParams(ctx)
+	cp := suite.baseApp.GetConsensusParams(ctx)
 
 	ctx = ctx.WithConsensusParams(cp)
 	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(cp.Evidence.MaxAgeDuration + 1))

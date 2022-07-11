@@ -5,26 +5,23 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/cosmos/cosmos-sdk/runtime"
-	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
+	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
+	"github.com/cosmos/cosmos-sdk/x/evidence"
 	"github.com/cosmos/cosmos-sdk/x/evidence/exported"
 	"github.com/cosmos/cosmos-sdk/x/evidence/keeper"
-	"github.com/cosmos/cosmos-sdk/x/evidence/testutil"
+	evidencetestutil "github.com/cosmos/cosmos-sdk/x/evidence/testutil"
 	"github.com/cosmos/cosmos-sdk/x/evidence/types"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 )
@@ -81,11 +78,10 @@ type KeeperTestSuite struct {
 
 	ctx     sdk.Context
 	querier sdk.Querier
-	app     *runtime.App
 
+	baseApp           *baseapp.BaseApp
 	evidenceKeeper    keeper.Keeper
-	bankKeeper        bankkeeper.Keeper
-	accountKeeper     authkeeper.AccountKeeper
+	bankKeeper        *evidencetestutil.MockBankKeeper
 	slashingKeeper    slashingkeeper.Keeper
 	stakingKeeper     *stakingkeeper.Keeper
 	interfaceRegistry codectypes.InterfaceRegistry
@@ -94,39 +90,43 @@ type KeeperTestSuite struct {
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
-	var (
-		legacyAmino    *codec.LegacyAmino
-		evidenceKeeper keeper.Keeper
-	)
 
-	app, err := simtestutil.Setup(testutil.AppConfig,
-		&legacyAmino,
-		&evidenceKeeper,
-		&suite.interfaceRegistry,
-		&suite.accountKeeper,
-		&suite.bankKeeper,
-		&suite.slashingKeeper,
-		&suite.stakingKeeper,
+	encCfg := moduletestutil.MakeTestEncodingConfig(evidence.AppModuleBasic{})
+	key := sdk.NewKVStoreKey(types.StoreKey)
+	testCtx := testutil.DefaultContextWithDB(suite.T(), key, sdk.NewTransientStoreKey("transient_test"))
+	suite.ctx = testCtx.Ctx
+
+	// gomock initlializations
+	ctrl := gomock.NewController(suite.T())
+	slashingKeeper := evidencetestutil.NewMockSlashingKeeper(ctrl)
+	stakingkeeper := evidencetestutil.NewMockStakingKeeper(ctrl)
+
+	bankKeeper := evidencetestutil.NewMockBankKeeper(ctrl)
+	suite.bankKeeper = bankKeeper
+
+	suite.evidenceKeeper = *keeper.NewKeeper(
+		encCfg.Codec,
+		key,
+		stakingkeeper,
+		slashingKeeper,
 	)
-	require.NoError(suite.T(), err)
 
 	router := types.NewRouter()
-	router = router.AddRoute(types.RouteEquivocation, testEquivocationHandler(evidenceKeeper))
-	evidenceKeeper.SetRouter(router)
+	router = router.AddRoute(types.RouteEquivocation, testEquivocationHandler(suite.evidenceKeeper))
+	suite.evidenceKeeper.SetRouter(router)
 
-	suite.ctx = app.BaseApp.NewContext(false, tmproto.Header{Height: 1})
-	suite.querier = keeper.NewQuerier(evidenceKeeper, legacyAmino)
-	suite.app = app
+	suite.querier = keeper.NewQuerier(suite.evidenceKeeper, encCfg.Amino)
+	suite.baseApp = baseapp.NewBaseApp(
+		types.ModuleName,
+		log.NewNopLogger(),
+		testCtx.DB,
+		encCfg.TxConfig.TxDecoder(),
+	)
 
-	for i, addr := range valAddresses {
-		addr := sdk.AccAddress(addr)
-		suite.accountKeeper.SetAccount(suite.ctx, authtypes.NewBaseAccount(addr, pubkeys[i], uint64(i), 0))
-	}
-
+	suite.interfaceRegistry = encCfg.InterfaceRegistry
 	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, suite.interfaceRegistry)
-	types.RegisterQueryServer(queryHelper, evidenceKeeper)
+	types.RegisterQueryServer(queryHelper, suite.evidenceKeeper)
 	suite.queryClient = types.NewQueryClient(queryHelper)
-	suite.evidenceKeeper = evidenceKeeper
 }
 
 func (suite *KeeperTestSuite) populateEvidence(ctx sdk.Context, numEvidence int) []exported.Evidence {
@@ -146,17 +146,6 @@ func (suite *KeeperTestSuite) populateEvidence(ctx sdk.Context, numEvidence int)
 	}
 
 	return evidence
-}
-
-func (suite *KeeperTestSuite) populateValidators(ctx sdk.Context) {
-	// add accounts and set total supply
-	totalSupplyAmt := initAmt.MulRaw(int64(len(valAddresses)))
-	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, totalSupplyAmt))
-	suite.NoError(suite.bankKeeper.MintCoins(ctx, minttypes.ModuleName, totalSupply))
-
-	for _, addr := range valAddresses {
-		suite.NoError(suite.bankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, (sdk.AccAddress)(addr), initCoins))
-	}
 }
 
 func (suite *KeeperTestSuite) TestSubmitValidEvidence() {
