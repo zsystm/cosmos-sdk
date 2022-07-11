@@ -29,6 +29,8 @@ const (
 )
 
 var (
+	ParamsKey = []byte{0x01} // Prefix for params key
+
 	// Keys for store prefixes
 	// Last* values are constant during a block.
 	LastValidatorPowerKey = []byte{0x11} // prefix for each key to a validator index, for bonded validators
