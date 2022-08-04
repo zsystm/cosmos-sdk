@@ -10,7 +10,6 @@ import (
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -19,7 +18,7 @@ import (
 	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
 	authzmodule "github.com/cosmos/cosmos-sdk/x/authz/module"
 	authztestutil "github.com/cosmos/cosmos-sdk/x/authz/testutil"
-	bank "github.com/cosmos/cosmos-sdk/x/bank/types"
+	bank "github.com/cosmos/cosmos-sdk/x/bank"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -34,22 +33,21 @@ var (
 type TestSuite struct {
 	suite.Suite
 
-	ctx               sdk.Context
-	addrs             []sdk.AccAddress
-	authzKeeper       authzkeeper.Keeper
-	accountKeeper     *authztestutil.MockAccountKeeper
-	bankKeeper        *authztestutil.MockBankKeeper
-	interfaceRegistry codectypes.InterfaceRegistry
-	baseApp           *baseapp.BaseApp
-	encCfg            moduletestutil.TestEncodingConfig
-	queryClient       authz.QueryClient
+	ctx           sdk.Context
+	addrs         []sdk.AccAddress
+	authzKeeper   authzkeeper.Keeper
+	accountKeeper *authztestutil.MockAccountKeeper
+	bankKeeper    *authztestutil.MockBankKeeper
+	baseApp       *baseapp.BaseApp
+	encCfg        moduletestutil.TestEncodingConfig
+	queryClient   authz.QueryClient
 }
 
 func (s *TestSuite) SetupTest() {
 	key := sdk.NewKVStoreKey(authzkeeper.StoreKey)
 	testCtx := testutil.DefaultContextWithDB(s.T(), key, sdk.NewTransientStoreKey("transient_test"))
 	s.ctx = testCtx.Ctx.WithBlockHeader(tmproto.Header{Time: tmtime.Now()})
-	s.encCfg = moduletestutil.MakeTestEncodingConfig(authzmodule.AppModuleBasic{})
+	s.encCfg = moduletestutil.MakeTestEncodingConfig(authzmodule.AppModuleBasic{}, bank.AppModuleBasic{})
 
 	s.baseApp = baseapp.NewBaseApp(
 		"authz",
@@ -58,9 +56,11 @@ func (s *TestSuite) SetupTest() {
 		s.encCfg.TxConfig.TxDecoder(),
 	)
 	s.baseApp.SetCMS(testCtx.CMS)
-	bank.RegisterInterfaces(s.encCfg.InterfaceRegistry)
+	s.baseApp.SetInterfaceRegistry(s.encCfg.InterfaceRegistry)
+	banktypes.RegisterInterfaces(s.encCfg.InterfaceRegistry)
+	banktypes.RegisterMsgServer(s.baseApp.MsgServiceRouter(), s.bankKeeper) // TODO use correct interface
 
-	queryHelper := baseapp.NewQueryServerTestHelper(s.ctx, s.interfaceRegistry)
+	queryHelper := baseapp.NewQueryServerTestHelper(s.ctx, s.encCfg.InterfaceRegistry)
 	authz.RegisterQueryServer(queryHelper, s.authzKeeper)
 	queryClient := authz.NewQueryClient(queryHelper)
 	s.queryClient = queryClient
