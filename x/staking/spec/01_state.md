@@ -15,6 +15,21 @@ Store entries prefixed with "Last" must remain unchanged until EndBlock.
 
 * LastTotalPower: `0x12 -> ProtocolBuffer(math.Int)`
 
+## ValidatorUpdates
+
+ValidatorUpdates contains the validator updates returned to ABCI at the end of every block. 
+The values are overwritten in every block. 
+
+- ValidatorUpdates `0x51 -> []abci.ValidatorUpdate`
+
+## UnbondingId
+
+UnbondingId stores the ID of the latest unbonding operation. It enables to create unique IDs for 
+unbonding operation, i.e., UnbondingId is incremented every time a new unbonding operation 
+(validator unbonding, unbonding delegation, redelegation) is initiated.
+
+- UnbondingId: `0x37 -> uint64`
+
 ## Params
 
 Params is a module-wide configuration structure that stores system parameters
@@ -47,10 +62,11 @@ required lookups for slashing and validator-set updates. A third special index
 throughout each block, unlike the first two indices which mirror the validator
 records within a block.
 
-* Validators: `0x21 | OperatorAddrLen (1 byte) | OperatorAddr -> ProtocolBuffer(validator)`
-* ValidatorsByConsAddr: `0x22 | ConsAddrLen (1 byte) | ConsAddr -> OperatorAddr`
-* ValidatorsByPower: `0x23 | BigEndian(ConsensusPower) | OperatorAddrLen (1 byte) | OperatorAddr -> OperatorAddr`
-* LastValidatorsPower: `0x11 | OperatorAddrLen (1 byte) | OperatorAddr -> ProtocolBuffer(ConsensusPower)`
+- Validators: `0x21 | OperatorAddrLen (1 byte) | OperatorAddr -> ProtocolBuffer(validator)`
+- ValidatorsByConsAddr: `0x22 | ConsAddrLen (1 byte) | ConsAddr -> OperatorAddr`
+- ValidatorsByPower: `0x23 | BigEndian(ConsensusPower) | OperatorAddrLen (1 byte) | OperatorAddr -> OperatorAddr`
+- ValidatorsByUnbondingId: `0x38 | UnbondingId ->  0x21 | OperatorAddrLen (1 byte) | OperatorAddr`
+- LastValidatorsPower: `0x11 | OperatorAddrLen (1 byte) | OperatorAddr -> ProtocolBuffer(ConsensusPower)`
 
 `Validators` is the primary index - it ensures that each operator can have only one
 associated validator, where the public key of that validator can change in the
@@ -66,6 +82,9 @@ address which can be derived from the validator's `ConsPubKey`.
 potential validators to quickly determine the current active set. Here
 ConsensusPower is validator.Tokens/10^6 by default. Note that all validators
 where `Jailed` is true are not stored within this index.
+
+`ValidatorsByUnbondingId` is an additional index that enables lookups for 
+validators by the unbonding IDs corresponding to their current unbonding.
 
 `LastValidatorsPower` is a special index that provides a historical list of the
 last-block's bonded validators. This index remains constant during a block but
@@ -118,13 +137,20 @@ detected.
 
 `UnbondingDelegation` are indexed in the store as:
 
-* UnbondingDelegation: `0x32 | DelegatorAddrLen (1 byte) | DelegatorAddr | ValidatorAddrLen (1 byte) | ValidatorAddr -> ProtocolBuffer(unbondingDelegation)`
-* UnbondingDelegationsFromValidator: `0x33 | ValidatorAddrLen (1 byte) | ValidatorAddr | DelegatorAddrLen (1 byte) | DelegatorAddr -> nil`
+- UnbondingDelegation: `0x32 | DelegatorAddrLen (1 byte) | DelegatorAddr | ValidatorAddrLen (1 byte) | ValidatorAddr -> ProtocolBuffer(unbondingDelegation)`
+- UnbondingDelegationsFromValidator: `0x33 | ValidatorAddrLen (1 byte) | ValidatorAddr | DelegatorAddrLen (1 byte) | DelegatorAddr -> nil`
+- UnbondingDelegationByUnbondingId: `0x38 | UnbondingId -> 0x32 | DelegatorAddrLen (1 byte) | DelegatorAddr | ValidatorAddrLen (1 byte) | ValidatorAddr`
 
-The first map here is used in queries, to lookup all unbonding delegations for
-a given delegator, while the second map is used in slashing, to lookup all
+`UnbondingDelegation` is used in queries, to lookup all unbonding delegations for
+a given delegator.
+
+`UnbondingDelegationsFromValidator` is used in slashing, to lookup all
 unbonding delegations associated with a given validator that need to be
 slashed.
+
+`UnbondingDelegationByUnbondingId` is an additional index that enables 
+lookups for unbonding delegations by the unbonding IDs of the containing 
+unbonding delegation entries.
 
 A UnbondingDelegation object is created every time an unbonding is initiated.
 
@@ -140,13 +166,21 @@ committed by the source validator.
 
 `Redelegation` are indexed in the store as:
 
-* Redelegations: `0x34 | DelegatorAddrLen (1 byte) | DelegatorAddr | ValidatorAddrLen (1 byte) | ValidatorSrcAddr | ValidatorDstAddr -> ProtocolBuffer(redelegation)`
-* RedelegationsBySrc: `0x35 | ValidatorSrcAddrLen (1 byte) | ValidatorSrcAddr | ValidatorDstAddrLen (1 byte) | ValidatorDstAddr | DelegatorAddrLen (1 byte) | DelegatorAddr -> nil`
-* RedelegationsByDst: `0x36 | ValidatorDstAddrLen (1 byte) | ValidatorDstAddr | ValidatorSrcAddrLen (1 byte) | ValidatorSrcAddr | DelegatorAddrLen (1 byte) | DelegatorAddr -> nil`
+- Redelegations: `0x34 | DelegatorAddrLen (1 byte) | DelegatorAddr | ValidatorAddrLen (1 byte) | ValidatorSrcAddr | ValidatorDstAddr -> ProtocolBuffer(redelegation)`
+- RedelegationsBySrc: `0x35 | ValidatorSrcAddrLen (1 byte) | ValidatorSrcAddr | ValidatorDstAddrLen (1 byte) | ValidatorDstAddr | DelegatorAddrLen (1 byte) | DelegatorAddr -> nil`
+- RedelegationsByDst: `0x36 | ValidatorDstAddrLen (1 byte) | ValidatorDstAddr | ValidatorSrcAddrLen (1 byte) | ValidatorSrcAddr | DelegatorAddrLen (1 byte) | DelegatorAddr -> nil`
+- RedelegationByUnbondingId: `0x38 | UnbondingId -> 0x34 | DelegatorAddrLen (1 byte) | DelegatorAddr | ValidatorAddrLen (1 byte) | ValidatorSrcAddr | ValidatorDstAddr`
 
-The first map here is used for queries, to lookup all redelegations for a given
-delegator. The second map is used for slashing based on the `ValidatorSrcAddr`,
-while the third map is for slashing based on the `ValidatorDstAddr`.
+`Redelegations` is used for queries, to lookup all redelegations for a given
+delegator.
+
+`RedelegationsBySrc` is used for slashing based on the `ValidatorSrcAddr`.
+
+`RedelegationsByDst` is used for slashing based on the `ValidatorDstAddr`
+ 
+`RedelegationByUnbondingId` is an additional index that enables 
+lookups for redelegations by the unbonding IDs of the containing 
+redelegation entries.
 
 A redelegation object is created every time a redelegation occurs. To prevent
 "redelegation hopping" redelegations may not occur under the situation that:

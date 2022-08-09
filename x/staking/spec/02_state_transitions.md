@@ -35,12 +35,14 @@ that of the `LastValidator`.
 
 When a validator begins the unbonding process the following operations occur:
 
-* send the `validator.Tokens` from the `BondedPool` to the `NotBondedTokens` `ModuleAccount`
-* set `validator.Status` to `Unbonding`
-* delete the existing record from `ValidatorByPowerIndex`
-* add a new updated record to the `ValidatorByPowerIndex`
-* update the `Validator` object for this validator
-* insert a new record into the `ValidatorQueue` for this validator
+- send the `validator.Tokens` from the `BondedPool` to the `NotBondedTokens` `ModuleAccount`
+- set `validator.Status` to `Unbonding`
+- delete the existing record from `ValidatorByPowerIndex`
+- add a new updated record to the `ValidatorByPowerIndex`
+- update the `Validator` object for this validator
+- insert a new record into the `ValidatorQueue` for this validator
+- get a unique `unbondingId` and map it to the validator in `ValidatorsByUnbondingId` 
+- call the `AfterUnbondingInitiated(unbondingId)` hook
 
 ### Unbonding to Unbonded
 
@@ -90,6 +92,9 @@ Delegation may be called.
 * if the validator state is `Bonded`, transfer the `Coins` worth of the unbonded
   shares from the `BondedPool` to the `NotBondedPool` `ModuleAccount`
 * remove the validator if it is unbonded and there are no more delegation shares.
+* get a unique `unbondingId` and map it to the `UnbondingDelegationEntry` in `UnbondingDelegationByUnbondingId` 
+* call the `AfterUnbondingInitiated(unbondingId)` hook
+* add the unbonding delegation to `UnbondingDelegationQueue` with the completion time set to `UnbondingTime` 
 
 ### Cancel an `UnbondingDelegation` Entry 
 When a `cancel unbond delegation` occurs both the `validator`, the `delegation` and an `UnbondingDelegationQueue` state will be updated.
@@ -116,6 +121,9 @@ Redelegations affect the delegation, source and destination validators.
 * otherwise, if the `sourceValidator.Status` is not `Bonded`, and the `destinationValidator`
   is `Bonded`, transfer the newly delegated tokens from the `NotBondedPool` to the `BondedPool` `ModuleAccount`
 * record the token amount in an new entry in the relevant `Redelegation`
+* get a unique `unbondingId` and map it to the `RedelegationEntry` in `RedelegationByUnbondingId` 
+* call the `AfterUnbondingInitiated(unbondingId)` hook
+* add the redelegation to `RedelegationQueue` with the completion time set to `UnbondingTime` 
 
 From when a redelegation begins until it completes, the delegator is in a state of "pseudo-unbonding", and can still be
 slashed for infractions that occured before the redelegation began.
@@ -150,7 +158,8 @@ Put otherwise, validators are not slashed retroactively, only when they are caug
 When a validator is slashed, so are those unbonding delegations from the validator that began unbonding
 after the time of the infraction. Every entry in every unbonding delegation from the validator
 is slashed by `slashFactor`. The amount slashed is calculated from the `InitialBalance` of the
-delegation and is capped to prevent a resulting negative balance. Completed (or mature) unbondings are not slashed.
+delegation and is capped to prevent a resulting negative balance. Completed (i.e., mature and not on hold) 
+unbondings are not slashed.
 
 ### Slash Redelegation
 
@@ -159,7 +168,7 @@ infraction. Redelegations are slashed by `slashFactor`.
 Redelegations that began before the infraction are not slashed.
 The amount slashed is calculated from the `InitialBalance` of the delegation and is capped to
 prevent a resulting negative balance.
-Mature redelegations (that have completed pseudo-unbonding) are not slashed.
+Completed (i.e., mature and not on hold) redelegations are not slashed.
 
 ## How Shares are calculated
 
