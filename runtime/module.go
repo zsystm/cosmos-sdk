@@ -94,6 +94,14 @@ func provideAppBuilder(inputs appInputs) *AppBuilder {
 	app.baseAppOptions = inputs.BaseAppOptions
 	app.config = inputs.Config
 	app.ModuleManager = mm
+
+	var overrideModules map[string]module.AppModuleSimulation
+	// var a exported.Subspace
+	// overrideModules = map[string]module.AppModuleSimulation{
+	// 	authtypes.ModuleName: auth.NewAppModule(app.cdc, "", authsims.RandomGenesisAccounts, a),
+	// }
+	sm := module.NewSimulationManagerFromAppModules(app.ModuleManager.Modules, overrideModules)
+	app.SimulationManager = sm
 	return &AppBuilder{app: app}
 }
 

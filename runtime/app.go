@@ -21,6 +21,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
+	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // App is a wrapper around BaseApp and ModuleManager that can be used in hybrid
@@ -37,6 +39,7 @@ import (
 type App struct {
 	*baseapp.BaseApp
 
+	SimulationManager *module.SimulationManager
 	ModuleManager     *module.Manager
 	configurator      module.Configurator
 	config            *runtimev1alpha1.Module
@@ -49,6 +52,8 @@ type App struct {
 	endBlockers       []func(sdk.Context, abci.RequestEndBlock) []abci.ValidatorUpdate
 	baseAppOptions    []BaseAppOption
 	msgServiceRouter  *baseapp.MsgServiceRouter
+	ParamsKeeper      paramskeeper.Keeper
+	subSpace          paramstypes.Subspace
 }
 
 // RegisterModules registers the provided modules with the module manager and
@@ -158,6 +163,11 @@ func (a *App) RegisterTendermintService(clientCtx client.Context) {
 
 func (a *App) Configurator() module.Configurator {
 	return a.configurator
+}
+
+func (a *App) GetSubSpace(moduleName string) paramstypes.Subspace {
+	subspace, _ := a.ParamsKeeper.GetSubspace(moduleName)
+	return subspace
 }
 
 // UnsafeFindStoreKey fetches a registered StoreKey from the App in linear time.
