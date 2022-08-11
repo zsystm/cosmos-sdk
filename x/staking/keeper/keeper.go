@@ -50,13 +50,12 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		storeKey:     key,
-		transientKey: tKey,
-		cdc:          cdc,
-		authKeeper:   ak,
-		bankKeeper:   bk,
-		paramstore:   ps,
-		hooks:        nil,
+		storeKey:   key,
+		cdc:        cdc,
+		authKeeper: ak,
+		bankKeeper: bk,
+		paramstore: ps,
+		hooks:      nil,
 	}
 }
 
