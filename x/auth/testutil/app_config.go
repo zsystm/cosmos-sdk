@@ -9,6 +9,7 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/x/genutil"
 	_ "github.com/cosmos/cosmos-sdk/x/params"
 	_ "github.com/cosmos/cosmos-sdk/x/staking"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"cosmossdk.io/core/appconfig"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -79,6 +80,8 @@ var AppConfig = appconfig.Compose(&appv1alpha1.Config{
 					{Account: "multiple permissions account", Permissions: []string{authtypes.Minter, authtypes.Burner, stakingtypes.ModuleName}}, // dummy permissions
 					{Account: "random permission", Permissions: []string{"random"}},
 				},
+				AccountIProto:          &anypb.Any{},
+				RandomGenesisAccountFn: &anypb.Any{},
 			}),
 		},
 		{
