@@ -2,6 +2,10 @@ package types
 
 import (
 	"context"
+	"cosmossdk.io/core/blockinfo"
+	"cosmossdk.io/core/event"
+	"cosmossdk.io/core/store"
+	"cosmossdk.io/depinject"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -299,4 +303,55 @@ func UnwrapSDKContext(ctx context.Context) Context {
 		return sdkCtx
 	}
 	return ctx.Value(SdkContextKey).(Context)
+}
+
+// Module Context
+
+type ModuleContext interface {
+	context.Context
+}
+
+type ModuleContextFactory[T ModuleContext] struct {
+	moduleKey depinject.ModuleKey
+	Make      func(ctx context.Context) T
+}
+
+func NewModuleContextFactory[T ModuleContext](moduleKey depinject.ModuleKey) ModuleContextFactory[T] {
+	return ModuleContextFactory[T]{
+		moduleKey: moduleKey,
+		Make: func(ctx context.Context) T {
+			if sdkCtx, ok := ctx.(T); ok {
+				return sdkCtx
+			}
+			c := ctx.Value(SdkContextKey).(T)
+			// set new capabilities field on context based on moduleKey
+			return c
+		}}
+}
+
+type BlockInfoServiceFactory interface {
+	BlockInfoService() blockinfo.Service
+}
+
+type KVStoreFactory interface {
+	KVStoreService(key storetypes.KVStoreKey) store.KVStoreService
+}
+
+type EventServiceFactory interface {
+	EventService() event.Service
+}
+
+func (c Context) BlockInfoService() blockinfo.Service {
+	// check module capabilities and
+	// return the impl of BlockInfoService in the current runtime
+	return nil
+}
+
+func (c Context) KVStoreService(key storetypes.KVStoreKey) store.KVStoreService {
+	// returns the runtime impl of KVStoreService
+	return nil
+}
+
+func (c Context) EventService() event.Service {
+	return nil
 }
