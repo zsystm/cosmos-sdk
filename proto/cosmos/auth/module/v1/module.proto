@@ -4,6 +4,7 @@ package cosmos.auth.module.v1;
 
 import "google/protobuf/any.proto";
 import "cosmos/app/v1alpha1/module.proto";
+import "cosmos_proto/cosmos.proto";
 
 // Module is the config object for the auth module.
 message Module {
@@ -21,7 +22,7 @@ message Module {
   google.protobuf.Any random_genesis_account_fn = 3;
 
   // the prototypical AccountI constructor
-  google.protobuf.Any accountI_proto = 4;
+  google.protobuf.Any accountI_proto = 4 [(cosmos_proto.accepts_interface) = "AccountI"];
 }
 
 // ModuleAccountPermission represents permissions for a module account.

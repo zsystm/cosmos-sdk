@@ -80,7 +80,14 @@ var AppConfig = appconfig.Compose(&appv1alpha1.Config{
 					{Account: "multiple permissions account", Permissions: []string{authtypes.Minter, authtypes.Burner, stakingtypes.ModuleName}}, // dummy permissions
 					{Account: "random permission", Permissions: []string{"random"}},
 				},
-				AccountIProto:          &anypb.Any{},
+				AccountIProto: &anypb.Any{},
+				// AccountIProto:          &anypb.Any{authtypes.ProtoBaseAccount},
+				// AccountIProto: &anypb.Any{
+				// 	func() (authtypes.AccountI) {
+				// 		a := authtypes.ProtoBaseAccount()
+				// 		return a
+				// 	},
+				// },
 				RandomGenesisAccountFn: &anypb.Any{},
 			}),
 		},
