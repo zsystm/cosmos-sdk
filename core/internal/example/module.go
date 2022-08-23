@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"cosmossdk.io/core/appmodule"
-	"github.com/cosmos/cosmos-sdk/depinject"
+	"cosmossdk.io/depinject"
 )
 
 func init() {
@@ -26,9 +26,10 @@ func init() {
 	)
 }
 
-func provideKeeper(key depinject.ModuleKey) keeper {
+func provideKeeper(key depinject.ModuleKey, storeKey types.KVStoreKey) keeper {
 	return keeper{
 		contextFactory: sdk.NewModuleContextFactory[ModuleContext](key),
+		kvStoreKey:     storeKey,
 	}
 }
 
@@ -47,7 +48,7 @@ func nameInfoKey(name string) []byte {
 }
 
 type ModuleContext interface {
-	sdk.ModuleContext
+	context.Context
 	sdk.BlockInfoServiceFactory
 	sdk.KVStoreFactory
 	sdk.EventServiceFactory

@@ -307,16 +307,12 @@ func UnwrapSDKContext(ctx context.Context) Context {
 
 // Module Context
 
-type ModuleContext interface {
-	context.Context
-}
-
-type ModuleContextFactory[T ModuleContext] struct {
+type ModuleContextFactory[T context.Context] struct {
 	moduleKey depinject.ModuleKey
 	Make      func(ctx context.Context) T
 }
 
-func NewModuleContextFactory[T ModuleContext](moduleKey depinject.ModuleKey) ModuleContextFactory[T] {
+func NewModuleContextFactory[T context.Context](moduleKey depinject.ModuleKey) ModuleContextFactory[T] {
 	return ModuleContextFactory[T]{
 		moduleKey: moduleKey,
 		Make: func(ctx context.Context) T {
