@@ -3,14 +3,12 @@ package example
 import (
 	"context"
 	"github.com/cosmos/cosmos-sdk/store/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
+	"github.com/cosmos/cosmos-sdk/types/capability"
 	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"cosmossdk.io/core/appmodule"
-	"cosmossdk.io/depinject"
 )
 
 func init() {
@@ -26,16 +24,16 @@ func init() {
 	)
 }
 
-func provideKeeper(key depinject.ModuleKey, storeKey types.KVStoreKey) keeper {
+func provideKeeper(storeKey types.KVStoreKey) keeper {
 	return keeper{
-		contextFactory: sdk.NewModuleContextFactory[ModuleContext](key),
+		contextFactory: capability.NewContextFactory[ModuleContext](),
 		kvStoreKey:     storeKey,
 	}
 }
 
 // the module's dependency injection inputs
 type keeper struct {
-	contextFactory sdk.ModuleContextFactory[ModuleContext]
+	contextFactory capability.ContextFactory[ModuleContext]
 	kvStoreKey     types.KVStoreKey
 }
 
@@ -48,10 +46,10 @@ func nameInfoKey(name string) []byte {
 }
 
 type ModuleContext interface {
-	context.Context
-	sdk.BlockInfoServiceFactory
-	sdk.KVStoreFactory
-	sdk.EventServiceFactory
+	capability.Context
+	capability.BlockInfoService
+	capability.KVStoreService
+	capability.EventService
 }
 
 // implement MsgServer

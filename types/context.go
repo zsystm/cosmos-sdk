@@ -4,8 +4,9 @@ import (
 	"context"
 	"cosmossdk.io/core/blockinfo"
 	"cosmossdk.io/core/event"
+	"cosmossdk.io/core/gas"
 	"cosmossdk.io/core/store"
-	"cosmossdk.io/depinject"
+	"github.com/cosmos/cosmos-sdk/types/capability"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -43,27 +44,29 @@ type Context struct {
 	consParams    *tmproto.ConsensusParams
 	eventManager  *EventManager
 	priority      int64 // The tx priority, only relevant in CheckTx
+	capability    capability.ModuleCapability
 }
 
 // Proposed rename, not done to avoid API breakage
 type Request = Context
 
 // Read-only accessors
-func (c Context) Context() context.Context    { return c.baseCtx }
-func (c Context) MultiStore() MultiStore      { return c.ms }
-func (c Context) BlockHeight() int64          { return c.header.Height }
-func (c Context) BlockTime() time.Time        { return c.header.Time }
-func (c Context) ChainID() string             { return c.chainID }
-func (c Context) TxBytes() []byte             { return c.txBytes }
-func (c Context) Logger() log.Logger          { return c.logger }
-func (c Context) VoteInfos() []abci.VoteInfo  { return c.voteInfo }
-func (c Context) GasMeter() GasMeter          { return c.gasMeter }
-func (c Context) BlockGasMeter() GasMeter     { return c.blockGasMeter }
-func (c Context) IsCheckTx() bool             { return c.checkTx }
-func (c Context) IsReCheckTx() bool           { return c.recheckTx }
-func (c Context) MinGasPrices() DecCoins      { return c.minGasPrice }
-func (c Context) EventManager() *EventManager { return c.eventManager }
-func (c Context) Priority() int64             { return c.priority }
+func (c Context) Context() context.Context                      { return c.baseCtx }
+func (c Context) MultiStore() MultiStore                        { return c.ms }
+func (c Context) BlockHeight() int64                            { return c.header.Height }
+func (c Context) BlockTime() time.Time                          { return c.header.Time }
+func (c Context) ChainID() string                               { return c.chainID }
+func (c Context) TxBytes() []byte                               { return c.txBytes }
+func (c Context) Logger() log.Logger                            { return c.logger }
+func (c Context) VoteInfos() []abci.VoteInfo                    { return c.voteInfo }
+func (c Context) GasMeter() GasMeter                            { return c.gasMeter }
+func (c Context) BlockGasMeter() GasMeter                       { return c.blockGasMeter }
+func (c Context) IsCheckTx() bool                               { return c.checkTx }
+func (c Context) IsReCheckTx() bool                             { return c.recheckTx }
+func (c Context) MinGasPrices() DecCoins                        { return c.minGasPrice }
+func (c Context) EventManager() *EventManager                   { return c.eventManager }
+func (c Context) Priority() int64                               { return c.priority }
+func (c Context) ModuleCapability() capability.ModuleCapability { return c.capability }
 
 // clone the header before returning
 func (c Context) BlockHeader() tmproto.Header {
@@ -256,6 +259,11 @@ func (c Context) Value(key interface{}) interface{} {
 	return c.baseCtx.Value(key)
 }
 
+func (c Context) WithModuleCapability(cap capability.ModuleCapability) capability.Context {
+	c.capability = cap
+	return c
+}
+
 // ----------------------------------------------------------------------------
 // Store / Caching
 // ----------------------------------------------------------------------------
@@ -305,41 +313,19 @@ func UnwrapSDKContext(ctx context.Context) Context {
 	return ctx.Value(SdkContextKey).(Context)
 }
 
-// Module Context
-
-type ModuleContextFactory[T context.Context] struct {
-	moduleKey depinject.ModuleKey
-	Make      func(ctx context.Context) T
-}
-
-func NewModuleContextFactory[T context.Context](moduleKey depinject.ModuleKey) ModuleContextFactory[T] {
-	return ModuleContextFactory[T]{
-		moduleKey: moduleKey,
-		Make: func(ctx context.Context) T {
-			if sdkCtx, ok := ctx.(T); ok {
-				return sdkCtx
-			}
-			c := ctx.Value(SdkContextKey).(T)
-			// set new capabilities field on context based on moduleKey
-			return c
-		}}
-}
-
-type BlockInfoServiceFactory interface {
-	BlockInfoService() blockinfo.Service
-}
-
-type KVStoreFactory interface {
-	KVStoreService(key storetypes.KVStoreKey) store.KVStoreService
-}
-
-type EventServiceFactory interface {
-	EventService() event.Service
-}
-
 func (c Context) BlockInfoService() blockinfo.Service {
-	// check module capabilities and
-	// return the impl of BlockInfoService in the current runtime
+	if _, ok := c.capability[capability.BlockInfoCapabilityKey]; !ok {
+		panic("BlockInfoService is not supported in this context")
+	}
+	// TODO: remove this once we have a real blockinfo service
+	return nil
+}
+
+func (c Context) GasService() gas.Service {
+	if _, ok := c.capability[capability.GasCapabilityKey]; !ok {
+		panic("GasService is not supported in this context")
+	}
+	// TODO: remove this once we have a real gas service
 	return nil
 }
 
