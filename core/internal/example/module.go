@@ -2,7 +2,9 @@ package example
 
 import (
 	"context"
-	"github.com/cosmos/cosmos-sdk/store/types"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	types "github.com/cosmos/cosmos-sdk/store/v2alpha1"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/capability"
 	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc/codes"
@@ -24,16 +26,16 @@ func init() {
 	)
 }
 
-func provideKeeper(storeKey types.KVStoreKey) keeper {
+func provideKeeper(storeKey storetypes.KVStoreKey) keeper {
 	return keeper{
-		contextFactory: capability.NewContextFactory[ModuleContext](),
+		contextFactory: sdk.NewModuleContextFactory[ExampleContext](),
 		kvStoreKey:     storeKey,
 	}
 }
 
 // the module's dependency injection inputs
 type keeper struct {
-	contextFactory capability.ContextFactory[ModuleContext]
+	contextFactory sdk.ModuleContextFactory[ExampleContext]
 	kvStoreKey     types.KVStoreKey
 }
 
@@ -45,8 +47,8 @@ func nameInfoKey(name string) []byte {
 	return append([]byte{nameInfoPrefix}, name...)
 }
 
-type ModuleContext interface {
-	capability.Context
+type ExampleContext interface {
+	sdk.ModuleContext
 	capability.BlockInfoService
 	capability.KVStoreService
 	capability.EventService

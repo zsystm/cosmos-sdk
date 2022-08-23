@@ -7,6 +7,7 @@ import (
 	"cosmossdk.io/core/gas"
 	"cosmossdk.io/core/store"
 	"github.com/cosmos/cosmos-sdk/types/capability"
+	"reflect"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -44,29 +45,29 @@ type Context struct {
 	consParams    *tmproto.ConsensusParams
 	eventManager  *EventManager
 	priority      int64 // The tx priority, only relevant in CheckTx
-	capability    capability.ModuleCapability
+	capability    ModuleCapability
 }
 
 // Proposed rename, not done to avoid API breakage
 type Request = Context
 
 // Read-only accessors
-func (c Context) Context() context.Context                      { return c.baseCtx }
-func (c Context) MultiStore() MultiStore                        { return c.ms }
-func (c Context) BlockHeight() int64                            { return c.header.Height }
-func (c Context) BlockTime() time.Time                          { return c.header.Time }
-func (c Context) ChainID() string                               { return c.chainID }
-func (c Context) TxBytes() []byte                               { return c.txBytes }
-func (c Context) Logger() log.Logger                            { return c.logger }
-func (c Context) VoteInfos() []abci.VoteInfo                    { return c.voteInfo }
-func (c Context) GasMeter() GasMeter                            { return c.gasMeter }
-func (c Context) BlockGasMeter() GasMeter                       { return c.blockGasMeter }
-func (c Context) IsCheckTx() bool                               { return c.checkTx }
-func (c Context) IsReCheckTx() bool                             { return c.recheckTx }
-func (c Context) MinGasPrices() DecCoins                        { return c.minGasPrice }
-func (c Context) EventManager() *EventManager                   { return c.eventManager }
-func (c Context) Priority() int64                               { return c.priority }
-func (c Context) ModuleCapability() capability.ModuleCapability { return c.capability }
+func (c Context) Context() context.Context           { return c.baseCtx }
+func (c Context) MultiStore() MultiStore             { return c.ms }
+func (c Context) BlockHeight() int64                 { return c.header.Height }
+func (c Context) BlockTime() time.Time               { return c.header.Time }
+func (c Context) ChainID() string                    { return c.chainID }
+func (c Context) TxBytes() []byte                    { return c.txBytes }
+func (c Context) Logger() log.Logger                 { return c.logger }
+func (c Context) VoteInfos() []abci.VoteInfo         { return c.voteInfo }
+func (c Context) GasMeter() GasMeter                 { return c.gasMeter }
+func (c Context) BlockGasMeter() GasMeter            { return c.blockGasMeter }
+func (c Context) IsCheckTx() bool                    { return c.checkTx }
+func (c Context) IsReCheckTx() bool                  { return c.recheckTx }
+func (c Context) MinGasPrices() DecCoins             { return c.minGasPrice }
+func (c Context) EventManager() *EventManager        { return c.eventManager }
+func (c Context) Priority() int64                    { return c.priority }
+func (c Context) ModuleCapability() ModuleCapability { return c.capability }
 
 // clone the header before returning
 func (c Context) BlockHeader() tmproto.Header {
@@ -259,7 +260,7 @@ func (c Context) Value(key interface{}) interface{} {
 	return c.baseCtx.Value(key)
 }
 
-func (c Context) WithModuleCapability(cap capability.ModuleCapability) capability.Context {
+func (c Context) WithModuleCapability(cap ModuleCapability) ModuleContext {
 	c.capability = cap
 	return c
 }
@@ -330,10 +331,51 @@ func (c Context) GasService() gas.Service {
 }
 
 func (c Context) KVStoreService(key storetypes.KVStoreKey) store.KVStoreService {
-	// returns the runtime impl of KVStoreService
+	if _, ok := c.capability[capability.KVStoreCapabilityKey]; !ok {
+		panic("KVStoreService is not supported in this context")
+	}
+	// TODO: remove this once we have a real kvstore service
 	return nil
 }
 
 func (c Context) EventService() event.Service {
+	if _, ok := c.capability[capability.EventCapabilityKey]; !ok {
+		panic("EventService is not supported in this context")
+	}
 	return nil
+}
+
+// Module Context
+
+type ModuleContext interface {
+	ModuleCapability() ModuleCapability
+	WithModuleCapability(capabilities ModuleCapability) ModuleContext
+}
+
+type ModuleCapability map[string]bool
+
+type ModuleContextFactory[T ModuleContext] struct {
+	Make func(ctx context.Context) T
+}
+
+func NewModuleContextFactory[T ModuleContext]() ModuleContextFactory[T] {
+	return ModuleContextFactory[T]{
+		Make: func(ctx context.Context) T {
+			if modCtx, ok := ctx.(T); ok && modCtx.ModuleCapability() != nil {
+				return modCtx
+			}
+			sdkCtx := ctx.Value(SdkContextKey)
+			if sdkCtx == nil {
+				panic("sdk.Context not found")
+			}
+			c := sdkCtx.(T)
+			t := reflect.TypeOf((*T)(nil)).Elem()
+			capabilities := make(ModuleCapability)
+			for i := 0; i < t.NumMethod(); i++ {
+				name := t.Method(i).Name
+				capabilities[name] = true
+			}
+			moduleContext := c.WithModuleCapability(capabilities)
+			return moduleContext.(T)
+		}}
 }
