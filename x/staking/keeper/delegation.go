@@ -1011,3 +1011,176 @@ func (k Keeper) ValidateUnbondAmount(
 
 	return shares, nil
 }
+
+// TransferDelegation changes the ownership of at most the desired number of shares.
+// Returns the actual number of shares transferred. Will also transfer redelegation
+// entries to ensure that all redelegations are matched by sufficient shares.
+// Note that no tokens are transferred to or from any pool or account, since no
+// delegation is actually changing state.
+func (k Keeper) TransferDelegation(ctx sdk.Context, fromAddr, toAddr sdk.AccAddress, valAddr sdk.ValAddress, shares sdk.Dec) error {
+	if shares.IsNil() || !shares.IsPositive() {
+		return sdkerrors.Wrap(types.ErrInvalidRequest, "cannot transfer nil or non-positive shares")
+	}
+
+	transferred := sdk.ZeroDec()
+
+	validator, found := k.GetValidator(ctx, valAddr)
+	if !found {
+		return sdkerrors.Wrap(types.ErrNoValidatorFound, valAddr.String())
+	}
+
+	// TODO: should fail the tx if the validator is jailed?
+
+	delFrom, found := k.GetDelegation(ctx, fromAddr, valAddr)
+	if !found {
+		return sdkerrors.Wrap(types.ErrNoDelegation, fromAddr.String())
+	}
+
+	maxEntries := k.MaxEntries(ctx)
+
+	// Check redelegation entry limits while we can still return early.
+	// Assume the worst case that we need to transfer all redelegation entries
+	mightExceedLimit := false
+	k.IterateDelegatorRedelegations(ctx, fromAddr, func(toRedelegation types.Redelegation) (stop bool) {
+		// There's no redelegation index by delegator and dstVal or vice-versa.
+		// The minimum cardinality is to look up by delegator, so scan and skip.
+		if toRedelegation.ValidatorDstAddress != valAddr.String() {
+			return false
+		}
+
+		fromRedelegation, found := k.GetRedelegation(ctx, fromAddr, sdk.ValAddress(toRedelegation.ValidatorSrcAddress), sdk.ValAddress(toRedelegation.ValidatorDstAddress))
+		if found && len(toRedelegation.Entries)+len(fromRedelegation.Entries) >= int(maxEntries) {
+			mightExceedLimit = true
+			return true
+		}
+
+		return false
+	})
+
+	if mightExceedLimit {
+		// avoid types.ErrMaxRedelegationEntries
+		return transferred
+	}
+
+	// compute shares to transfer, amount left behind
+	transferred = delFrom.Shares
+	if transferred.GT(wantShares) {
+		transferred = wantShares
+	}
+
+	remaining := delFrom.Shares.Sub(transferred)
+
+	// Update or create the delegationTo object, calling appropriate hooks
+	delegationTo, found := k.GetDelegation(ctx, toAddr, valAddr)
+	if !found {
+		delegationTo = types.NewDelegation(toAddr, valAddr, sdk.ZeroDec())
+	}
+
+	if found {
+		err = k.BeforeDelegationSharesModified(ctx, toAddr, valAddr)
+	} else {
+		err = k.BeforeDelegationCreated(ctx, toAddr, valAddr)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	delTo.Shares = delTo.Shares.Add(transferred)
+	k.SetDelegation(ctx, delTo)
+
+	if err := k.AfterDelegationModified(ctx, toAddr, valAddr); err != nil {
+		return err
+	}
+
+	// Update source delegation
+	if remaining.IsZero() {
+		err = k.BeforeDelegationRemoved(ctx, fromAddr, valAddr)
+		err = k.RemoveDelegation(ctx, delFrom)
+	} else {
+		err = k.BeforeDelegationSharesModified(ctx, fromAddr, valAddr)
+		delFrom.Shares = remaining
+		k.SetDelegation(ctx, delFrom)
+		err = k.AfterDelegationModified(ctx, fromAddr, valAddr)
+	}
+
+	// If there are not enough remaining shares to be responsible for
+	// the redelegations, transfer some redelegations.
+	// For instance, if the original delegation of 300 shares to validator A
+	// had redelegations for 100 shares each from validators B, C, and D,
+	// and if we're transferring 175 shares, then we might keep the redelegation
+	// from B, transfer the one from D, and split the redelegation from C
+	// keeping a liability for 25 shares and transferring one for 75 shares.
+	// Of course, the redelegations themselves can have multiple entries for
+	// different timestamps, so we're actually working at a finer granularity.
+	redelegations := k.GetRedelegations(ctx, fromAddr, math.MaxUint16)
+	for _, redelegation := range redelegations {
+		// There's no redelegation index by delegator and dstVal or vice-versa.
+		// The minimum cardinality is to look up by delegator, so scan and skip.
+		if redelegation.ValidatorDstAddress != valAddr.String() {
+			continue
+		}
+
+		redelegationModified := false
+		entriesRemaining := false
+
+		for i := 0; i < len(redelegation.Entries); i++ {
+			entry := redelegation.Entries[i]
+
+			// Partition SharesDst between keeping and sending
+			sharesToKeep := entry.SharesDst
+			sharesToSend := sdk.ZeroDec()
+
+			if entry.SharesDst.GT(remaining) {
+				sharesToKeep = remaining
+				sharesToSend = entry.SharesDst.Sub(sharesToKeep)
+			}
+			remaining = remaining.Sub(sharesToKeep) // fewer local shares available to cover liability
+
+			if sharesToSend.IsZero() {
+				// Leave the entry here
+				entriesRemaining = true
+				continue
+			}
+
+			if sharesToKeep.IsZero() {
+				// Transfer the whole entry, delete locally
+				toRed := k.SetRedelegationEntry(
+					ctx, toAddr, sdk.ValAddress(redelegation.ValidatorSrcAddress),
+					sdk.ValAddress(redelegation.ValidatorDstAddress),
+					entry.CreationHeight, entry.CompletionTime, entry.InitialBalance, sdk.ZeroDec(), sharesToSend,
+				)
+				k.InsertRedelegationQueue(ctx, toRed, entry.CompletionTime)
+				(&redelegation).RemoveEntry(int64(i))
+				i--
+				// okay to leave an obsolete entry in the queue for the removed entry
+				redelegationModified = true
+			} else {
+				// Proportionally divide the entry
+				fracSending := sharesToSend.Quo(entry.SharesDst)
+				balanceToSend := fracSending.MulInt(entry.InitialBalance).TruncateInt()
+				balanceToKeep := entry.InitialBalance.Sub(balanceToSend)
+				toRed := k.SetRedelegationEntry(
+					ctx, toAddr, sdk.ValAddress(redelegation.ValidatorSrcAddress),
+					sdk.ValAddress(redelegation.ValidatorDstAddress),
+					entry.CreationHeight, entry.CompletionTime, balanceToSend, sdk.ZeroDec(), sharesToSend,
+				)
+				k.InsertRedelegationQueue(ctx, toRed, entry.CompletionTime)
+				entry.InitialBalance = balanceToKeep
+				entry.SharesDst = sharesToKeep
+				redelegation.Entries[i] = entry
+				// not modifying the completion time, so no need to change the queue
+				redelegationModified = true
+				entriesRemaining = true
+			}
+		}
+		if redelegationModified {
+			if entriesRemaining {
+				k.SetRedelegation(ctx, redelegation)
+			} else {
+				k.RemoveRedelegation(ctx, redelegation)
+			}
+		}
+	}
+	return transferred
+}
