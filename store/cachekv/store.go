@@ -2,6 +2,7 @@ package cachekv
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sort"
 	"sync"
@@ -356,6 +357,9 @@ func (store *Store) dirtyItems(start, end []byte) {
 	store.clearUnsortedCacheSubset(kvL, stateAlreadySorted)
 }
 
+// Hardcoding the bytes that make the group invariant hang.
+var bytesFromGroupInvariant = []byte{17, 0, 0, 0, 0, 0, 0, 2, 199}
+
 func (store *Store) clearUnsortedCacheSubset(unsorted []*kv.Pair, sortState sortState) {
 	n := len(store.unsortedCache)
 	if len(unsorted) == n { // This pattern allows the Go compiler to emit the map clearing idiom for the entire map.
@@ -376,9 +380,20 @@ func (store *Store) clearUnsortedCacheSubset(unsorted []*kv.Pair, sortState sort
 
 	for _, item := range unsorted {
 		if item.Value == nil {
+			// To avoid a bunch of logs, we only print when the bytes match
+			// the hardcoded ones from the group invariant hanging bug.
+			toPrint := len(unsorted) > 0 && bytes.Contains(unsorted[0].Key, bytesFromGroupInvariant)
+			if toPrint {
+				fmt.Println("ABC clearUnsortedCacheSubset BEFORE sortedCache.Set (HERE IT HANGS...)")
+			}
+
 			// deleted element, tracked by store.deleted
 			// setting arbitrary value
 			store.sortedCache.Set(item.Key, []byte{})
+			// TODO Why is err ignored from above .Set()?
+			if toPrint {
+				fmt.Println("ABC clearUnsortedCacheSubset AFTER sortedCache.Set")
+			}
 			continue
 		}
 		err := store.sortedCache.Set(item.Key, item.Value)

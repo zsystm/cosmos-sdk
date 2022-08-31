@@ -28,6 +28,7 @@ func GroupTotalWeightInvariant(keeper Keeper) sdk.Invariant {
 }
 
 func GroupTotalWeightInvariantHelper(ctx sdk.Context, key storetypes.StoreKey, groupTable orm.AutoUInt64Table, groupMemberByGroupIndex orm.Index) (string, bool) {
+	fmt.Println("ABC Running GroupTotalWeightInvariant on block", ctx.BlockHeader().Height)
 	var msg string
 	var broken bool
 
