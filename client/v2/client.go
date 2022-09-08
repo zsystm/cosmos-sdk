@@ -94,11 +94,12 @@ func (c *Client) DiscardTx() {
 
 // SignTx signs the transaction with the default sign mode.
 func (c *Client) SignTx() error {
-	return nil
+	return c.SignTxWithMode(c.conn.signModeHandler.DefaultMode())
 }
 
 // SignTxWithMode signs the transaction with the provided sign mode.
 func (c *Client) SignTxWithMode(signingv1beta1.SignMode) error {
+	// TODO check if signers have acct num & seq, if not retrieve
 	return nil
 }
 
