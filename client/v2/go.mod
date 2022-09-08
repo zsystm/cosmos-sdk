@@ -26,3 +26,4 @@ require (
 )
 
 replace cosmossdk.io/tx => ../../tx
+replace cosmossdk.io/api => ../../api

@@ -2,6 +2,7 @@ package clientv2
 
 import (
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/reflect/protoregistry"
 
 	"cosmossdk.io/tx/signing"
 	"github.com/cosmos/cosmos-sdk/client/v2/keyring"
@@ -28,8 +29,12 @@ func Connect(nodeUrl string, opts ConnectionOptions) (*Connection, error) {
 func (c *Connection) NewClient() *Client {
 	return &Client{
 		conn:          c,
-		Tx:            nil,
+		tx:            nil,
 		txRaw:         nil,
 		auxSignerData: nil,
 	}
+}
+
+func (c *Connection) protoFiles() *protoregistry.Files {
+	return protoregistry.GlobalFiles
 }
