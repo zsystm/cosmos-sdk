@@ -8,19 +8,28 @@ import (
 )
 
 type node struct {
-	priority    int64
-	nonce       uint64
-	sender      string
-	tx          Tx
+	priority     int64
+	nonce        uint64
+	sender       string
+	tx           Tx
+	nonceElement *huandu.Element
+	//priorityElement *huandu.Element
+
+	// probably remove
 	outPriority map[string]bool
 	outNonce    map[string]bool
 	inPriority  map[string]bool
 	inNonce     map[string]bool
+	//
+
+	priorityOut *node
+	priorityIn  *node
 }
 
 type graph struct {
 	priorities *huandu.SkipList
-	nodes      map[string]node
+	nodes      map[string]*node
+	subGraphs  map[string]*huandu.SkipList
 }
 
 func (n node) key() string {
@@ -45,31 +54,59 @@ func (g *graph) AddEdge(from node, to node) {
 
 func NewGraph() *graph {
 	return &graph{
-		nodes:      make(map[string]node),
+		nodes:      make(map[string]*node),
 		priorities: huandu.New(huandu.Int64),
+		subGraphs:  make(map[string]*huandu.SkipList),
 	}
 }
 
-func (g *graph) AddNode(n node) {
-	if !g.ContainsNode(n) {
-		g.nodes[n.key()] = n
+func (g *graph) AddNode(n *node) error {
+	if g.ContainsNode(n) {
+		return fmt.Errorf("node %s already exists", n.key())
 	}
-	pnode := g.priorities.Set(n.priority, n.key())
-	// find sender subgraph nonce order
-	// find priority order
+
+	g.nodes[n.key()] = n
+
+	// add to subgraph
+	sg := g.subGraphs[n.sender]
+	if sg == nil {
+		sg = huandu.New(huandu.Uint64)
+		g.subGraphs[n.sender] = sg
+	}
+	sge := sg.Set(n.nonce, n)
+	n.nonceElement = sge
+	// TODO handle sge.Next() case
+
+	pnode := g.priorities.Set(n.priority, n)
+	//n.priorityElement = pnode
+
 	if pnode.Prev() != nil {
-
+		pn := pnode.Prev().Value.(*node)
+		if pn.sender != n.sender {
+			n.priorityOut = pn
+			pn.priorityIn = n
+		}
 	}
+
+	if pnode.Next() != nil {
+		nn := pnode.Next().Value.(*node)
+		if nn.sender != n.sender {
+			n.edgeIn[nn.key()] = true
+			nn.edgeOut[n.key()] = true
+		}
+	}
+
+	return nil
 }
 
-func (g *graph) ContainsNode(n node) bool {
+func (g *graph) ContainsNode(n *node) bool {
 	_, ok := g.nodes[n.key()]
 	return ok
 }
 
 func (g *graph) TopologicalSort() ([]node, error) {
 	sn := g.priorities.Back()
-	var start node
+	var start *node
 	for sn != nil {
 		start = g.nodes[sn.Value.(string)]
 		if len(start.inPriority) == 0 && len(start.inNonce) == 0 {
@@ -131,7 +168,7 @@ function visit(node n)
     add n to head of L
 
 */
-func (g *graph) visit(n node, marked map[string]bool, tmp map[string]bool, sorted *list.List) error {
+func (g *graph) visit(n *node, marked map[string]bool, tmp map[string]bool, sorted *list.List) error {
 	if _, ok := marked[n.key()]; ok {
 		return nil
 	}
@@ -147,8 +184,10 @@ func (g *graph) visit(n node, marked map[string]bool, tmp map[string]bool, sorte
 			return err
 		}
 	}
-	for m := range n.outNonce {
-		err := g.visit(g.nodes[m], marked, tmp, sorted)
+
+	nextNonceTx := n.nonceElement.Next()
+	if nextNonceTx != nil {
+		err := g.visit(nextNonceTx.Value.(*node), marked, tmp, sorted)
 		if err != nil {
 			return err
 		}
