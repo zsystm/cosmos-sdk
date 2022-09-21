@@ -35,7 +35,7 @@ const (
 	commitInfoKeyFmt = "s/%d" // s/<version>
 )
 
-const iavlDisablefastNodeDefault = false
+const iavlDisablefastNodeDefault = true // keep previous behaviour
 
 // Store is composed of many CommitStores. Name contrasts with
 // cacheMultiStore which is used for branching other MultiStores. It implements
@@ -104,6 +104,7 @@ func (rs *Store) SetIAVLCacheSize(cacheSize int) {
 }
 
 func (rs *Store) SetIAVLDisableFastNode(disableFastNode bool) {
+	fmt.Println(disableFastNode)
 	rs.iavlDisableFastNode = disableFastNode
 }
 
