@@ -1,4 +1,4 @@
-module github.com/cosmos/rosetta
+module github.com/cosmos/cosmos-sdk/rosetta
 
 go 1.18
 
