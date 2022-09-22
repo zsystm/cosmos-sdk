@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"github.com/cosmos/rosetta/cmd"
 	"io"
 	"os"
 	"path/filepath"
@@ -198,7 +199,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 	)
 
 	// add rosetta
-	rootCmd.AddCommand(server.RosettaCommand(encodingConfig.InterfaceRegistry, encodingConfig.Codec))
+	rootCmd.AddCommand(cmd.RosettaCommand(encodingConfig.InterfaceRegistry, encodingConfig.Codec))
 }
 
 func addModuleInitFlags(startCmd *cobra.Command) {
