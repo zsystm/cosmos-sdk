@@ -4,13 +4,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/reflect/protoregistry"
 
+	"cosmossdk.io/client/v2/keyring"
 	"cosmossdk.io/tx/signing"
-	"github.com/cosmos/cosmos-sdk/client/v2/keyring"
 )
 
 type Connection struct {
-	nodeConn        grpc.ClientConnInterface
-	signModeHandler signing.SignModeHandler
+	ConnectionOptions
+	nodeConn grpc.ClientConnInterface
 }
 
 type ConnectionOptions struct {
@@ -18,12 +18,16 @@ type ConnectionOptions struct {
 	SignModeHandler signing.SignModeHandler
 }
 
-func Connect(nodeUrl string, opts ConnectionOptions) (*Connection, error) {
+func (opts ConnectionOptions) Connect(nodeUrl string) (*Connection, error) {
 	nodeConn, err := grpc.Dial(nodeUrl)
 	if err != nil {
 		return nil, err
 	}
-	return &Connection{nodeConn: nodeConn, signModeHandler: opts.SignModeHandler}, err
+	return &Connection{nodeConn: nodeConn, ConnectionOptions: opts}, err
+}
+
+func Connect(nodeUrl string) (*Connection, error) {
+	return ConnectionOptions{}.Connect(nodeUrl)
 }
 
 func (c *Connection) NewClient() *Client {
