@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	cosmossdk.io/api v0.2.1
+	cosmossdk.io/core v0.3.0
 	cosmossdk.io/errors v1.0.0-beta.7
 	github.com/cosmos/cosmos-proto v1.0.0-alpha7
 	github.com/golang/mock v1.6.0
@@ -57,3 +58,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace cosmossdk.io/core => ../core

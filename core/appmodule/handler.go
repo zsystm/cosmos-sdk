@@ -5,7 +5,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/cosmos/cosmos-sdk/depinject"
+	"cosmossdk.io/depinject"
 )
 
 // Handler describes an ABCI app module handler. It can be injected into a
@@ -29,10 +29,10 @@ type Handler struct {
 	// one Tendermint release to another.
 	EndBlocker func(context.Context) error
 
-	DefaultGenesis  func(GenesisTarget)
+	DefaultGenesis  func(GenesisTarget) error
 	ValidateGenesis func(GenesisSource) error
 	InitGenesis     func(context.Context, GenesisSource) error
-	ExportGenesis   func(context.Context, GenesisTarget)
+	ExportGenesis   func(context.Context, GenesisTarget) error
 
 	EventListeners []EventListener
 

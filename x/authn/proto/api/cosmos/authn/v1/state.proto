@@ -9,6 +9,7 @@ message Account {
   option (cosmos.orm.v1.table) = {
     id: 1
     primary_key: { auto_increment: true fields: "id" }
+    index: {id: 1, fields: "address", unique: true}
   };
 
   uint64 id = 1;

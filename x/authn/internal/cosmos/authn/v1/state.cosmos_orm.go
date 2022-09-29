@@ -11,13 +11,16 @@ import (
 
 type AccountTable interface {
 	Insert(ctx context.Context, account *Account) error
-	InsertReturningID(ctx context.Context, account *Account) (uint64, error)
+	InsertReturningId(ctx context.Context, account *Account) (uint64, error)
 	Update(ctx context.Context, account *Account) error
 	Save(ctx context.Context, account *Account) error
 	Delete(ctx context.Context, account *Account) error
 	Has(ctx context.Context, id uint64) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, id uint64) (*Account, error)
+	HasByAddress(ctx context.Context, address []byte) (found bool, err error)
+	// GetByAddress returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
+	GetByAddress(ctx context.Context, address []byte) (*Account, error)
 	List(ctx context.Context, prefixKey AccountIndexKey, opts ...ormlist.Option) (AccountIterator, error)
 	ListRange(ctx context.Context, from, to AccountIndexKey, opts ...ormlist.Option) (AccountIterator, error)
 	DeleteBy(ctx context.Context, prefixKey AccountIndexKey) error
@@ -58,6 +61,19 @@ func (this AccountIdIndexKey) WithId(id uint64) AccountIdIndexKey {
 	return this
 }
 
+type AccountAddressIndexKey struct {
+	vs []interface{}
+}
+
+func (x AccountAddressIndexKey) id() uint32            { return 1 }
+func (x AccountAddressIndexKey) values() []interface{} { return x.vs }
+func (x AccountAddressIndexKey) accountIndexKey()      {}
+
+func (this AccountAddressIndexKey) WithAddress(address []byte) AccountAddressIndexKey {
+	this.vs = []interface{}{address}
+	return this
+}
+
 type accountTable struct {
 	table ormtable.AutoIncrementTable
 }
@@ -78,8 +94,8 @@ func (this accountTable) Delete(ctx context.Context, account *Account) error {
 	return this.table.Delete(ctx, account)
 }
 
-func (this accountTable) InsertReturningID(ctx context.Context, account *Account) (uint64, error) {
-	return this.table.InsertReturningID(ctx, account)
+func (this accountTable) InsertReturningId(ctx context.Context, account *Account) (uint64, error) {
+	return this.table.InsertReturningPKey(ctx, account)
 }
 
 func (this accountTable) Has(ctx context.Context, id uint64) (found bool, err error) {
@@ -89,6 +105,26 @@ func (this accountTable) Has(ctx context.Context, id uint64) (found bool, err er
 func (this accountTable) Get(ctx context.Context, id uint64) (*Account, error) {
 	var account Account
 	found, err := this.table.PrimaryKey().Get(ctx, &account, id)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, ormerrors.NotFound
+	}
+	return &account, nil
+}
+
+func (this accountTable) HasByAddress(ctx context.Context, address []byte) (found bool, err error) {
+	return this.table.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
+		address,
+	)
+}
+
+func (this accountTable) GetByAddress(ctx context.Context, address []byte) (*Account, error) {
+	var account Account
+	found, err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &account,
+		address,
+	)
 	if err != nil {
 		return nil, err
 	}

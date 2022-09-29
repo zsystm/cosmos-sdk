@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"io"
 
-	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/runtime/protoiface"
+
+	"cosmossdk.io/core/appmodule"
 )
 
 type rawMessageSource struct {
@@ -16,7 +18,7 @@ type rawMessageSource struct {
 // json.RawMessage where it is assumed that the raw message is a JSON
 // map where each table's JSON referenced by the map key corresponding
 // to the tables full protobuf name.
-func NewRawMessageSource(message json.RawMessage) (ReadSource, error) {
+func NewRawMessageSource(message json.RawMessage) (appmodule.GenesisSource, error) {
 	var m map[string]json.RawMessage
 	err := json.Unmarshal(message, &m)
 	if err != nil {
@@ -25,12 +27,22 @@ func NewRawMessageSource(message json.RawMessage) (ReadSource, error) {
 	return &rawMessageSource{m}, err
 }
 
-func (r rawMessageSource) OpenReader(tableName protoreflect.FullName) (io.ReadCloser, error) {
-	j, ok := r.m[string(tableName)]
+func (r rawMessageSource) OpenReader(field string) (io.ReadCloser, error) {
+	j, ok := r.m[field]
 	if !ok {
 		return nil, nil
 	}
 	return readCloserWrapper{bytes.NewReader(j)}, nil
+}
+
+func (r rawMessageSource) ReadMessage(v1 protoiface.MessageV1) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r rawMessageSource) ReadRawJSON() (json.RawMessage, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 type readCloserWrapper struct {
@@ -39,7 +51,7 @@ type readCloserWrapper struct {
 
 func (r readCloserWrapper) Close() error { return nil }
 
-var _ ReadSource = rawMessageSource{}
+var _ appmodule.GenesisSource = rawMessageSource{}
 
 // RawMessageTarget is a WriteTarget wrapping a raw JSON map.
 type RawMessageTarget struct {
@@ -52,12 +64,22 @@ func NewRawMessageTarget() *RawMessageTarget {
 	return &RawMessageTarget{}
 }
 
-func (r *RawMessageTarget) OpenWriter(tableName protoreflect.FullName) (io.WriteCloser, error) {
+func (r *RawMessageTarget) OpenWriter(field string) (io.WriteCloser, error) {
 	if r.m == nil {
 		r.m = map[string]json.RawMessage{}
 	}
 
-	return &rawWriter{Buffer: &bytes.Buffer{}, sink: r, table: tableName}, nil
+	return &rawWriter{Buffer: &bytes.Buffer{}, sink: r, field: field}, nil
+}
+
+func (r *RawMessageTarget) WriteMessage(v1 protoiface.MessageV1) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *RawMessageTarget) WriteRawJSON(message json.RawMessage) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 // JSON returns the JSON map that was written as a json.RawMessage.
@@ -67,13 +89,13 @@ func (r *RawMessageTarget) JSON() (json.RawMessage, error) {
 
 type rawWriter struct {
 	*bytes.Buffer
-	table protoreflect.FullName
+	field string
 	sink  *RawMessageTarget
 }
 
 func (r rawWriter) Close() error {
-	r.sink.m[string(r.table)] = r.Buffer.Bytes()
+	r.sink.m[r.field] = r.Buffer.Bytes()
 	return nil
 }
 
-var _ WriteTarget = &RawMessageTarget{}
+var _ appmodule.GenesisTarget = &RawMessageTarget{}

@@ -8,9 +8,9 @@ import (
 
 	"google.golang.org/protobuf/reflect/protoregistry"
 
-	ormv1alpha1 "cosmossdk.io/api/cosmos/orm/v1alpha1"
+	"cosmossdk.io/core/appmodule"
 
-	"github.com/cosmos/cosmos-sdk/orm/types/ormjson"
+	ormv1alpha1 "cosmossdk.io/api/cosmos/orm/v1alpha1"
 
 	"google.golang.org/protobuf/reflect/protodesc"
 
@@ -30,17 +30,19 @@ type ModuleDB interface {
 	ormtable.Schema
 
 	// DefaultJSON writes default JSON for each table in the module to the target.
-	DefaultJSON(ormjson.WriteTarget) error
+	DefaultJSON(target appmodule.GenesisTarget) error
 
 	// ValidateJSON validates JSON for each table in the module.
-	ValidateJSON(ormjson.ReadSource) error
+	ValidateJSON(appmodule.GenesisSource) error
 
 	// ImportJSON imports JSON for each table in the module which has JSON
 	// defined in the read source.
-	ImportJSON(context.Context, ormjson.ReadSource) error
+	ImportJSON(context.Context, appmodule.GenesisSource) error
 
 	// ExportJSON exports JSON for each table in the module.
-	ExportJSON(context.Context, ormjson.WriteTarget) error
+	ExportJSON(context.Context, appmodule.GenesisTarget) error
+
+	RegisterGenesisHandlers(handler *appmodule.Handler)
 }
 
 type moduleDB struct {
@@ -167,4 +169,11 @@ func (m moduleDB) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 
 func (m moduleDB) GetTable(message proto.Message) ormtable.Table {
 	return m.tablesByName[message.ProtoReflect().Descriptor().FullName()]
+}
+
+func (m moduleDB) RegisterGenesisHandlers(handler *appmodule.Handler) {
+	handler.DefaultGenesis = m.DefaultJSON
+	handler.ValidateGenesis = m.ValidateJSON
+	handler.InitGenesis = m.ImportJSON
+	handler.ExportGenesis = m.ExportJSON
 }
