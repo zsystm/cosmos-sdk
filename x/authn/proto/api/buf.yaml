@@ -1,0 +1,4 @@
+version: v1
+name: buf.build/cosmos/authn
+deps:
+  - buf.build/cosmos/cosmos-sdk

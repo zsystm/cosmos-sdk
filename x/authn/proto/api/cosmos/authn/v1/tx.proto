@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package cosmos.authn.v1;
+
+import "google/protobuf/any.proto";
+
+service Msg {
+  rpc SetCredential (MsgSetCredential) returns (MsgSetCredentialResponse) {}
+}
+
+message MsgSetCredential {
+  string address = 1;
+  google.protobuf.Any new_credential = 2;
+}
+
+message MsgSetCredentialResponse {}

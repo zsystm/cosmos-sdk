@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package cosmos.authn.module.v1;
+
+import "cosmos/app/v1alpha1/module.proto";
+import "cosmos/orm/v1alpha1/schema.proto";
+
+message Module {
+  option (cosmos.app.v1alpha1.module) = {
+    go_import: "cosmossdk.io/x/authn"
+    use_package: { name: "cosmos.authn.v1" }
+  };
+
+  option (cosmos.orm.v1alpha1.module_schema) = {
+    schema_file: {
+      id: 1
+      proto_file_name: "cosmos/authn/v1/state.proto"
+    }
+  };
+
+  string bech32_prefix = 1;
+}
