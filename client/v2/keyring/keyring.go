@@ -1,31 +1,23 @@
 package keyring
 
-import "google.golang.org/protobuf/proto"
+import (
+	"github.com/99designs/keyring"
 
-type Keyring interface {
-	KeyByName(name string) SigningKey
-	KeyByAddressString(addressString string) SigningKey
-	KeyByAddressBytes(addressBytes []byte) SigningKey
-	KeyByPubKey(proto.Message) SigningKey
+	"cosmossdk.io/crypto/v2"
+)
+
+//type Keyring interface {
+//	FindByName(name string) crypto.Credential
+//	FindByAddressString(addressString string) crypto.Credential
+//	FindByAddressBytes(addressBytes []byte) crypto.Credential
+//	FindByPubKey(proto.Message) crypto.Credential
+//}
+
+type Keyring struct {
+	kr keyring.Keyring
 }
 
-type KeyProvider interface {
-	PublicKeyFromProto(proto.Message) PublicKey
-	SigningKeyFromProto(proto.Message) PrivateKey
-}
-
-type PublicKey interface {
-	AsProto() proto.Message
-	VerifySignature(msg []byte, sig []byte) bool
-	Address() []byte
-}
-
-type SigningKey interface {
-	PublicKey() PublicKey
-	Sign([]byte) ([]byte, error)
-}
-
-type PrivateKey interface {
-	SigningKey
-	AsProto() proto.Message
+func (k *Keyring) KeyByName(name string) crypto.Credential {
+	//k.kr.Get(name)
+	panic("TODO")
 }

@@ -68,7 +68,7 @@ func (p *PendingTxResponse) OnConfirmed(f func()) {
 
 }
 
-func (p *PendingTxResponse) WaitForConfirmation() error {
+func (p *PendingTxResponse) AwaitConfirmation() error {
 	panic("TODO")
 }
 
