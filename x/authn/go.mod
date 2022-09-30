@@ -46,6 +46,6 @@ require (
 	google.golang.org/genproto v0.0.0-20220725144611-272f38e5d71b // indirect
 )
 
+replace cosmossdk.io/api => ../../api
 replace cosmossdk.io/core => ../../core
-
 replace github.com/cosmos/cosmos-sdk/orm => ../../orm

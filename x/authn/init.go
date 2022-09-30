@@ -1,5 +1,0 @@
-package authn
-
-func init() {
-
-}

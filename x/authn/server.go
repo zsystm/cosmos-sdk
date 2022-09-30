@@ -3,8 +3,8 @@ package authn
 import (
 	"context"
 
+	authnv1 "cosmossdk.io/api/cosmos/authn/v1"
 	"cosmossdk.io/core/appmodule"
-	authnv1 "cosmossdk.io/x/authn/internal/cosmos/authn/v1"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormdb"
 )
 

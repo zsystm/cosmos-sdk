@@ -5,14 +5,18 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/types/address"
 
+	modulev1 "cosmossdk.io/api/cosmos/authn/module/v1"
+	authnv1 "cosmossdk.io/api/cosmos/authn/v1"
+
 	"github.com/cosmos/cosmos-sdk/orm/model/ormdb"
 
 	"cosmossdk.io/core/appmodule"
-	authnv1 "cosmossdk.io/x/authn/internal/cosmos/authn/v1"
 )
 
-func (x *Module) ProvideApp(service appmodule.Service, db ormdb.ModuleDB) (*appmodule.Handler, error) {
-	server, err := NewKeeper(x.Bech32Prefix, service, db)
+func ProvideApp(
+	config *modulev1.Module,
+	service appmodule.Service, db ormdb.ModuleDB) (*appmodule.Handler, error) {
+	server, err := NewKeeper(config.Bech32Prefix, service, db)
 	if err != nil {
 		return nil, err
 	}
