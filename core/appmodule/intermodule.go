@@ -1,6 +1,10 @@
 package appmodule
 
-import "google.golang.org/grpc"
+import (
+	"context"
+
+	"google.golang.org/grpc"
+)
 
 // InterModuleClient is an inter-module client as specified in ADR-033. It
 // allows one module to send msg's and queries to other modules provided
@@ -20,4 +24,9 @@ type RootInterModuleClient interface {
 	// DerivedClient returns an inter-module client for the ADR-028 derived
 	// module address for the provided key.
 	DerivedClient(key []byte) InterModuleClient
+
+	// InternalServiceCaller returns the name of the module which called this
+	// module through an internal service call. It will be the empty string if
+	// not executed in the context of an internal service call.
+	InternalServiceCaller(context.Context) string
 }
