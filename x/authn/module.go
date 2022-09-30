@@ -22,7 +22,7 @@ func init() {
 func ProvideApp(
 	config *modulev1.Module,
 	service appmodule.Service, db ormdb.ModuleDB) (*appmodule.Handler, error) {
-	keeper, err := NewKeeper(config.Bech32Prefix, service, db)
+	keeper, err := NewKeeper(config, service, db)
 	if err != nil {
 		return nil, err
 	}

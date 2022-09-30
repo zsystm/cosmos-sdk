@@ -3,7 +3,13 @@ package authn
 import (
 	"context"
 
+	"github.com/cosmos/cosmos-sdk/types/address"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	modulev1 "cosmossdk.io/api/cosmos/authn/module/v1"
 	authnv1 "cosmossdk.io/api/cosmos/authn/v1"
+
 	"cosmossdk.io/core/appmodule"
 	"github.com/cosmos/cosmos-sdk/orm/model/ormdb"
 )
@@ -13,17 +19,28 @@ type Keeper struct {
 	authnv1.UnimplementedInternalServer
 
 	addressCodec Bech32Codec
+	adminModules map[string]bool
 	appService   appmodule.Service
 	stateStore   authnv1.StateStore
 }
 
-func NewKeeper(bech32Prefix string, appService appmodule.Service, db ormdb.ModuleDB) (*Keeper, error) {
+func NewKeeper(config *modulev1.Module, appService appmodule.Service, db ormdb.ModuleDB) (*Keeper, error) {
 	stateStore, err := authnv1.NewStateStore(db)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Keeper{addressCodec: NewBech32Codec(bech32Prefix), appService: appService, stateStore: stateStore}, nil
+	adminModules := map[string]bool{}
+	for _, module := range config.AdminModules {
+		adminModules[module] = true
+	}
+
+	return &Keeper{
+		addressCodec: NewBech32Codec(config.Bech32Prefix),
+		appService:   appService,
+		stateStore:   stateStore,
+		adminModules: adminModules,
+	}, nil
 }
 
 func (s Keeper) SetCredential(ctx context.Context, msg *authnv1.MsgSetCredential) (*authnv1.MsgSetCredentialResponse, error) {
@@ -56,8 +73,10 @@ func (s Keeper) SetCredential(ctx context.Context, msg *authnv1.MsgSetCredential
 }
 
 func (s Keeper) CreateAccount(ctx context.Context, request *authnv1.CreateAccountRequest) (*authnv1.CreateAccountResponse, error) {
+	callingModule := s.appService.InternalServiceCaller(ctx)
+	addrBytes := address.Module(callingModule, request.DerivationPath)
 	acc := &authnv1.Account{
-		Address:    request.Address,
+		Address:    addrBytes,
 		Credential: request.Credential,
 	}
 
@@ -67,17 +86,22 @@ func (s Keeper) CreateAccount(ctx context.Context, request *authnv1.CreateAccoun
 	}
 
 	err = s.stateStore.AccountSequenceTable().Insert(ctx, &authnv1.AccountSequence{
-		Address: request.Address,
+		Address: addrBytes,
 		Seq:     0,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &authnv1.CreateAccountResponse{AccountId: id}, nil
+	return &authnv1.CreateAccountResponse{AccountId: id, Address: addrBytes}, nil
 }
 
 func (s Keeper) IncrementSeq(ctx context.Context, request *authnv1.IncrementSeqRequest) (*authnv1.IncrementSeqResponse, error) {
+	callingModule := s.appService.InternalServiceCaller(ctx)
+	if !s.adminModules[callingModule] {
+		return nil, status.Errorf(codes.PermissionDenied, "%s is not an admin module", callingModule)
+	}
+
 	accSeq, err := s.stateStore.AccountSequenceTable().Get(ctx, request.Address)
 	if err != nil {
 		return nil, err

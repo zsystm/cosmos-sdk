@@ -21,4 +21,5 @@ message Module {
   };
 
   string bech32_prefix = 1;
+  repeated string admin_modules = 2;
 }
