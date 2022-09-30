@@ -4,6 +4,7 @@ package cosmos.authn.v1;
 
 import "google/protobuf/any.proto";
 import "cosmos/msg/v1/msg.proto";
+import "cosmos/validate/v1/validate.proto";
 
 service Msg {
   option (cosmos.msg.v1.service) = true;
@@ -14,8 +15,8 @@ service Msg {
 message MsgSetCredential {
   option (cosmos.msg.v1.signer) = "address";
 
-  string address = 1;
-  google.protobuf.Any new_credential = 2;
+  string address = 1 [(cosmos.validate.v1.required) = true];
+  google.protobuf.Any new_credential = 2 [(cosmos.validate.v1.required) = true];
 }
 
 message MsgSetCredentialResponse {}

@@ -1,3 +1,30 @@
 syntax = "proto3";
 
 package cosmos.authn.v1;
+
+import "google/protobuf/any.proto";
+import "cosmos/intermodule/v1/options.proto";
+
+service Internal {
+  option (cosmos.intermodule.v1.internal) = true;
+
+  rpc CreateAccount (CreateAccountRequest) returns (CreateAccountResponse);
+  rpc IncrementSeq (IncrementSeqRequest) returns (IncrementSeqResponse);
+}
+
+message CreateAccountRequest {
+  bytes address = 1;
+  google.protobuf.Any credential = 2;
+}
+
+message CreateAccountResponse {
+  uint64 account_id = 1;
+}
+
+message IncrementSeqRequest {
+  uint64 account_id = 1;
+}
+
+message IncrementSeqResponse {
+  uint64 new_seq = 1;
+}

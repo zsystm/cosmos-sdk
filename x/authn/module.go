@@ -13,25 +13,32 @@ import (
 	"cosmossdk.io/core/appmodule"
 )
 
+func init() {
+	appmodule.Register(&modulev1.Module{},
+		appmodule.Provide(ProvideApp, ProvideAddressCodec),
+	)
+}
+
 func ProvideApp(
 	config *modulev1.Module,
 	service appmodule.Service, db ormdb.ModuleDB) (*appmodule.Handler, error) {
-	server, err := NewKeeper(config.Bech32Prefix, service, db)
+	keeper, err := NewKeeper(config.Bech32Prefix, service, db)
 	if err != nil {
 		return nil, err
 	}
 
 	handler := &appmodule.Handler{}
 	db.RegisterGenesisHandlers(handler)
-	authnv1.RegisterMsgServer(handler, server)
+	authnv1.RegisterMsgServer(handler, keeper)
+	authnv1.RegisterInternalServer(handler, keeper)
 
 	return handler, nil
 }
 
-func (x *Module) ProvideAddressCodec() (address.Codec, error) {
-	if x.Bech32Prefix == "" {
+func ProvideAddressCodec(config *modulev1.Module) (address.Codec, error) {
+	if config.Bech32Prefix == "" {
 		return nil, fmt.Errorf("missing bech32_prefix")
 	}
 
-	return NewBech32Codec(x.Bech32Prefix), nil
+	return NewBech32Codec(config.Bech32Prefix), nil
 }

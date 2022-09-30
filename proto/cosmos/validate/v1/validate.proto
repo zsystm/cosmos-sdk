@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package cosmos.validate.v1;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+  bool required = 379127401;
+}

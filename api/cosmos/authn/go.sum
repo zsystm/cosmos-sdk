@@ -1,0 +1,4 @@
+cosmossdk.io/api v0.2.1 h1:4m6vIHKJygrixSIfOsD3Mhij9vZlQC/+BTeb+Un9os0=
+cosmossdk.io/api v0.2.1/go.mod h1:kNpfY0UY7Cz4ZuLJ4hm9auUGfmj23UFpOQ/Bo8IKCFw=
+github.com/cosmos/cosmos-sdk/orm v1.0.0-alpha.12 h1:EswjcLv+gVv5cwUzLT98kp+5sYdp43OD+iFvtC7t9ww=
+github.com/cosmos/cosmos-sdk/orm v1.0.0-alpha.12/go.mod h1:XSTyCzMsetl+BoUgUF0F2FoU2LT+Zm7sxzhVgjayCnM=

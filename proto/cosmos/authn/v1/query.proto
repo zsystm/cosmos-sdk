@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package cosmos.authn.v1;
+
+import "cosmos/query/v1/query.proto";
+
+service Query {
+  rpc AddressBytes (QueryAddressBytesRequest) returns (QueryAddressBytesResponse);
+//  TODO: rpc AddressString (QueryAddressBytesRequest) returns (QueryAddressBytesResponse);
+}
+
+message QueryAddressBytesRequest {
+  string address = 1;
+}
+
+message QueryAddressBytesResponse {
+  bytes address = 1;
+}
+
