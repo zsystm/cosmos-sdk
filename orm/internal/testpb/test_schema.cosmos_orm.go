@@ -10,11 +10,7 @@ import (
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type ExampleTableTable interface {
-	Insert(ctx context.Context, exampleTable *ExampleTable) error
-	Update(ctx context.Context, exampleTable *ExampleTable) error
-	Save(ctx context.Context, exampleTable *ExampleTable) error
-	Delete(ctx context.Context, exampleTable *ExampleTable) error
+type ExampleTableView interface {
 	Has(ctx context.Context, u32 uint32, i64 int64, str string) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, u32 uint32, i64 int64, str string) (*ExampleTable, error)
@@ -23,6 +19,16 @@ type ExampleTableTable interface {
 	GetByU64Str(ctx context.Context, u64 uint64, str string) (*ExampleTable, error)
 	List(ctx context.Context, prefixKey ExampleTableIndexKey, opts ...ormlist.Option) (ExampleTableIterator, error)
 	ListRange(ctx context.Context, from, to ExampleTableIndexKey, opts ...ormlist.Option) (ExampleTableIterator, error)
+
+	doNotImplement()
+}
+
+type ExampleTableTable interface {
+	ExampleTableView
+	Insert(ctx context.Context, exampleTable *ExampleTable) error
+	Update(ctx context.Context, exampleTable *ExampleTable) error
+	Save(ctx context.Context, exampleTable *ExampleTable) error
+	Delete(ctx context.Context, exampleTable *ExampleTable) error
 	DeleteBy(ctx context.Context, prefixKey ExampleTableIndexKey) error
 	DeleteRange(ctx context.Context, from, to ExampleTableIndexKey) error
 
@@ -125,7 +131,12 @@ func (this ExampleTableBzStrIndexKey) WithBzStr(bz []byte, str string) ExampleTa
 	return this
 }
 
+type exampleTableView struct {
+	view ormtable.View
+}
+
 type exampleTableTable struct {
+	exampleTableView
 	table ormtable.Table
 }
 
@@ -145,13 +156,13 @@ func (this exampleTableTable) Delete(ctx context.Context, exampleTable *ExampleT
 	return this.table.Delete(ctx, exampleTable)
 }
 
-func (this exampleTableTable) Has(ctx context.Context, u32 uint32, i64 int64, str string) (found bool, err error) {
-	return this.table.PrimaryKey().Has(ctx, u32, i64, str)
+func (this exampleTableView) Has(ctx context.Context, u32 uint32, i64 int64, str string) (found bool, err error) {
+	return this.view.PrimaryKey().Has(ctx, u32, i64, str)
 }
 
-func (this exampleTableTable) Get(ctx context.Context, u32 uint32, i64 int64, str string) (*ExampleTable, error) {
+func (this exampleTableView) Get(ctx context.Context, u32 uint32, i64 int64, str string) (*ExampleTable, error) {
 	var exampleTable ExampleTable
-	found, err := this.table.PrimaryKey().Get(ctx, &exampleTable, u32, i64, str)
+	found, err := this.view.PrimaryKey().Get(ctx, &exampleTable, u32, i64, str)
 	if err != nil {
 		return nil, err
 	}
@@ -161,16 +172,16 @@ func (this exampleTableTable) Get(ctx context.Context, u32 uint32, i64 int64, st
 	return &exampleTable, nil
 }
 
-func (this exampleTableTable) HasByU64Str(ctx context.Context, u64 uint64, str string) (found bool, err error) {
-	return this.table.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
+func (this exampleTableView) HasByU64Str(ctx context.Context, u64 uint64, str string) (found bool, err error) {
+	return this.view.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
 		u64,
 		str,
 	)
 }
 
-func (this exampleTableTable) GetByU64Str(ctx context.Context, u64 uint64, str string) (*ExampleTable, error) {
+func (this exampleTableView) GetByU64Str(ctx context.Context, u64 uint64, str string) (*ExampleTable, error) {
 	var exampleTable ExampleTable
-	found, err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &exampleTable,
+	found, err := this.view.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &exampleTable,
 		u64,
 		str,
 	)
@@ -183,42 +194,50 @@ func (this exampleTableTable) GetByU64Str(ctx context.Context, u64 uint64, str s
 	return &exampleTable, nil
 }
 
-func (this exampleTableTable) List(ctx context.Context, prefixKey ExampleTableIndexKey, opts ...ormlist.Option) (ExampleTableIterator, error) {
-	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
+func (this exampleTableView) List(ctx context.Context, prefixKey ExampleTableIndexKey, opts ...ormlist.Option) (ExampleTableIterator, error) {
+	it, err := this.view.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return ExampleTableIterator{it}, err
 }
 
-func (this exampleTableTable) ListRange(ctx context.Context, from, to ExampleTableIndexKey, opts ...ormlist.Option) (ExampleTableIterator, error) {
-	it, err := this.table.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
+func (this exampleTableView) ListRange(ctx context.Context, from, to ExampleTableIndexKey, opts ...ormlist.Option) (ExampleTableIterator, error) {
+	it, err := this.view.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
 	return ExampleTableIterator{it}, err
 }
 
 func (this exampleTableTable) DeleteBy(ctx context.Context, prefixKey ExampleTableIndexKey) error {
-	return this.table.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
+	return this.view.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
 }
 
 func (this exampleTableTable) DeleteRange(ctx context.Context, from, to ExampleTableIndexKey) error {
 	return this.table.GetIndexByID(from.id()).DeleteRange(ctx, from.values(), to.values())
 }
 
+func (this exampleTableView) doNotImplement()  {}
 func (this exampleTableTable) doNotImplement() {}
 
+var _ ExampleTableView = exampleTableView{}
 var _ ExampleTableTable = exampleTableTable{}
+
+func NewExampleTableView(db ormtable.Schema) (ExampleTableView, error) {
+	view := db.GetTable(&ExampleTable{})
+	if view == nil {
+		return nil, ormerrors.TableNotFound.Wrap(string((&ExampleTable{}).ProtoReflect().Descriptor().FullName()))
+	}
+	return exampleTableView{view: view}, nil
+}
 
 func NewExampleTableTable(db ormtable.Schema) (ExampleTableTable, error) {
 	table := db.GetTable(&ExampleTable{})
 	if table == nil {
 		return nil, ormerrors.TableNotFound.Wrap(string((&ExampleTable{}).ProtoReflect().Descriptor().FullName()))
 	}
-	return exampleTableTable{table}, nil
+	return exampleTableTable{
+		table:            table,
+		exampleTableView: exampleTableView{view: table},
+	}, nil
 }
 
-type ExampleAutoIncrementTableTable interface {
-	Insert(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
-	InsertReturningId(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) (uint64, error)
-	Update(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
-	Save(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
-	Delete(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
+type ExampleAutoIncrementTableView interface {
 	Has(ctx context.Context, id uint64) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, id uint64) (*ExampleAutoIncrementTable, error)
@@ -227,6 +246,17 @@ type ExampleAutoIncrementTableTable interface {
 	GetByX(ctx context.Context, x string) (*ExampleAutoIncrementTable, error)
 	List(ctx context.Context, prefixKey ExampleAutoIncrementTableIndexKey, opts ...ormlist.Option) (ExampleAutoIncrementTableIterator, error)
 	ListRange(ctx context.Context, from, to ExampleAutoIncrementTableIndexKey, opts ...ormlist.Option) (ExampleAutoIncrementTableIterator, error)
+
+	doNotImplement()
+}
+
+type ExampleAutoIncrementTableTable interface {
+	ExampleAutoIncrementTableView
+	Insert(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
+	InsertReturningId(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) (uint64, error)
+	Update(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
+	Save(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
+	Delete(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
 	DeleteBy(ctx context.Context, prefixKey ExampleAutoIncrementTableIndexKey) error
 	DeleteRange(ctx context.Context, from, to ExampleAutoIncrementTableIndexKey) error
 
@@ -278,7 +308,12 @@ func (this ExampleAutoIncrementTableXIndexKey) WithX(x string) ExampleAutoIncrem
 	return this
 }
 
+type exampleAutoIncrementTableView struct {
+	view ormtable.View
+}
+
 type exampleAutoIncrementTableTable struct {
+	exampleAutoIncrementTableView
 	table ormtable.AutoIncrementTable
 }
 
@@ -302,13 +337,13 @@ func (this exampleAutoIncrementTableTable) InsertReturningId(ctx context.Context
 	return this.table.InsertReturningPKey(ctx, exampleAutoIncrementTable)
 }
 
-func (this exampleAutoIncrementTableTable) Has(ctx context.Context, id uint64) (found bool, err error) {
-	return this.table.PrimaryKey().Has(ctx, id)
+func (this exampleAutoIncrementTableView) Has(ctx context.Context, id uint64) (found bool, err error) {
+	return this.view.PrimaryKey().Has(ctx, id)
 }
 
-func (this exampleAutoIncrementTableTable) Get(ctx context.Context, id uint64) (*ExampleAutoIncrementTable, error) {
+func (this exampleAutoIncrementTableView) Get(ctx context.Context, id uint64) (*ExampleAutoIncrementTable, error) {
 	var exampleAutoIncrementTable ExampleAutoIncrementTable
-	found, err := this.table.PrimaryKey().Get(ctx, &exampleAutoIncrementTable, id)
+	found, err := this.view.PrimaryKey().Get(ctx, &exampleAutoIncrementTable, id)
 	if err != nil {
 		return nil, err
 	}
@@ -318,15 +353,15 @@ func (this exampleAutoIncrementTableTable) Get(ctx context.Context, id uint64) (
 	return &exampleAutoIncrementTable, nil
 }
 
-func (this exampleAutoIncrementTableTable) HasByX(ctx context.Context, x string) (found bool, err error) {
-	return this.table.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
+func (this exampleAutoIncrementTableView) HasByX(ctx context.Context, x string) (found bool, err error) {
+	return this.view.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
 		x,
 	)
 }
 
-func (this exampleAutoIncrementTableTable) GetByX(ctx context.Context, x string) (*ExampleAutoIncrementTable, error) {
+func (this exampleAutoIncrementTableView) GetByX(ctx context.Context, x string) (*ExampleAutoIncrementTable, error) {
 	var exampleAutoIncrementTable ExampleAutoIncrementTable
-	found, err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &exampleAutoIncrementTable,
+	found, err := this.view.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &exampleAutoIncrementTable,
 		x,
 	)
 	if err != nil {
@@ -338,34 +373,47 @@ func (this exampleAutoIncrementTableTable) GetByX(ctx context.Context, x string)
 	return &exampleAutoIncrementTable, nil
 }
 
-func (this exampleAutoIncrementTableTable) List(ctx context.Context, prefixKey ExampleAutoIncrementTableIndexKey, opts ...ormlist.Option) (ExampleAutoIncrementTableIterator, error) {
-	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
+func (this exampleAutoIncrementTableView) List(ctx context.Context, prefixKey ExampleAutoIncrementTableIndexKey, opts ...ormlist.Option) (ExampleAutoIncrementTableIterator, error) {
+	it, err := this.view.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return ExampleAutoIncrementTableIterator{it}, err
 }
 
-func (this exampleAutoIncrementTableTable) ListRange(ctx context.Context, from, to ExampleAutoIncrementTableIndexKey, opts ...ormlist.Option) (ExampleAutoIncrementTableIterator, error) {
-	it, err := this.table.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
+func (this exampleAutoIncrementTableView) ListRange(ctx context.Context, from, to ExampleAutoIncrementTableIndexKey, opts ...ormlist.Option) (ExampleAutoIncrementTableIterator, error) {
+	it, err := this.view.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
 	return ExampleAutoIncrementTableIterator{it}, err
 }
 
 func (this exampleAutoIncrementTableTable) DeleteBy(ctx context.Context, prefixKey ExampleAutoIncrementTableIndexKey) error {
-	return this.table.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
+	return this.view.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
 }
 
 func (this exampleAutoIncrementTableTable) DeleteRange(ctx context.Context, from, to ExampleAutoIncrementTableIndexKey) error {
 	return this.table.GetIndexByID(from.id()).DeleteRange(ctx, from.values(), to.values())
 }
 
+func (this exampleAutoIncrementTableView) doNotImplement()  {}
 func (this exampleAutoIncrementTableTable) doNotImplement() {}
 
+var _ ExampleAutoIncrementTableView = exampleAutoIncrementTableView{}
 var _ ExampleAutoIncrementTableTable = exampleAutoIncrementTableTable{}
+
+func NewExampleAutoIncrementTableView(db ormtable.Schema) (ExampleAutoIncrementTableView, error) {
+	view := db.GetTable(&ExampleAutoIncrementTable{})
+	if view == nil {
+		return nil, ormerrors.TableNotFound.Wrap(string((&ExampleAutoIncrementTable{}).ProtoReflect().Descriptor().FullName()))
+	}
+	return exampleAutoIncrementTableView{view: view}, nil
+}
 
 func NewExampleAutoIncrementTableTable(db ormtable.Schema) (ExampleAutoIncrementTableTable, error) {
 	table := db.GetTable(&ExampleAutoIncrementTable{})
 	if table == nil {
 		return nil, ormerrors.TableNotFound.Wrap(string((&ExampleAutoIncrementTable{}).ProtoReflect().Descriptor().FullName()))
 	}
-	return exampleAutoIncrementTableTable{table.(ormtable.AutoIncrementTable)}, nil
+	return exampleAutoIncrementTableTable{
+		table:                         table.(ormtable.AutoIncrementTable),
+		exampleAutoIncrementTableView: exampleAutoIncrementTableView{view: table},
+	}, nil
 }
 
 // singleton store
@@ -398,17 +446,23 @@ func NewExampleSingletonTable(db ormtable.Schema) (ExampleSingletonTable, error)
 	return &exampleSingletonTable{table}, nil
 }
 
-type ExampleTimestampTable interface {
-	Insert(ctx context.Context, exampleTimestamp *ExampleTimestamp) error
-	InsertReturningId(ctx context.Context, exampleTimestamp *ExampleTimestamp) (uint64, error)
-	Update(ctx context.Context, exampleTimestamp *ExampleTimestamp) error
-	Save(ctx context.Context, exampleTimestamp *ExampleTimestamp) error
-	Delete(ctx context.Context, exampleTimestamp *ExampleTimestamp) error
+type ExampleTimestampView interface {
 	Has(ctx context.Context, id uint64) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, id uint64) (*ExampleTimestamp, error)
 	List(ctx context.Context, prefixKey ExampleTimestampIndexKey, opts ...ormlist.Option) (ExampleTimestampIterator, error)
 	ListRange(ctx context.Context, from, to ExampleTimestampIndexKey, opts ...ormlist.Option) (ExampleTimestampIterator, error)
+
+	doNotImplement()
+}
+
+type ExampleTimestampTable interface {
+	ExampleTimestampView
+	Insert(ctx context.Context, exampleTimestamp *ExampleTimestamp) error
+	InsertReturningId(ctx context.Context, exampleTimestamp *ExampleTimestamp) (uint64, error)
+	Update(ctx context.Context, exampleTimestamp *ExampleTimestamp) error
+	Save(ctx context.Context, exampleTimestamp *ExampleTimestamp) error
+	Delete(ctx context.Context, exampleTimestamp *ExampleTimestamp) error
 	DeleteBy(ctx context.Context, prefixKey ExampleTimestampIndexKey) error
 	DeleteRange(ctx context.Context, from, to ExampleTimestampIndexKey) error
 
@@ -460,7 +514,12 @@ func (this ExampleTimestampTsIndexKey) WithTs(ts *timestamppb.Timestamp) Example
 	return this
 }
 
+type exampleTimestampView struct {
+	view ormtable.View
+}
+
 type exampleTimestampTable struct {
+	exampleTimestampView
 	table ormtable.AutoIncrementTable
 }
 
@@ -484,13 +543,13 @@ func (this exampleTimestampTable) InsertReturningId(ctx context.Context, example
 	return this.table.InsertReturningPKey(ctx, exampleTimestamp)
 }
 
-func (this exampleTimestampTable) Has(ctx context.Context, id uint64) (found bool, err error) {
-	return this.table.PrimaryKey().Has(ctx, id)
+func (this exampleTimestampView) Has(ctx context.Context, id uint64) (found bool, err error) {
+	return this.view.PrimaryKey().Has(ctx, id)
 }
 
-func (this exampleTimestampTable) Get(ctx context.Context, id uint64) (*ExampleTimestamp, error) {
+func (this exampleTimestampView) Get(ctx context.Context, id uint64) (*ExampleTimestamp, error) {
 	var exampleTimestamp ExampleTimestamp
-	found, err := this.table.PrimaryKey().Get(ctx, &exampleTimestamp, id)
+	found, err := this.view.PrimaryKey().Get(ctx, &exampleTimestamp, id)
 	if err != nil {
 		return nil, err
 	}
@@ -500,41 +559,50 @@ func (this exampleTimestampTable) Get(ctx context.Context, id uint64) (*ExampleT
 	return &exampleTimestamp, nil
 }
 
-func (this exampleTimestampTable) List(ctx context.Context, prefixKey ExampleTimestampIndexKey, opts ...ormlist.Option) (ExampleTimestampIterator, error) {
-	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
+func (this exampleTimestampView) List(ctx context.Context, prefixKey ExampleTimestampIndexKey, opts ...ormlist.Option) (ExampleTimestampIterator, error) {
+	it, err := this.view.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return ExampleTimestampIterator{it}, err
 }
 
-func (this exampleTimestampTable) ListRange(ctx context.Context, from, to ExampleTimestampIndexKey, opts ...ormlist.Option) (ExampleTimestampIterator, error) {
-	it, err := this.table.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
+func (this exampleTimestampView) ListRange(ctx context.Context, from, to ExampleTimestampIndexKey, opts ...ormlist.Option) (ExampleTimestampIterator, error) {
+	it, err := this.view.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
 	return ExampleTimestampIterator{it}, err
 }
 
 func (this exampleTimestampTable) DeleteBy(ctx context.Context, prefixKey ExampleTimestampIndexKey) error {
-	return this.table.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
+	return this.view.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
 }
 
 func (this exampleTimestampTable) DeleteRange(ctx context.Context, from, to ExampleTimestampIndexKey) error {
 	return this.table.GetIndexByID(from.id()).DeleteRange(ctx, from.values(), to.values())
 }
 
+func (this exampleTimestampView) doNotImplement()  {}
 func (this exampleTimestampTable) doNotImplement() {}
 
+var _ ExampleTimestampView = exampleTimestampView{}
 var _ ExampleTimestampTable = exampleTimestampTable{}
+
+func NewExampleTimestampView(db ormtable.Schema) (ExampleTimestampView, error) {
+	view := db.GetTable(&ExampleTimestamp{})
+	if view == nil {
+		return nil, ormerrors.TableNotFound.Wrap(string((&ExampleTimestamp{}).ProtoReflect().Descriptor().FullName()))
+	}
+	return exampleTimestampView{view: view}, nil
+}
 
 func NewExampleTimestampTable(db ormtable.Schema) (ExampleTimestampTable, error) {
 	table := db.GetTable(&ExampleTimestamp{})
 	if table == nil {
 		return nil, ormerrors.TableNotFound.Wrap(string((&ExampleTimestamp{}).ProtoReflect().Descriptor().FullName()))
 	}
-	return exampleTimestampTable{table.(ormtable.AutoIncrementTable)}, nil
+	return exampleTimestampTable{
+		table:                table.(ormtable.AutoIncrementTable),
+		exampleTimestampView: exampleTimestampView{view: table},
+	}, nil
 }
 
-type SimpleExampleTable interface {
-	Insert(ctx context.Context, simpleExample *SimpleExample) error
-	Update(ctx context.Context, simpleExample *SimpleExample) error
-	Save(ctx context.Context, simpleExample *SimpleExample) error
-	Delete(ctx context.Context, simpleExample *SimpleExample) error
+type SimpleExampleView interface {
 	Has(ctx context.Context, name string) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, name string) (*SimpleExample, error)
@@ -543,6 +611,16 @@ type SimpleExampleTable interface {
 	GetByUnique(ctx context.Context, unique string) (*SimpleExample, error)
 	List(ctx context.Context, prefixKey SimpleExampleIndexKey, opts ...ormlist.Option) (SimpleExampleIterator, error)
 	ListRange(ctx context.Context, from, to SimpleExampleIndexKey, opts ...ormlist.Option) (SimpleExampleIterator, error)
+
+	doNotImplement()
+}
+
+type SimpleExampleTable interface {
+	SimpleExampleView
+	Insert(ctx context.Context, simpleExample *SimpleExample) error
+	Update(ctx context.Context, simpleExample *SimpleExample) error
+	Save(ctx context.Context, simpleExample *SimpleExample) error
+	Delete(ctx context.Context, simpleExample *SimpleExample) error
 	DeleteBy(ctx context.Context, prefixKey SimpleExampleIndexKey) error
 	DeleteRange(ctx context.Context, from, to SimpleExampleIndexKey) error
 
@@ -594,7 +672,12 @@ func (this SimpleExampleUniqueIndexKey) WithUnique(unique string) SimpleExampleU
 	return this
 }
 
+type simpleExampleView struct {
+	view ormtable.View
+}
+
 type simpleExampleTable struct {
+	simpleExampleView
 	table ormtable.Table
 }
 
@@ -614,13 +697,13 @@ func (this simpleExampleTable) Delete(ctx context.Context, simpleExample *Simple
 	return this.table.Delete(ctx, simpleExample)
 }
 
-func (this simpleExampleTable) Has(ctx context.Context, name string) (found bool, err error) {
-	return this.table.PrimaryKey().Has(ctx, name)
+func (this simpleExampleView) Has(ctx context.Context, name string) (found bool, err error) {
+	return this.view.PrimaryKey().Has(ctx, name)
 }
 
-func (this simpleExampleTable) Get(ctx context.Context, name string) (*SimpleExample, error) {
+func (this simpleExampleView) Get(ctx context.Context, name string) (*SimpleExample, error) {
 	var simpleExample SimpleExample
-	found, err := this.table.PrimaryKey().Get(ctx, &simpleExample, name)
+	found, err := this.view.PrimaryKey().Get(ctx, &simpleExample, name)
 	if err != nil {
 		return nil, err
 	}
@@ -630,15 +713,15 @@ func (this simpleExampleTable) Get(ctx context.Context, name string) (*SimpleExa
 	return &simpleExample, nil
 }
 
-func (this simpleExampleTable) HasByUnique(ctx context.Context, unique string) (found bool, err error) {
-	return this.table.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
+func (this simpleExampleView) HasByUnique(ctx context.Context, unique string) (found bool, err error) {
+	return this.view.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
 		unique,
 	)
 }
 
-func (this simpleExampleTable) GetByUnique(ctx context.Context, unique string) (*SimpleExample, error) {
+func (this simpleExampleView) GetByUnique(ctx context.Context, unique string) (*SimpleExample, error) {
 	var simpleExample SimpleExample
-	found, err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &simpleExample,
+	found, err := this.view.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &simpleExample,
 		unique,
 	)
 	if err != nil {
@@ -650,47 +733,66 @@ func (this simpleExampleTable) GetByUnique(ctx context.Context, unique string) (
 	return &simpleExample, nil
 }
 
-func (this simpleExampleTable) List(ctx context.Context, prefixKey SimpleExampleIndexKey, opts ...ormlist.Option) (SimpleExampleIterator, error) {
-	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
+func (this simpleExampleView) List(ctx context.Context, prefixKey SimpleExampleIndexKey, opts ...ormlist.Option) (SimpleExampleIterator, error) {
+	it, err := this.view.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return SimpleExampleIterator{it}, err
 }
 
-func (this simpleExampleTable) ListRange(ctx context.Context, from, to SimpleExampleIndexKey, opts ...ormlist.Option) (SimpleExampleIterator, error) {
-	it, err := this.table.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
+func (this simpleExampleView) ListRange(ctx context.Context, from, to SimpleExampleIndexKey, opts ...ormlist.Option) (SimpleExampleIterator, error) {
+	it, err := this.view.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
 	return SimpleExampleIterator{it}, err
 }
 
 func (this simpleExampleTable) DeleteBy(ctx context.Context, prefixKey SimpleExampleIndexKey) error {
-	return this.table.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
+	return this.view.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
 }
 
 func (this simpleExampleTable) DeleteRange(ctx context.Context, from, to SimpleExampleIndexKey) error {
 	return this.table.GetIndexByID(from.id()).DeleteRange(ctx, from.values(), to.values())
 }
 
+func (this simpleExampleView) doNotImplement()  {}
 func (this simpleExampleTable) doNotImplement() {}
 
+var _ SimpleExampleView = simpleExampleView{}
 var _ SimpleExampleTable = simpleExampleTable{}
+
+func NewSimpleExampleView(db ormtable.Schema) (SimpleExampleView, error) {
+	view := db.GetTable(&SimpleExample{})
+	if view == nil {
+		return nil, ormerrors.TableNotFound.Wrap(string((&SimpleExample{}).ProtoReflect().Descriptor().FullName()))
+	}
+	return simpleExampleView{view: view}, nil
+}
 
 func NewSimpleExampleTable(db ormtable.Schema) (SimpleExampleTable, error) {
 	table := db.GetTable(&SimpleExample{})
 	if table == nil {
 		return nil, ormerrors.TableNotFound.Wrap(string((&SimpleExample{}).ProtoReflect().Descriptor().FullName()))
 	}
-	return simpleExampleTable{table}, nil
+	return simpleExampleTable{
+		table:             table,
+		simpleExampleView: simpleExampleView{view: table},
+	}, nil
 }
 
-type ExampleAutoIncFieldNameTable interface {
-	Insert(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) error
-	InsertReturningFoo(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) (uint64, error)
-	Update(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) error
-	Save(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) error
-	Delete(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) error
+type ExampleAutoIncFieldNameView interface {
 	Has(ctx context.Context, foo uint64) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, foo uint64) (*ExampleAutoIncFieldName, error)
 	List(ctx context.Context, prefixKey ExampleAutoIncFieldNameIndexKey, opts ...ormlist.Option) (ExampleAutoIncFieldNameIterator, error)
 	ListRange(ctx context.Context, from, to ExampleAutoIncFieldNameIndexKey, opts ...ormlist.Option) (ExampleAutoIncFieldNameIterator, error)
+
+	doNotImplement()
+}
+
+type ExampleAutoIncFieldNameTable interface {
+	ExampleAutoIncFieldNameView
+	Insert(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) error
+	InsertReturningFoo(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) (uint64, error)
+	Update(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) error
+	Save(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) error
+	Delete(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) error
 	DeleteBy(ctx context.Context, prefixKey ExampleAutoIncFieldNameIndexKey) error
 	DeleteRange(ctx context.Context, from, to ExampleAutoIncFieldNameIndexKey) error
 
@@ -729,7 +831,12 @@ func (this ExampleAutoIncFieldNameFooIndexKey) WithFoo(foo uint64) ExampleAutoIn
 	return this
 }
 
+type exampleAutoIncFieldNameView struct {
+	view ormtable.View
+}
+
 type exampleAutoIncFieldNameTable struct {
+	exampleAutoIncFieldNameView
 	table ormtable.AutoIncrementTable
 }
 
@@ -753,13 +860,13 @@ func (this exampleAutoIncFieldNameTable) InsertReturningFoo(ctx context.Context,
 	return this.table.InsertReturningPKey(ctx, exampleAutoIncFieldName)
 }
 
-func (this exampleAutoIncFieldNameTable) Has(ctx context.Context, foo uint64) (found bool, err error) {
-	return this.table.PrimaryKey().Has(ctx, foo)
+func (this exampleAutoIncFieldNameView) Has(ctx context.Context, foo uint64) (found bool, err error) {
+	return this.view.PrimaryKey().Has(ctx, foo)
 }
 
-func (this exampleAutoIncFieldNameTable) Get(ctx context.Context, foo uint64) (*ExampleAutoIncFieldName, error) {
+func (this exampleAutoIncFieldNameView) Get(ctx context.Context, foo uint64) (*ExampleAutoIncFieldName, error) {
 	var exampleAutoIncFieldName ExampleAutoIncFieldName
-	found, err := this.table.PrimaryKey().Get(ctx, &exampleAutoIncFieldName, foo)
+	found, err := this.view.PrimaryKey().Get(ctx, &exampleAutoIncFieldName, foo)
 	if err != nil {
 		return nil, err
 	}
@@ -769,37 +876,62 @@ func (this exampleAutoIncFieldNameTable) Get(ctx context.Context, foo uint64) (*
 	return &exampleAutoIncFieldName, nil
 }
 
-func (this exampleAutoIncFieldNameTable) List(ctx context.Context, prefixKey ExampleAutoIncFieldNameIndexKey, opts ...ormlist.Option) (ExampleAutoIncFieldNameIterator, error) {
-	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
+func (this exampleAutoIncFieldNameView) List(ctx context.Context, prefixKey ExampleAutoIncFieldNameIndexKey, opts ...ormlist.Option) (ExampleAutoIncFieldNameIterator, error) {
+	it, err := this.view.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return ExampleAutoIncFieldNameIterator{it}, err
 }
 
-func (this exampleAutoIncFieldNameTable) ListRange(ctx context.Context, from, to ExampleAutoIncFieldNameIndexKey, opts ...ormlist.Option) (ExampleAutoIncFieldNameIterator, error) {
-	it, err := this.table.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
+func (this exampleAutoIncFieldNameView) ListRange(ctx context.Context, from, to ExampleAutoIncFieldNameIndexKey, opts ...ormlist.Option) (ExampleAutoIncFieldNameIterator, error) {
+	it, err := this.view.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
 	return ExampleAutoIncFieldNameIterator{it}, err
 }
 
 func (this exampleAutoIncFieldNameTable) DeleteBy(ctx context.Context, prefixKey ExampleAutoIncFieldNameIndexKey) error {
-	return this.table.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
+	return this.view.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
 }
 
 func (this exampleAutoIncFieldNameTable) DeleteRange(ctx context.Context, from, to ExampleAutoIncFieldNameIndexKey) error {
 	return this.table.GetIndexByID(from.id()).DeleteRange(ctx, from.values(), to.values())
 }
 
+func (this exampleAutoIncFieldNameView) doNotImplement()  {}
 func (this exampleAutoIncFieldNameTable) doNotImplement() {}
 
+var _ ExampleAutoIncFieldNameView = exampleAutoIncFieldNameView{}
 var _ ExampleAutoIncFieldNameTable = exampleAutoIncFieldNameTable{}
+
+func NewExampleAutoIncFieldNameView(db ormtable.Schema) (ExampleAutoIncFieldNameView, error) {
+	view := db.GetTable(&ExampleAutoIncFieldName{})
+	if view == nil {
+		return nil, ormerrors.TableNotFound.Wrap(string((&ExampleAutoIncFieldName{}).ProtoReflect().Descriptor().FullName()))
+	}
+	return exampleAutoIncFieldNameView{view: view}, nil
+}
 
 func NewExampleAutoIncFieldNameTable(db ormtable.Schema) (ExampleAutoIncFieldNameTable, error) {
 	table := db.GetTable(&ExampleAutoIncFieldName{})
 	if table == nil {
 		return nil, ormerrors.TableNotFound.Wrap(string((&ExampleAutoIncFieldName{}).ProtoReflect().Descriptor().FullName()))
 	}
-	return exampleAutoIncFieldNameTable{table.(ormtable.AutoIncrementTable)}, nil
+	return exampleAutoIncFieldNameTable{
+		table:                       table.(ormtable.AutoIncrementTable),
+		exampleAutoIncFieldNameView: exampleAutoIncFieldNameView{view: table},
+	}, nil
+}
+
+type TestSchemaView interface {
+	ExampleTableView() ExampleTableView
+	ExampleAutoIncrementTableView() ExampleAutoIncrementTableView
+	ExampleSingletonView() ExampleSingletonView
+	ExampleTimestampView() ExampleTimestampView
+	SimpleExampleView() SimpleExampleView
+	ExampleAutoIncFieldNameView() ExampleAutoIncFieldNameView
+
+	doNotImplement()
 }
 
 type TestSchemaStore interface {
+	TestSchemaView
 	ExampleTableTable() ExampleTableTable
 	ExampleAutoIncrementTableTable() ExampleAutoIncrementTableTable
 	ExampleSingletonTable() ExampleSingletonTable
@@ -810,7 +942,16 @@ type TestSchemaStore interface {
 	doNotImplement()
 }
 
+type testSchemaView struct {
+	exampleTable              ExampleTableView
+	exampleAutoIncrementTable ExampleAutoIncrementTableView
+	exampleSingleton          ExampleSingletonView
+	exampleTimestamp          ExampleTimestampView
+	simpleExample             SimpleExampleView
+	exampleAutoIncFieldName   ExampleAutoIncFieldNameView
+}
 type testSchemaStore struct {
+	testSchemaView
 	exampleTable              ExampleTableTable
 	exampleAutoIncrementTable ExampleAutoIncrementTableTable
 	exampleSingleton          ExampleSingletonTable
@@ -818,6 +959,32 @@ type testSchemaStore struct {
 	simpleExample             SimpleExampleTable
 	exampleAutoIncFieldName   ExampleAutoIncFieldNameTable
 }
+
+func (x testSchemaView) ExampleTableView() ExampleTableView {
+	return x.exampleTable
+}
+
+func (x testSchemaView) ExampleAutoIncrementTableView() ExampleAutoIncrementTableView {
+	return x.exampleAutoIncrementTable
+}
+
+func (x testSchemaView) ExampleSingletonView() ExampleSingletonView {
+	return x.exampleSingleton
+}
+
+func (x testSchemaView) ExampleTimestampView() ExampleTimestampView {
+	return x.exampleTimestamp
+}
+
+func (x testSchemaView) SimpleExampleView() SimpleExampleView {
+	return x.simpleExample
+}
+
+func (x testSchemaView) ExampleAutoIncFieldNameView() ExampleAutoIncFieldNameView {
+	return x.exampleAutoIncFieldName
+}
+
+func (testSchemaView) doNotImplement() {}
 
 func (x testSchemaStore) ExampleTableTable() ExampleTableTable {
 	return x.exampleTable
@@ -845,7 +1012,49 @@ func (x testSchemaStore) ExampleAutoIncFieldNameTable() ExampleAutoIncFieldNameT
 
 func (testSchemaStore) doNotImplement() {}
 
+var _ TestSchemaView = testSchemaView{}
 var _ TestSchemaStore = testSchemaStore{}
+
+func NewTestSchemaView(db ormtable.Schema) (TestSchemaView, error) {
+	exampleTableView, err := NewExampleTableView(db)
+	if err != nil {
+		return nil, err
+	}
+
+	exampleAutoIncrementTableView, err := NewExampleAutoIncrementTableView(db)
+	if err != nil {
+		return nil, err
+	}
+
+	exampleSingletonView, err := NewExampleSingletonView(db)
+	if err != nil {
+		return nil, err
+	}
+
+	exampleTimestampView, err := NewExampleTimestampView(db)
+	if err != nil {
+		return nil, err
+	}
+
+	simpleExampleView, err := NewSimpleExampleView(db)
+	if err != nil {
+		return nil, err
+	}
+
+	exampleAutoIncFieldNameView, err := NewExampleAutoIncFieldNameView(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return testSchemaView{
+		exampleTableView,
+		exampleAutoIncrementTableView,
+		exampleSingletonView,
+		exampleTimestampView,
+		simpleExampleView,
+		exampleAutoIncFieldNameView,
+	}, nil
+}
 
 func NewTestSchemaStore(db ormtable.Schema) (TestSchemaStore, error) {
 	exampleTableTable, err := NewExampleTableTable(db)
@@ -879,6 +1088,14 @@ func NewTestSchemaStore(db ormtable.Schema) (TestSchemaStore, error) {
 	}
 
 	return testSchemaStore{
+		testSchemaView{
+			exampleTableTable,
+			exampleAutoIncrementTableTable,
+			exampleSingletonTable,
+			exampleTimestampTable,
+			simpleExampleTable,
+			exampleAutoIncFieldNameTable,
+		},
 		exampleTableTable,
 		exampleAutoIncrementTableTable,
 		exampleSingletonTable,

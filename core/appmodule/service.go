@@ -17,6 +17,7 @@ type Service interface {
 	store.KVStoreService
 	store.MemoryStoreService
 	store.TransientStoreService
+	store.ReadonlyStoreService
 	event.Service
 	blockinfo.Service
 	gas.Service

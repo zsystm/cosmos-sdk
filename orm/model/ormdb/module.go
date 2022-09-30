@@ -167,6 +167,11 @@ func (m moduleDB) EncodeEntry(entry ormkv.Entry) (k, v []byte, err error) {
 	return table.EncodeEntry(entry)
 }
 
+func (m moduleDB) GetView(message proto.Message) ormtable.View {
+	//TODO implement me
+	return nil
+}
+
 func (m moduleDB) GetTable(message proto.Message) ormtable.Table {
 	return m.tablesByName[message.ProtoReflect().Descriptor().FullName()]
 }

@@ -67,8 +67,8 @@ func (s Keeper) CreateAccount(ctx context.Context, request *authnv1.CreateAccoun
 	}
 
 	err = s.stateStore.AccountSequenceTable().Insert(ctx, &authnv1.AccountSequence{
-		Id:  id,
-		Seq: 0,
+		Address: request.Address,
+		Seq:     0,
 	})
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (s Keeper) CreateAccount(ctx context.Context, request *authnv1.CreateAccoun
 }
 
 func (s Keeper) IncrementSeq(ctx context.Context, request *authnv1.IncrementSeqRequest) (*authnv1.IncrementSeqResponse, error) {
-	accSeq, err := s.stateStore.AccountSequenceTable().Get(ctx, request.AccountId)
+	accSeq, err := s.stateStore.AccountSequenceTable().Get(ctx, request.Address)
 	if err != nil {
 		return nil, err
 	}

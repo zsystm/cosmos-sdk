@@ -12,9 +12,9 @@ plugins:
   - name: go-pulsar
     out: ../api
     opt: paths=source_relative
-  - name: go-grpc
+  - name: go-cosmos-orm
     out: ../api
     opt: paths=source_relative
-  - name: go-cosmos-orm
+  - name: go-grpc
     out: ../api
     opt: paths=source_relative

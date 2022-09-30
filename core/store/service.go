@@ -25,3 +25,9 @@ type TransientStoreService interface {
 	// OpenTransientStore retrieves the transient store from the context.
 	OpenTransientStore(context.Context) KVStore
 }
+
+type ReadonlyStoreService interface {
+	OpenReadonlyKVStore(ctx context.Context, module string) ReadonlyKVStore
+	OpenReadonlyMemoryStore(ctx context.Context, module string) ReadonlyKVStore
+	OpenReadonlyTransientStore(ctx context.Context, module string) ReadonlyKVStore
+}

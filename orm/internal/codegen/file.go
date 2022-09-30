@@ -53,8 +53,23 @@ func (f fileGen) gen() error {
 	return nil
 }
 
+func (f fileGen) genViewInterface(stores []*protogen.Message) {
+	f.P("type ", f.viewInterfaceName(), " interface {")
+	for _, store := range stores {
+		name := f.messageViewInterfaceName(store)
+		f.P(name, "()", name)
+	}
+	f.P()
+	f.P("doNotImplement()")
+	f.P("}")
+	f.P()
+}
+
 func (f fileGen) genStoreInterface(stores []*protogen.Message) {
+	f.genViewInterface(stores)
+
 	f.P("type ", f.storeInterfaceName(), " interface {")
+	f.P(f.viewInterfaceName())
 	for _, store := range stores {
 		name := f.messageTableInterfaceName(store)
 		f.P(name, "()", name)
@@ -65,9 +80,21 @@ func (f fileGen) genStoreInterface(stores []*protogen.Message) {
 	f.P()
 }
 
+func (f fileGen) genViewStruct(stores []*protogen.Message) {
+	// struct
+	f.P("type ", f.viewStructName(), " struct {")
+	for _, message := range stores {
+		f.P(f.param(message.GoIdent.GoName), " ", f.messageViewInterfaceName(message))
+	}
+	f.P("}")
+}
+
 func (f fileGen) genStoreStruct(stores []*protogen.Message) {
+	f.genViewStruct(stores)
+
 	// struct
 	f.P("type ", f.storeStructName(), " struct {")
+	f.P(f.viewStructName())
 	for _, message := range stores {
 		f.P(f.param(message.GoIdent.GoName), " ", f.messageTableInterfaceName(message))
 	}
@@ -86,6 +113,14 @@ func (f fileGen) storeStructName() string {
 	return strcase.ToLowerCamel(f.fileShortName()) + "Store"
 }
 
+func (f fileGen) viewInterfaceName() string {
+	return strcase.ToCamel(f.fileShortName()) + "View"
+}
+
+func (f fileGen) viewStructName() string {
+	return strcase.ToLowerCamel(f.fileShortName()) + "View"
+}
+
 func (f fileGen) fileShortName() string {
 	filename := f.file.Proto.GetName()
 	shortName := filepath.Base(filename)
@@ -98,6 +133,10 @@ func (f fileGen) fileShortName() string {
 
 func (f fileGen) messageTableInterfaceName(m *protogen.Message) string {
 	return m.GoIdent.GoName + "Table"
+}
+
+func (f fileGen) messageViewInterfaceName(m *protogen.Message) string {
+	return m.GoIdent.GoName + "View"
 }
 
 func (f fileGen) messageReaderInterfaceName(m *protogen.Message) string {
@@ -116,11 +155,34 @@ func (f fileGen) messageTableReceiverName(m *protogen.Message) string {
 	return f.param(f.messageTableInterfaceName(m))
 }
 
-func (f fileGen) messageConstructorName(m *protogen.Message) string {
+func (f fileGen) messageViewReceiverName(m *protogen.Message) string {
+	return f.param(f.messageViewInterfaceName(m))
+}
+
+func (f fileGen) messageViewConstructorName(m *protogen.Message) string {
+	return "New" + f.messageViewInterfaceName(m)
+}
+
+func (f fileGen) messageTableConstructorName(m *protogen.Message) string {
 	return "New" + f.messageTableInterfaceName(m)
 }
 
+func (f fileGen) genViewMethods(stores []*protogen.Message) {
+	// getters
+	for _, msg := range stores {
+		name := f.messageViewInterfaceName(msg)
+		f.P("func(x ", f.viewStructName(), ") ", name, "() ", name, "{")
+		f.P("return x.", f.param(msg.GoIdent.GoName))
+		f.P("}")
+		f.P()
+	}
+	f.P("func(", f.viewStructName(), ") doNotImplement() {}")
+	f.P()
+}
+
 func (f fileGen) genStoreMethods(stores []*protogen.Message) {
+	f.genViewMethods(stores)
+
 	// getters
 	for _, msg := range stores {
 		name := f.messageTableInterfaceName(msg)
@@ -134,13 +196,35 @@ func (f fileGen) genStoreMethods(stores []*protogen.Message) {
 }
 
 func (f fileGen) genStoreInterfaceGuard() {
+	f.P("var _ ", f.viewInterfaceName(), " = ", f.viewStructName(), "{}")
 	f.P("var _ ", f.storeInterfaceName(), " = ", f.storeStructName(), "{}")
 }
 
+func (f fileGen) genViewConstructor(stores []*protogen.Message) {
+	f.P("func New", f.viewInterfaceName(), "(db ", ormTablePkg.Ident("Schema"), ") (", f.viewInterfaceName(), ", error) {")
+	for _, store := range stores {
+		f.P(f.messageViewReceiverName(store), ", err := ", f.messageViewConstructorName(store), "(db)")
+		f.P("if err != nil {")
+		f.P("return nil, err")
+		f.P("}")
+		f.P()
+	}
+
+	f.P("return ", f.viewStructName(), "{")
+	for _, store := range stores {
+		f.P(f.messageViewReceiverName(store), ",")
+	}
+	f.P("}, nil")
+	f.P("}")
+}
+
 func (f fileGen) genStoreConstructor(stores []*protogen.Message) {
+	f.genViewConstructor(stores)
+	f.P()
+
 	f.P("func New", f.storeInterfaceName(), "(db ", ormTablePkg.Ident("Schema"), ") (", f.storeInterfaceName(), ", error) {")
 	for _, store := range stores {
-		f.P(f.messageTableReceiverName(store), ", err := ", f.messageConstructorName(store), "(db)")
+		f.P(f.messageTableReceiverName(store), ", err := ", f.messageTableConstructorName(store), "(db)")
 		f.P("if err != nil {")
 		f.P("return nil, err")
 		f.P("}")
@@ -148,6 +232,11 @@ func (f fileGen) genStoreConstructor(stores []*protogen.Message) {
 	}
 
 	f.P("return ", f.storeStructName(), "{")
+	f.P(f.viewStructName(), "{")
+	for _, store := range stores {
+		f.P(f.messageTableReceiverName(store), ",")
+	}
+	f.P("},")
 	for _, store := range stores {
 		f.P(f.messageTableReceiverName(store), ",")
 	}

@@ -9,12 +9,7 @@ import (
 	ormerrors "github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
 )
 
-type AccountTable interface {
-	Insert(ctx context.Context, account *Account) error
-	InsertReturningId(ctx context.Context, account *Account) (uint64, error)
-	Update(ctx context.Context, account *Account) error
-	Save(ctx context.Context, account *Account) error
-	Delete(ctx context.Context, account *Account) error
+type AccountView interface {
 	Has(ctx context.Context, id uint64) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, id uint64) (*Account, error)
@@ -23,6 +18,17 @@ type AccountTable interface {
 	GetByAddress(ctx context.Context, address []byte) (*Account, error)
 	List(ctx context.Context, prefixKey AccountIndexKey, opts ...ormlist.Option) (AccountIterator, error)
 	ListRange(ctx context.Context, from, to AccountIndexKey, opts ...ormlist.Option) (AccountIterator, error)
+
+	doNotImplement()
+}
+
+type AccountTable interface {
+	AccountView
+	Insert(ctx context.Context, account *Account) error
+	InsertReturningId(ctx context.Context, account *Account) (uint64, error)
+	Update(ctx context.Context, account *Account) error
+	Save(ctx context.Context, account *Account) error
+	Delete(ctx context.Context, account *Account) error
 	DeleteBy(ctx context.Context, prefixKey AccountIndexKey) error
 	DeleteRange(ctx context.Context, from, to AccountIndexKey) error
 
@@ -74,7 +80,12 @@ func (this AccountAddressIndexKey) WithAddress(address []byte) AccountAddressInd
 	return this
 }
 
+type accountView struct {
+	view ormtable.View
+}
+
 type accountTable struct {
+	accountView
 	table ormtable.AutoIncrementTable
 }
 
@@ -98,13 +109,13 @@ func (this accountTable) InsertReturningId(ctx context.Context, account *Account
 	return this.table.InsertReturningPKey(ctx, account)
 }
 
-func (this accountTable) Has(ctx context.Context, id uint64) (found bool, err error) {
-	return this.table.PrimaryKey().Has(ctx, id)
+func (this accountView) Has(ctx context.Context, id uint64) (found bool, err error) {
+	return this.view.PrimaryKey().Has(ctx, id)
 }
 
-func (this accountTable) Get(ctx context.Context, id uint64) (*Account, error) {
+func (this accountView) Get(ctx context.Context, id uint64) (*Account, error) {
 	var account Account
-	found, err := this.table.PrimaryKey().Get(ctx, &account, id)
+	found, err := this.view.PrimaryKey().Get(ctx, &account, id)
 	if err != nil {
 		return nil, err
 	}
@@ -114,15 +125,15 @@ func (this accountTable) Get(ctx context.Context, id uint64) (*Account, error) {
 	return &account, nil
 }
 
-func (this accountTable) HasByAddress(ctx context.Context, address []byte) (found bool, err error) {
-	return this.table.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
+func (this accountView) HasByAddress(ctx context.Context, address []byte) (found bool, err error) {
+	return this.view.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
 		address,
 	)
 }
 
-func (this accountTable) GetByAddress(ctx context.Context, address []byte) (*Account, error) {
+func (this accountView) GetByAddress(ctx context.Context, address []byte) (*Account, error) {
 	var account Account
-	found, err := this.table.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &account,
+	found, err := this.view.GetIndexByID(1).(ormtable.UniqueIndex).Get(ctx, &account,
 		address,
 	)
 	if err != nil {
@@ -134,46 +145,65 @@ func (this accountTable) GetByAddress(ctx context.Context, address []byte) (*Acc
 	return &account, nil
 }
 
-func (this accountTable) List(ctx context.Context, prefixKey AccountIndexKey, opts ...ormlist.Option) (AccountIterator, error) {
-	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
+func (this accountView) List(ctx context.Context, prefixKey AccountIndexKey, opts ...ormlist.Option) (AccountIterator, error) {
+	it, err := this.view.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return AccountIterator{it}, err
 }
 
-func (this accountTable) ListRange(ctx context.Context, from, to AccountIndexKey, opts ...ormlist.Option) (AccountIterator, error) {
-	it, err := this.table.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
+func (this accountView) ListRange(ctx context.Context, from, to AccountIndexKey, opts ...ormlist.Option) (AccountIterator, error) {
+	it, err := this.view.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
 	return AccountIterator{it}, err
 }
 
 func (this accountTable) DeleteBy(ctx context.Context, prefixKey AccountIndexKey) error {
-	return this.table.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
+	return this.view.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
 }
 
 func (this accountTable) DeleteRange(ctx context.Context, from, to AccountIndexKey) error {
 	return this.table.GetIndexByID(from.id()).DeleteRange(ctx, from.values(), to.values())
 }
 
+func (this accountView) doNotImplement()  {}
 func (this accountTable) doNotImplement() {}
 
+var _ AccountView = accountView{}
 var _ AccountTable = accountTable{}
+
+func NewAccountView(db ormtable.Schema) (AccountView, error) {
+	view := db.GetTable(&Account{})
+	if view == nil {
+		return nil, ormerrors.TableNotFound.Wrap(string((&Account{}).ProtoReflect().Descriptor().FullName()))
+	}
+	return accountView{view: view}, nil
+}
 
 func NewAccountTable(db ormtable.Schema) (AccountTable, error) {
 	table := db.GetTable(&Account{})
 	if table == nil {
 		return nil, ormerrors.TableNotFound.Wrap(string((&Account{}).ProtoReflect().Descriptor().FullName()))
 	}
-	return accountTable{table.(ormtable.AutoIncrementTable)}, nil
+	return accountTable{
+		table:       table.(ormtable.AutoIncrementTable),
+		accountView: accountView{view: table},
+	}, nil
+}
+
+type AccountSequenceView interface {
+	Has(ctx context.Context, address []byte) (found bool, err error)
+	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
+	Get(ctx context.Context, address []byte) (*AccountSequence, error)
+	List(ctx context.Context, prefixKey AccountSequenceIndexKey, opts ...ormlist.Option) (AccountSequenceIterator, error)
+	ListRange(ctx context.Context, from, to AccountSequenceIndexKey, opts ...ormlist.Option) (AccountSequenceIterator, error)
+
+	doNotImplement()
 }
 
 type AccountSequenceTable interface {
+	AccountSequenceView
 	Insert(ctx context.Context, accountSequence *AccountSequence) error
 	Update(ctx context.Context, accountSequence *AccountSequence) error
 	Save(ctx context.Context, accountSequence *AccountSequence) error
 	Delete(ctx context.Context, accountSequence *AccountSequence) error
-	Has(ctx context.Context, id uint64) (found bool, err error)
-	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
-	Get(ctx context.Context, id uint64) (*AccountSequence, error)
-	List(ctx context.Context, prefixKey AccountSequenceIndexKey, opts ...ormlist.Option) (AccountSequenceIterator, error)
-	ListRange(ctx context.Context, from, to AccountSequenceIndexKey, opts ...ormlist.Option) (AccountSequenceIterator, error)
 	DeleteBy(ctx context.Context, prefixKey AccountSequenceIndexKey) error
 	DeleteRange(ctx context.Context, from, to AccountSequenceIndexKey) error
 
@@ -197,22 +227,27 @@ type AccountSequenceIndexKey interface {
 }
 
 // primary key starting index..
-type AccountSequencePrimaryKey = AccountSequenceIdIndexKey
+type AccountSequencePrimaryKey = AccountSequenceAddressIndexKey
 
-type AccountSequenceIdIndexKey struct {
+type AccountSequenceAddressIndexKey struct {
 	vs []interface{}
 }
 
-func (x AccountSequenceIdIndexKey) id() uint32               { return 0 }
-func (x AccountSequenceIdIndexKey) values() []interface{}    { return x.vs }
-func (x AccountSequenceIdIndexKey) accountSequenceIndexKey() {}
+func (x AccountSequenceAddressIndexKey) id() uint32               { return 0 }
+func (x AccountSequenceAddressIndexKey) values() []interface{}    { return x.vs }
+func (x AccountSequenceAddressIndexKey) accountSequenceIndexKey() {}
 
-func (this AccountSequenceIdIndexKey) WithId(id uint64) AccountSequenceIdIndexKey {
-	this.vs = []interface{}{id}
+func (this AccountSequenceAddressIndexKey) WithAddress(address []byte) AccountSequenceAddressIndexKey {
+	this.vs = []interface{}{address}
 	return this
 }
 
+type accountSequenceView struct {
+	view ormtable.View
+}
+
 type accountSequenceTable struct {
+	accountSequenceView
 	table ormtable.Table
 }
 
@@ -232,13 +267,13 @@ func (this accountSequenceTable) Delete(ctx context.Context, accountSequence *Ac
 	return this.table.Delete(ctx, accountSequence)
 }
 
-func (this accountSequenceTable) Has(ctx context.Context, id uint64) (found bool, err error) {
-	return this.table.PrimaryKey().Has(ctx, id)
+func (this accountSequenceView) Has(ctx context.Context, address []byte) (found bool, err error) {
+	return this.view.PrimaryKey().Has(ctx, address)
 }
 
-func (this accountSequenceTable) Get(ctx context.Context, id uint64) (*AccountSequence, error) {
+func (this accountSequenceView) Get(ctx context.Context, address []byte) (*AccountSequence, error) {
 	var accountSequence AccountSequence
-	found, err := this.table.PrimaryKey().Get(ctx, &accountSequence, id)
+	found, err := this.view.PrimaryKey().Get(ctx, &accountSequence, address)
 	if err != nil {
 		return nil, err
 	}
@@ -248,47 +283,83 @@ func (this accountSequenceTable) Get(ctx context.Context, id uint64) (*AccountSe
 	return &accountSequence, nil
 }
 
-func (this accountSequenceTable) List(ctx context.Context, prefixKey AccountSequenceIndexKey, opts ...ormlist.Option) (AccountSequenceIterator, error) {
-	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
+func (this accountSequenceView) List(ctx context.Context, prefixKey AccountSequenceIndexKey, opts ...ormlist.Option) (AccountSequenceIterator, error) {
+	it, err := this.view.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return AccountSequenceIterator{it}, err
 }
 
-func (this accountSequenceTable) ListRange(ctx context.Context, from, to AccountSequenceIndexKey, opts ...ormlist.Option) (AccountSequenceIterator, error) {
-	it, err := this.table.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
+func (this accountSequenceView) ListRange(ctx context.Context, from, to AccountSequenceIndexKey, opts ...ormlist.Option) (AccountSequenceIterator, error) {
+	it, err := this.view.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)
 	return AccountSequenceIterator{it}, err
 }
 
 func (this accountSequenceTable) DeleteBy(ctx context.Context, prefixKey AccountSequenceIndexKey) error {
-	return this.table.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
+	return this.view.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)
 }
 
 func (this accountSequenceTable) DeleteRange(ctx context.Context, from, to AccountSequenceIndexKey) error {
 	return this.table.GetIndexByID(from.id()).DeleteRange(ctx, from.values(), to.values())
 }
 
+func (this accountSequenceView) doNotImplement()  {}
 func (this accountSequenceTable) doNotImplement() {}
 
+var _ AccountSequenceView = accountSequenceView{}
 var _ AccountSequenceTable = accountSequenceTable{}
+
+func NewAccountSequenceView(db ormtable.Schema) (AccountSequenceView, error) {
+	view := db.GetTable(&AccountSequence{})
+	if view == nil {
+		return nil, ormerrors.TableNotFound.Wrap(string((&AccountSequence{}).ProtoReflect().Descriptor().FullName()))
+	}
+	return accountSequenceView{view: view}, nil
+}
 
 func NewAccountSequenceTable(db ormtable.Schema) (AccountSequenceTable, error) {
 	table := db.GetTable(&AccountSequence{})
 	if table == nil {
 		return nil, ormerrors.TableNotFound.Wrap(string((&AccountSequence{}).ProtoReflect().Descriptor().FullName()))
 	}
-	return accountSequenceTable{table}, nil
+	return accountSequenceTable{
+		table:               table,
+		accountSequenceView: accountSequenceView{view: table},
+	}, nil
+}
+
+type StateView interface {
+	AccountView() AccountView
+	AccountSequenceView() AccountSequenceView
+
+	doNotImplement()
 }
 
 type StateStore interface {
+	StateView
 	AccountTable() AccountTable
 	AccountSequenceTable() AccountSequenceTable
 
 	doNotImplement()
 }
 
+type stateView struct {
+	account         AccountView
+	accountSequence AccountSequenceView
+}
 type stateStore struct {
+	stateView
 	account         AccountTable
 	accountSequence AccountSequenceTable
 }
+
+func (x stateView) AccountView() AccountView {
+	return x.account
+}
+
+func (x stateView) AccountSequenceView() AccountSequenceView {
+	return x.accountSequence
+}
+
+func (stateView) doNotImplement() {}
 
 func (x stateStore) AccountTable() AccountTable {
 	return x.account
@@ -300,7 +371,25 @@ func (x stateStore) AccountSequenceTable() AccountSequenceTable {
 
 func (stateStore) doNotImplement() {}
 
+var _ StateView = stateView{}
 var _ StateStore = stateStore{}
+
+func NewStateView(db ormtable.Schema) (StateView, error) {
+	accountView, err := NewAccountView(db)
+	if err != nil {
+		return nil, err
+	}
+
+	accountSequenceView, err := NewAccountSequenceView(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return stateView{
+		accountView,
+		accountSequenceView,
+	}, nil
+}
 
 func NewStateStore(db ormtable.Schema) (StateStore, error) {
 	accountTable, err := NewAccountTable(db)
@@ -314,6 +403,10 @@ func NewStateStore(db ormtable.Schema) (StateStore, error) {
 	}
 
 	return stateStore{
+		stateView{
+			accountTable,
+			accountSequenceTable,
+		},
 		accountTable,
 		accountSequenceTable,
 	}, nil

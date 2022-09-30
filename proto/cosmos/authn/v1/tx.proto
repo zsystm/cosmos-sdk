@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package cosmos.authn.v1;
 
+import "cosmos_proto/cosmos.proto";
 import "google/protobuf/any.proto";
 import "cosmos/msg/v1/msg.proto";
 import "cosmos/validate/v1/validate.proto";
@@ -15,7 +16,7 @@ service Msg {
 message MsgSetCredential {
   option (cosmos.msg.v1.signer) = "address";
 
-  string address = 1 [(cosmos.validate.v1.required) = true];
+  string address = 1 [(cosmos.validate.v1.required) = true, (cosmos_proto.scalar) = "cosmos.AddressString"];
   google.protobuf.Any new_credential = 2 [(cosmos.validate.v1.required) = true];
 }
 

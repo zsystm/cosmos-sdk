@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package cosmos.authn.v1;
 
+import "cosmos_proto/cosmos.proto";
 import "cosmos/orm/v1/orm.proto";
 import "google/protobuf/any.proto";
 
@@ -13,16 +14,16 @@ message Account {
   };
 
   uint64 id = 1;
-  bytes address = 2;
+  bytes address = 2 [(cosmos_proto.scalar) = "cosmos.AddressBytes"];
   google.protobuf.Any credential = 3;
 }
 
 message AccountSequence {
   option (cosmos.orm.v1.table) = {
     id: 1
-    primary_key: { fields: "id" }
+    primary_key: { fields: "address" }
   };
 
-  uint64 id = 1;
+  bytes address = 1 [(cosmos_proto.scalar) = "cosmos.AddressBytes"];
   uint64 seq = 2;
 }

@@ -7,13 +7,14 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"cosmossdk.io/depinject"
+	"github.com/cosmos/cosmos-sdk/types/address"
+
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/core/blockinfo"
 	"cosmossdk.io/core/event"
 	"cosmossdk.io/core/gas"
 	"cosmossdk.io/core/store"
-	"github.com/cosmos/cosmos-sdk/depinject"
-	"github.com/cosmos/cosmos-sdk/types/address"
 )
 
 func init() {

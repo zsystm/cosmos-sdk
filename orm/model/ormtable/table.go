@@ -19,6 +19,8 @@ import (
 type View interface {
 	Index
 
+	ormkv.EntryCodec
+
 	// Has returns true if there is an entity in the table with the same
 	// primary key as message. Other fields besides the primary key fields will not
 	// be used for retrieval.
@@ -47,6 +49,24 @@ type View interface {
 
 	// PrimaryKey returns the primary key unique index.
 	PrimaryKey() UniqueIndex
+
+	// DefaultJSON returns default JSON that can be used as a template for
+	// genesis files.
+	//
+	// For regular tables this an empty JSON array, but for singletons an
+	// empty instance of the singleton is marshaled.
+	DefaultJSON() json.RawMessage
+
+	// ValidateJSON validates JSON streamed from the reader.
+	ValidateJSON(io.Reader) error
+
+	// ExportJSON exports JSON in the format accepted by ImportJSON.
+	// Auto-incrementing tables will export the last sequence number as the
+	// first element in the JSON array.
+	ExportJSON(context.Context, io.Writer) error
+
+	// ID is the ID of this table within the schema of its FileDescriptor.
+	ID() uint32
 }
 
 // Table is an abstract interface around a concrete table. Table instances
@@ -54,8 +74,6 @@ type View interface {
 // to table and index methods.
 type Table interface {
 	View
-
-	ormkv.EntryCodec
 
 	// Save saves the provided entry in the store either inserting it or
 	// updating it if needed.
@@ -98,16 +116,6 @@ type Table interface {
 	// left unchanged, unless there is an error with the underlying store.
 	Delete(ctx context.Context, message proto.Message) error
 
-	// DefaultJSON returns default JSON that can be used as a template for
-	// genesis files.
-	//
-	// For regular tables this an empty JSON array, but for singletons an
-	// empty instance of the singleton is marshaled.
-	DefaultJSON() json.RawMessage
-
-	// ValidateJSON validates JSON streamed from the reader.
-	ValidateJSON(io.Reader) error
-
 	// ImportJSON imports JSON into the store, streaming one entry at a time.
 	// Each table should be import from a separate JSON file to enable proper
 	// streaming.
@@ -130,14 +138,6 @@ type Table interface {
 	// larger transaction isolation.
 	ImportJSON(context.Context, io.Reader) error
 
-	// ExportJSON exports JSON in the format accepted by ImportJSON.
-	// Auto-incrementing tables will export the last sequence number as the
-	// first element in the JSON array.
-	ExportJSON(context.Context, io.Writer) error
-
-	// ID is the ID of this table within the schema of its FileDescriptor.
-	ID() uint32
-
 	Schema
 }
 
@@ -146,6 +146,8 @@ type Table interface {
 type Schema interface {
 	ormkv.EntryCodec
 
+	// GetView returns the view for the provided message type or nil.
+	GetView(message proto.Message) View
 	// GetTable returns the table for the provided message type or nil.
 	GetTable(message proto.Message) Table
 }

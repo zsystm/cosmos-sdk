@@ -48,24 +48,17 @@ func newTableGen(fileGen fileGen, msg *protogen.Message, table *ormv1.TableDescr
 }
 
 func (t tableGen) gen() {
-	t.getTableInterface()
+	t.genTableInterface()
 	t.genIterator()
 	t.genIndexKeys()
-	t.genStruct()
+	t.genTableStruct()
 	t.genTableImpl()
 	t.genTableImplGuard()
 	t.genConstructor()
 }
 
-func (t tableGen) getTableInterface() {
-	t.P("type ", t.messageTableInterfaceName(t.msg), " interface {")
-	t.P("Insert(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
-	if t.table.PrimaryKey.AutoIncrement {
-		t.P("InsertReturning", t.fieldsToCamelCase(t.table.PrimaryKey.Fields), "(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") (uint64, error)")
-	}
-	t.P("Update(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
-	t.P("Save(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
-	t.P("Delete(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
+func (t tableGen) genViewInterface() {
+	t.P("type ", t.messageViewInterfaceName(t.msg), " interface {")
 	t.P("Has(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (found bool, err error)")
 	t.P("// Get", notFoundDocs)
 	t.P("Get(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (*", t.QualifiedGoIdent(t.msg.GoIdent), ", error)")
@@ -75,6 +68,24 @@ func (t tableGen) getTableInterface() {
 	}
 	t.P("List(ctx ", contextPkg.Ident("Context"), ", prefixKey ", t.indexKeyInterfaceName(), ", opts ...", ormListPkg.Ident("Option"), ") ", "(", t.iteratorName(), ", error)")
 	t.P("ListRange(ctx ", contextPkg.Ident("Context"), ", from, to ", t.indexKeyInterfaceName(), ", opts ...", ormListPkg.Ident("Option"), ") ", "(", t.iteratorName(), ", error)")
+	t.P()
+	t.P("doNotImplement()")
+	t.P("}")
+	t.P()
+}
+
+func (t tableGen) genTableInterface() {
+	t.genViewInterface()
+
+	t.P("type ", t.messageTableInterfaceName(t.msg), " interface {")
+	t.P(t.messageViewInterfaceName(t.msg))
+	t.P("Insert(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
+	if t.table.PrimaryKey.AutoIncrement {
+		t.P("InsertReturning", t.fieldsToCamelCase(t.table.PrimaryKey.Fields), "(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") (uint64, error)")
+	}
+	t.P("Update(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
+	t.P("Save(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
+	t.P("Delete(ctx ", contextPkg.Ident("Context"), ", ", t.param(t.msg.GoIdent.GoName), " *", t.QualifiedGoIdent(t.msg.GoIdent), ") error")
 	t.P("DeleteBy(ctx ", contextPkg.Ident("Context"), ", prefixKey ", t.indexKeyInterfaceName(), ") error")
 	t.P("DeleteRange(ctx ", contextPkg.Ident("Context"), ", from, to ", t.indexKeyInterfaceName(), ") error")
 	t.P()
@@ -153,49 +164,59 @@ func (t tableGen) fieldArg(name protoreflect.Name) string {
 	return string(name) + " " + typ
 }
 
-func (t tableGen) genStruct() {
+func (t tableGen) genViewStruct() {
+	t.P("type ", t.messageViewReceiverName(t.msg), " struct {")
+	t.P("view ", ormTablePkg.Ident("View"))
+	t.P("}")
+}
+
+func (t tableGen) genTableStruct() {
+	t.genViewStruct()
+	t.P()
+
 	t.P("type ", t.messageTableReceiverName(t.msg), " struct {")
+	t.P(t.messageViewReceiverName(t.msg))
 	if t.table.PrimaryKey.AutoIncrement {
 		t.P("table ", ormTablePkg.Ident("AutoIncrementTable"))
 	} else {
 		t.P("table ", ormTablePkg.Ident("Table"))
 	}
 	t.P("}")
-	t.storeStructName()
 }
 
 func (t tableGen) genTableImpl() {
 	receiverVar := "this"
-	receiver := fmt.Sprintf("func (%s %s) ", receiverVar, t.messageTableReceiverName(t.msg))
+	viewReceiver := fmt.Sprintf("func (%s %s) ", receiverVar, t.messageViewReceiverName(t.msg))
+	tableReceiver := fmt.Sprintf("func (%s %s) ", receiverVar, t.messageTableReceiverName(t.msg))
 	varName := t.param(t.msg.GoIdent.GoName)
 	varTypeName := t.QualifiedGoIdent(t.msg.GoIdent)
 
 	// these methods all have the same impl sans their names. so we can just loop and replace.
 	methods := []string{"Insert", "Update", "Save", "Delete"}
 	for _, method := range methods {
-		t.P(receiver, method, "(ctx ", contextPkg.Ident("Context"), ", ", varName, " *", varTypeName, ") error {")
+		t.P(tableReceiver, method, "(ctx ", contextPkg.Ident("Context"), ", ", varName, " *", varTypeName, ") error {")
 		t.P("return ", receiverVar, ".table.", method, "(ctx, ", varName, ")")
 		t.P("}")
 		t.P()
 	}
 
 	if t.table.PrimaryKey.AutoIncrement {
-		t.P(receiver, "InsertReturning", t.fieldsToCamelCase(t.table.PrimaryKey.Fields), "(ctx ", contextPkg.Ident("Context"), ", ", varName, " *", varTypeName, ") (uint64, error) {")
+		t.P(tableReceiver, "InsertReturning", t.fieldsToCamelCase(t.table.PrimaryKey.Fields), "(ctx ", contextPkg.Ident("Context"), ", ", varName, " *", varTypeName, ") (uint64, error) {")
 		t.P("return ", receiverVar, ".table.InsertReturningPKey(ctx, ", varName, ")")
 		t.P("}")
 		t.P()
 	}
 
 	// Has
-	t.P(receiver, "Has(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (found bool, err error) {")
-	t.P("return ", receiverVar, ".table.PrimaryKey().Has(ctx, ", t.primaryKeyFields.String(), ")")
+	t.P(viewReceiver, "Has(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (found bool, err error) {")
+	t.P("return ", receiverVar, ".view.PrimaryKey().Has(ctx, ", t.primaryKeyFields.String(), ")")
 	t.P("}")
 	t.P()
 
 	// Get
-	t.P(receiver, "Get(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (*", varTypeName, ", error) {")
+	t.P(viewReceiver, "Get(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (*", varTypeName, ", error) {")
 	t.P("var ", varName, " ", varTypeName)
-	t.P("found, err := ", receiverVar, ".table.PrimaryKey().Get(ctx, &", varName, ", ", t.primaryKeyFields.String(), ")")
+	t.P("found, err := ", receiverVar, ".view.PrimaryKey().Get(ctx, &", varName, ", ", t.primaryKeyFields.String(), ")")
 	t.P("if err != nil {")
 	t.P("return nil, err")
 	t.P("}")
@@ -211,8 +232,8 @@ func (t tableGen) genTableImpl() {
 		hasName, getName, _ := t.uniqueIndexSig(idx.Fields)
 
 		// has
-		t.P("func (", receiverVar, " ", t.messageTableReceiverName(t.msg), ") ", hasName, "{")
-		t.P("return ", receiverVar, ".table.GetIndexByID(", idx.Id, ").(",
+		t.P(viewReceiver, hasName, "{")
+		t.P("return ", receiverVar, ".view.GetIndexByID(", idx.Id, ").(",
 			ormTablePkg.Ident("UniqueIndex"), ").Has(ctx,")
 		for _, field := range fields {
 			t.P(field, ",")
@@ -224,9 +245,9 @@ func (t tableGen) genTableImpl() {
 		// get
 		varName := t.param(t.msg.GoIdent.GoName)
 		varTypeName := t.msg.GoIdent.GoName
-		t.P("func (", receiverVar, " ", t.messageTableReceiverName(t.msg), ") ", getName, "{")
+		t.P(viewReceiver, getName, "{")
 		t.P("var ", varName, " ", varTypeName)
-		t.P("found, err := ", receiverVar, ".table.GetIndexByID(", idx.Id, ").(",
+		t.P("found, err := ", receiverVar, ".view.GetIndexByID(", idx.Id, ").(",
 			ormTablePkg.Ident("UniqueIndex"), ").Get(ctx, &", varName, ",")
 		for _, field := range fields {
 			t.P(field, ",")
@@ -244,55 +265,73 @@ func (t tableGen) genTableImpl() {
 	}
 
 	// List
-	t.P(receiver, "List(ctx ", contextPkg.Ident("Context"), ", prefixKey ", t.indexKeyInterfaceName(), ", opts ...", ormListPkg.Ident("Option"), ") (", t.iteratorName(), ", error) {")
-	t.P("it, err := ", receiverVar, ".table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)")
+	t.P(viewReceiver, "List(ctx ", contextPkg.Ident("Context"), ", prefixKey ", t.indexKeyInterfaceName(), ", opts ...", ormListPkg.Ident("Option"), ") (", t.iteratorName(), ", error) {")
+	t.P("it, err := ", receiverVar, ".view.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)")
 	t.P("return ", t.iteratorName(), "{it}, err")
 	t.P("}")
 	t.P()
 
 	// ListRange
-	t.P(receiver, "ListRange(ctx ", contextPkg.Ident("Context"), ", from, to ", t.indexKeyInterfaceName(), ", opts ...", ormListPkg.Ident("Option"), ") (", t.iteratorName(), ", error) {")
-	t.P("it, err := ", receiverVar, ".table.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)")
+	t.P(viewReceiver, "ListRange(ctx ", contextPkg.Ident("Context"), ", from, to ", t.indexKeyInterfaceName(), ", opts ...", ormListPkg.Ident("Option"), ") (", t.iteratorName(), ", error) {")
+	t.P("it, err := ", receiverVar, ".view.GetIndexByID(from.id()).ListRange(ctx, from.values(), to.values(), opts...)")
 	t.P("return ", t.iteratorName(), "{it}, err")
 	t.P("}")
 	t.P()
 
 	// DeleteBy
-	t.P(receiver, "DeleteBy(ctx ", contextPkg.Ident("Context"), ", prefixKey ", t.indexKeyInterfaceName(), ") error {")
-	t.P("return ", receiverVar, ".table.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)")
+	t.P(tableReceiver, "DeleteBy(ctx ", contextPkg.Ident("Context"), ", prefixKey ", t.indexKeyInterfaceName(), ") error {")
+	t.P("return ", receiverVar, ".view.GetIndexByID(prefixKey.id()).DeleteBy(ctx, prefixKey.values()...)")
 	t.P("}")
 	t.P()
 	t.P()
 
 	// DeleteRange
-	t.P(receiver, "DeleteRange(ctx ", contextPkg.Ident("Context"), ", from, to ", t.indexKeyInterfaceName(), ") error {")
+	t.P(tableReceiver, "DeleteRange(ctx ", contextPkg.Ident("Context"), ", from, to ", t.indexKeyInterfaceName(), ") error {")
 	t.P("return ", receiverVar, ".table.GetIndexByID(from.id()).DeleteRange(ctx, from.values(), to.values())")
 	t.P("}")
 	t.P()
 	t.P()
 
-	t.P(receiver, "doNotImplement() {}")
+	t.P(viewReceiver, "doNotImplement() {}")
+	t.P(tableReceiver, "doNotImplement() {}")
 	t.P()
 }
 
 func (t tableGen) genTableImplGuard() {
+	t.P("var _ ", t.messageViewInterfaceName(t.msg), " = ", t.messageViewReceiverName(t.msg), "{}")
 	t.P("var _ ", t.messageTableInterfaceName(t.msg), " = ", t.messageTableReceiverName(t.msg), "{}")
 }
 
+func (t tableGen) genViewConstructor() {
+	iface := t.messageViewInterfaceName(t.msg)
+	t.P("func New", iface, "(db ", ormTablePkg.Ident("Schema"), ") (", iface, ", error) {")
+	t.P("view := db.GetTable(&", t.msg.GoIdent.GoName, "{})")
+	t.P("if view == nil {")
+	t.P("return nil,", ormErrPkg.Ident("TableNotFound.Wrap"), "(string((&", t.msg.GoIdent.GoName, "{}).ProtoReflect().Descriptor().FullName()))")
+	t.P("}")
+	t.P("return ", t.messageViewReceiverName(t.msg), "{view: view}, nil")
+	t.P("}")
+}
+
 func (t tableGen) genConstructor() {
+	t.genViewConstructor()
+	t.P()
+
 	iface := t.messageTableInterfaceName(t.msg)
 	t.P("func New", iface, "(db ", ormTablePkg.Ident("Schema"), ") (", iface, ", error) {")
 	t.P("table := db.GetTable(&", t.msg.GoIdent.GoName, "{})")
 	t.P("if table == nil {")
 	t.P("return nil,", ormErrPkg.Ident("TableNotFound.Wrap"), "(string((&", t.msg.GoIdent.GoName, "{}).ProtoReflect().Descriptor().FullName()))")
 	t.P("}")
+
+	t.P("return ", t.messageTableReceiverName(t.msg), "{")
 	if t.table.PrimaryKey.AutoIncrement {
-		t.P(
-			"return ", t.messageTableReceiverName(t.msg), "{table.(",
-			ormTablePkg.Ident("AutoIncrementTable"), ")}, nil",
-		)
+		t.P("table: table.(", ormTablePkg.Ident("AutoIncrementTable"), "),")
 	} else {
-		t.P("return ", t.messageTableReceiverName(t.msg), "{table}, nil")
+		t.P("table: table,")
 	}
+	viewStruct := t.messageViewReceiverName(t.msg)
+	t.P(viewStruct, ":", viewStruct, "{view: table},")
+	t.P("}, nil")
 	t.P("}")
 }

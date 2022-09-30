@@ -17,7 +17,7 @@ import (
 // client. It is recommended to instead use multiple messages in a tx.
 type IncrementSequenceDecorator struct {
 	ak         authnv1.InternalClient
-	authnState authnv1.StateStore
+	authnState authnv1.StateView
 }
 
 func NewIncrementSequenceDecorator(ak authnv1.InternalClient) IncrementSequenceDecorator {
@@ -30,12 +30,7 @@ func (isd IncrementSequenceDecorator) ProcessTx(ctx context.Context, tx *TxInfo,
 	// increment sequence of all signers
 	signers := GetSigners(tx)
 	for _, signer := range signers {
-		acc, err := isd.authnState.AccountTable().GetByAddress(ctx, signer)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = isd.ak.IncrementSeq(ctx, &authnv1.IncrementSeqRequest{AccountId: acc.Id})
+		_, err := isd.ak.IncrementSeq(ctx, &authnv1.IncrementSeqRequest{Address: signer})
 		if err != nil {
 			return nil, err
 		}
