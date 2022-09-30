@@ -16,15 +16,15 @@ import (
 )
 
 var (
-	md_CreateAccountRequest                 protoreflect.MessageDescriptor
-	fd_CreateAccountRequest_derivation_path protoreflect.FieldDescriptor
-	fd_CreateAccountRequest_credential      protoreflect.FieldDescriptor
+	md_CreateAccountRequest            protoreflect.MessageDescriptor
+	fd_CreateAccountRequest_address    protoreflect.FieldDescriptor
+	fd_CreateAccountRequest_credential protoreflect.FieldDescriptor
 )
 
 func init() {
 	file_cosmos_authn_v1_internal_proto_init()
 	md_CreateAccountRequest = File_cosmos_authn_v1_internal_proto.Messages().ByName("CreateAccountRequest")
-	fd_CreateAccountRequest_derivation_path = md_CreateAccountRequest.Fields().ByName("derivation_path")
+	fd_CreateAccountRequest_address = md_CreateAccountRequest.Fields().ByName("address")
 	fd_CreateAccountRequest_credential = md_CreateAccountRequest.Fields().ByName("credential")
 }
 
@@ -93,9 +93,9 @@ func (x *fastReflection_CreateAccountRequest) Interface() protoreflect.ProtoMess
 // While iterating, mutating operations may only be performed
 // on the current field descriptor.
 func (x *fastReflection_CreateAccountRequest) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
-	if len(x.DerivationPath) != 0 {
-		value := protoreflect.ValueOfBytes(x.DerivationPath)
-		if !f(fd_CreateAccountRequest_derivation_path, value) {
+	if len(x.Address) != 0 {
+		value := protoreflect.ValueOfBytes(x.Address)
+		if !f(fd_CreateAccountRequest_address, value) {
 			return
 		}
 	}
@@ -120,8 +120,8 @@ func (x *fastReflection_CreateAccountRequest) Range(f func(protoreflect.FieldDes
 // a repeated field is populated if it is non-empty.
 func (x *fastReflection_CreateAccountRequest) Has(fd protoreflect.FieldDescriptor) bool {
 	switch fd.FullName() {
-	case "cosmos.authn.v1.CreateAccountRequest.derivation_path":
-		return len(x.DerivationPath) != 0
+	case "cosmos.authn.v1.CreateAccountRequest.address":
+		return len(x.Address) != 0
 	case "cosmos.authn.v1.CreateAccountRequest.credential":
 		return x.Credential != nil
 	default:
@@ -140,8 +140,8 @@ func (x *fastReflection_CreateAccountRequest) Has(fd protoreflect.FieldDescripto
 // Clear is a mutating operation and unsafe for concurrent use.
 func (x *fastReflection_CreateAccountRequest) Clear(fd protoreflect.FieldDescriptor) {
 	switch fd.FullName() {
-	case "cosmos.authn.v1.CreateAccountRequest.derivation_path":
-		x.DerivationPath = nil
+	case "cosmos.authn.v1.CreateAccountRequest.address":
+		x.Address = nil
 	case "cosmos.authn.v1.CreateAccountRequest.credential":
 		x.Credential = nil
 	default:
@@ -160,8 +160,8 @@ func (x *fastReflection_CreateAccountRequest) Clear(fd protoreflect.FieldDescrip
 // of the value; to obtain a mutable reference, use Mutable.
 func (x *fastReflection_CreateAccountRequest) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
 	switch descriptor.FullName() {
-	case "cosmos.authn.v1.CreateAccountRequest.derivation_path":
-		value := x.DerivationPath
+	case "cosmos.authn.v1.CreateAccountRequest.address":
+		value := x.Address
 		return protoreflect.ValueOfBytes(value)
 	case "cosmos.authn.v1.CreateAccountRequest.credential":
 		value := x.Credential
@@ -186,8 +186,8 @@ func (x *fastReflection_CreateAccountRequest) Get(descriptor protoreflect.FieldD
 // Set is a mutating operation and unsafe for concurrent use.
 func (x *fastReflection_CreateAccountRequest) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
 	switch fd.FullName() {
-	case "cosmos.authn.v1.CreateAccountRequest.derivation_path":
-		x.DerivationPath = value.Bytes()
+	case "cosmos.authn.v1.CreateAccountRequest.address":
+		x.Address = value.Bytes()
 	case "cosmos.authn.v1.CreateAccountRequest.credential":
 		x.Credential = value.Message().Interface().(*anypb.Any)
 	default:
@@ -215,8 +215,8 @@ func (x *fastReflection_CreateAccountRequest) Mutable(fd protoreflect.FieldDescr
 			x.Credential = new(anypb.Any)
 		}
 		return protoreflect.ValueOfMessage(x.Credential.ProtoReflect())
-	case "cosmos.authn.v1.CreateAccountRequest.derivation_path":
-		panic(fmt.Errorf("field derivation_path of message cosmos.authn.v1.CreateAccountRequest is not mutable"))
+	case "cosmos.authn.v1.CreateAccountRequest.address":
+		panic(fmt.Errorf("field address of message cosmos.authn.v1.CreateAccountRequest is not mutable"))
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountRequest"))
@@ -230,7 +230,7 @@ func (x *fastReflection_CreateAccountRequest) Mutable(fd protoreflect.FieldDescr
 // For lists, maps, and messages, this returns a new, empty, mutable value.
 func (x *fastReflection_CreateAccountRequest) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
 	switch fd.FullName() {
-	case "cosmos.authn.v1.CreateAccountRequest.derivation_path":
+	case "cosmos.authn.v1.CreateAccountRequest.address":
 		return protoreflect.ValueOfBytes(nil)
 	case "cosmos.authn.v1.CreateAccountRequest.credential":
 		m := new(anypb.Any)
@@ -304,7 +304,7 @@ func (x *fastReflection_CreateAccountRequest) ProtoMethods() *protoiface.Methods
 		var n int
 		var l int
 		_ = l
-		l = len(x.DerivationPath)
+		l = len(x.Address)
 		if l > 0 {
 			n += 1 + l + runtime.Sov(uint64(l))
 		}
@@ -355,10 +355,10 @@ func (x *fastReflection_CreateAccountRequest) ProtoMethods() *protoiface.Methods
 			i--
 			dAtA[i] = 0x12
 		}
-		if len(x.DerivationPath) > 0 {
-			i -= len(x.DerivationPath)
-			copy(dAtA[i:], x.DerivationPath)
-			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.DerivationPath)))
+		if len(x.Address) > 0 {
+			i -= len(x.Address)
+			copy(dAtA[i:], x.Address)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.Address)))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -409,6 +409,911 @@ func (x *fastReflection_CreateAccountRequest) ProtoMethods() *protoiface.Methods
 			}
 			if fieldNum <= 0 {
 				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: CreateAccountRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+				}
+				var byteLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					byteLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if byteLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + byteLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.Address = append(x.Address[:0], dAtA[iNdEx:postIndex]...)
+				if x.Address == nil {
+					x.Address = []byte{}
+				}
+				iNdEx = postIndex
+			case 2:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Credential", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if x.Credential == nil {
+					x.Credential = &anypb.Any{}
+				}
+				if err := options.Unmarshal(dAtA[iNdEx:postIndex], x.Credential); err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := runtime.Skip(dAtA[iNdEx:])
+				if err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				if (skippy < 0) || (iNdEx+skippy) < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if (iNdEx + skippy) > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if !options.DiscardUnknown {
+					x.unknownFields = append(x.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				}
+				iNdEx += skippy
+			}
+		}
+
+		if iNdEx > l {
+			return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+		}
+		return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, nil
+	}
+	return &protoiface.Methods{
+		NoUnkeyedLiterals: struct{}{},
+		Flags:             protoiface.SupportMarshalDeterministic | protoiface.SupportUnmarshalDiscardUnknown,
+		Size:              size,
+		Marshal:           marshal,
+		Unmarshal:         unmarshal,
+		Merge:             nil,
+		CheckInitialized:  nil,
+	}
+}
+
+var (
+	md_CreateAccountResponse            protoreflect.MessageDescriptor
+	fd_CreateAccountResponse_account_id protoreflect.FieldDescriptor
+)
+
+func init() {
+	file_cosmos_authn_v1_internal_proto_init()
+	md_CreateAccountResponse = File_cosmos_authn_v1_internal_proto.Messages().ByName("CreateAccountResponse")
+	fd_CreateAccountResponse_account_id = md_CreateAccountResponse.Fields().ByName("account_id")
+}
+
+var _ protoreflect.Message = (*fastReflection_CreateAccountResponse)(nil)
+
+type fastReflection_CreateAccountResponse CreateAccountResponse
+
+func (x *CreateAccountResponse) ProtoReflect() protoreflect.Message {
+	return (*fastReflection_CreateAccountResponse)(x)
+}
+
+func (x *CreateAccountResponse) slowProtoReflect() protoreflect.Message {
+	mi := &file_cosmos_authn_v1_internal_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+var _fastReflection_CreateAccountResponse_messageType fastReflection_CreateAccountResponse_messageType
+var _ protoreflect.MessageType = fastReflection_CreateAccountResponse_messageType{}
+
+type fastReflection_CreateAccountResponse_messageType struct{}
+
+func (x fastReflection_CreateAccountResponse_messageType) Zero() protoreflect.Message {
+	return (*fastReflection_CreateAccountResponse)(nil)
+}
+func (x fastReflection_CreateAccountResponse_messageType) New() protoreflect.Message {
+	return new(fastReflection_CreateAccountResponse)
+}
+func (x fastReflection_CreateAccountResponse_messageType) Descriptor() protoreflect.MessageDescriptor {
+	return md_CreateAccountResponse
+}
+
+// Descriptor returns message descriptor, which contains only the protobuf
+// type information for the message.
+func (x *fastReflection_CreateAccountResponse) Descriptor() protoreflect.MessageDescriptor {
+	return md_CreateAccountResponse
+}
+
+// Type returns the message type, which encapsulates both Go and protobuf
+// type information. If the Go type information is not needed,
+// it is recommended that the message descriptor be used instead.
+func (x *fastReflection_CreateAccountResponse) Type() protoreflect.MessageType {
+	return _fastReflection_CreateAccountResponse_messageType
+}
+
+// New returns a newly allocated and mutable empty message.
+func (x *fastReflection_CreateAccountResponse) New() protoreflect.Message {
+	return new(fastReflection_CreateAccountResponse)
+}
+
+// Interface unwraps the message reflection interface and
+// returns the underlying ProtoMessage interface.
+func (x *fastReflection_CreateAccountResponse) Interface() protoreflect.ProtoMessage {
+	return (*CreateAccountResponse)(x)
+}
+
+// Range iterates over every populated field in an undefined order,
+// calling f for each field descriptor and value encountered.
+// Range returns immediately if f returns false.
+// While iterating, mutating operations may only be performed
+// on the current field descriptor.
+func (x *fastReflection_CreateAccountResponse) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+	if x.AccountId != uint64(0) {
+		value := protoreflect.ValueOfUint64(x.AccountId)
+		if !f(fd_CreateAccountResponse_account_id, value) {
+			return
+		}
+	}
+}
+
+// Has reports whether a field is populated.
+//
+// Some fields have the property of nullability where it is possible to
+// distinguish between the default value of a field and whether the field
+// was explicitly populated with the default value. Singular message fields,
+// member fields of a oneof, and proto2 scalar fields are nullable. Such
+// fields are populated only if explicitly set.
+//
+// In other cases (aside from the nullable cases above),
+// a proto3 scalar field is populated if it contains a non-zero value, and
+// a repeated field is populated if it is non-empty.
+func (x *fastReflection_CreateAccountResponse) Has(fd protoreflect.FieldDescriptor) bool {
+	switch fd.FullName() {
+	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+		return x.AccountId != uint64(0)
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Clear clears the field such that a subsequent Has call reports false.
+//
+// Clearing an extension field clears both the extension type and value
+// associated with the given field number.
+//
+// Clear is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_CreateAccountResponse) Clear(fd protoreflect.FieldDescriptor) {
+	switch fd.FullName() {
+	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+		x.AccountId = uint64(0)
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Get retrieves the value for a field.
+//
+// For unpopulated scalars, it returns the default value, where
+// the default value of a bytes scalar is guaranteed to be a copy.
+// For unpopulated composite types, it returns an empty, read-only view
+// of the value; to obtain a mutable reference, use Mutable.
+func (x *fastReflection_CreateAccountResponse) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
+	switch descriptor.FullName() {
+	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+		value := x.AccountId
+		return protoreflect.ValueOfUint64(value)
+	default:
+		if descriptor.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", descriptor.FullName()))
+	}
+}
+
+// Set stores the value for a field.
+//
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType.
+// When setting a composite type, it is unspecified whether the stored value
+// aliases the source's memory in any way. If the composite value is an
+// empty, read-only value, then it panics.
+//
+// Set is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_CreateAccountResponse) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
+	switch fd.FullName() {
+	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+		x.AccountId = value.Uint()
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Mutable returns a mutable reference to a composite type.
+//
+// If the field is unpopulated, it may allocate a composite value.
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType
+// if not already stored.
+// It panics if the field does not contain a composite type.
+//
+// Mutable is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_CreateAccountResponse) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+		panic(fmt.Errorf("field account_id of message cosmos.authn.v1.CreateAccountResponse is not mutable"))
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// NewField returns a new value that is assignable to the field
+// for the given descriptor. For scalars, this returns the default value.
+// For lists, maps, and messages, this returns a new, empty, mutable value.
+func (x *fastReflection_CreateAccountResponse) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+		return protoreflect.ValueOfUint64(uint64(0))
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// WhichOneof reports which field within the oneof is populated,
+// returning nil if none are populated.
+// It panics if the oneof descriptor does not belong to this message.
+func (x *fastReflection_CreateAccountResponse) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
+	switch d.FullName() {
+	default:
+		panic(fmt.Errorf("%s is not a oneof field in cosmos.authn.v1.CreateAccountResponse", d.FullName()))
+	}
+	panic("unreachable")
+}
+
+// GetUnknown retrieves the entire list of unknown fields.
+// The caller may only mutate the contents of the RawFields
+// if the mutated bytes are stored back into the message with SetUnknown.
+func (x *fastReflection_CreateAccountResponse) GetUnknown() protoreflect.RawFields {
+	return x.unknownFields
+}
+
+// SetUnknown stores an entire list of unknown fields.
+// The raw fields must be syntactically valid according to the wire format.
+// An implementation may panic if this is not the case.
+// Once stored, the caller must not mutate the content of the RawFields.
+// An empty RawFields may be passed to clear the fields.
+//
+// SetUnknown is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_CreateAccountResponse) SetUnknown(fields protoreflect.RawFields) {
+	x.unknownFields = fields
+}
+
+// IsValid reports whether the message is valid.
+//
+// An invalid message is an empty, read-only value.
+//
+// An invalid message often corresponds to a nil pointer of the concrete
+// message type, but the details are implementation dependent.
+// Validity is not part of the protobuf data model, and may not
+// be preserved in marshaling or other operations.
+func (x *fastReflection_CreateAccountResponse) IsValid() bool {
+	return x != nil
+}
+
+// ProtoMethods returns optional fastReflectionFeature-path implementations of various operations.
+// This method may return nil.
+//
+// The returned methods type is identical to
+// "google.golang.org/protobuf/runtime/protoiface".Methods.
+// Consult the protoiface package documentation for details.
+func (x *fastReflection_CreateAccountResponse) ProtoMethods() *protoiface.Methods {
+	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
+		x := input.Message.Interface().(*CreateAccountResponse)
+		if x == nil {
+			return protoiface.SizeOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Size:              0,
+			}
+		}
+		options := runtime.SizeInputToOptions(input)
+		_ = options
+		var n int
+		var l int
+		_ = l
+		if x.AccountId != 0 {
+			n += 1 + runtime.Sov(uint64(x.AccountId))
+		}
+		if x.unknownFields != nil {
+			n += len(x.unknownFields)
+		}
+		return protoiface.SizeOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Size:              n,
+		}
+	}
+
+	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
+		x := input.Message.Interface().(*CreateAccountResponse)
+		if x == nil {
+			return protoiface.MarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Buf:               input.Buf,
+			}, nil
+		}
+		options := runtime.MarshalInputToOptions(input)
+		_ = options
+		size := options.Size(x)
+		dAtA := make([]byte, size)
+		i := len(dAtA)
+		_ = i
+		var l int
+		_ = l
+		if x.unknownFields != nil {
+			i -= len(x.unknownFields)
+			copy(dAtA[i:], x.unknownFields)
+		}
+		if x.AccountId != 0 {
+			i = runtime.EncodeVarint(dAtA, i, uint64(x.AccountId))
+			i--
+			dAtA[i] = 0x8
+		}
+		if input.Buf != nil {
+			input.Buf = append(input.Buf, dAtA...)
+		} else {
+			input.Buf = dAtA
+		}
+		return protoiface.MarshalOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Buf:               input.Buf,
+		}, nil
+	}
+	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
+		x := input.Message.Interface().(*CreateAccountResponse)
+		if x == nil {
+			return protoiface.UnmarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Flags:             input.Flags,
+			}, nil
+		}
+		options := runtime.UnmarshalInputToOptions(input)
+		_ = options
+		dAtA := input.Buf
+		l := len(dAtA)
+		iNdEx := 0
+		for iNdEx < l {
+			preIndex := iNdEx
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: CreateAccountResponse: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: CreateAccountResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1:
+				if wireType != 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field AccountId", wireType)
+				}
+				x.AccountId = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					x.AccountId |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			default:
+				iNdEx = preIndex
+				skippy, err := runtime.Skip(dAtA[iNdEx:])
+				if err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				if (skippy < 0) || (iNdEx+skippy) < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if (iNdEx + skippy) > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if !options.DiscardUnknown {
+					x.unknownFields = append(x.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				}
+				iNdEx += skippy
+			}
+		}
+
+		if iNdEx > l {
+			return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+		}
+		return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, nil
+	}
+	return &protoiface.Methods{
+		NoUnkeyedLiterals: struct{}{},
+		Flags:             protoiface.SupportMarshalDeterministic | protoiface.SupportUnmarshalDiscardUnknown,
+		Size:              size,
+		Marshal:           marshal,
+		Unmarshal:         unmarshal,
+		Merge:             nil,
+		CheckInitialized:  nil,
+	}
+}
+
+var (
+	md_CreateModuleAccountRequest                 protoreflect.MessageDescriptor
+	fd_CreateModuleAccountRequest_derivation_path protoreflect.FieldDescriptor
+	fd_CreateModuleAccountRequest_credential      protoreflect.FieldDescriptor
+)
+
+func init() {
+	file_cosmos_authn_v1_internal_proto_init()
+	md_CreateModuleAccountRequest = File_cosmos_authn_v1_internal_proto.Messages().ByName("CreateModuleAccountRequest")
+	fd_CreateModuleAccountRequest_derivation_path = md_CreateModuleAccountRequest.Fields().ByName("derivation_path")
+	fd_CreateModuleAccountRequest_credential = md_CreateModuleAccountRequest.Fields().ByName("credential")
+}
+
+var _ protoreflect.Message = (*fastReflection_CreateModuleAccountRequest)(nil)
+
+type fastReflection_CreateModuleAccountRequest CreateModuleAccountRequest
+
+func (x *CreateModuleAccountRequest) ProtoReflect() protoreflect.Message {
+	return (*fastReflection_CreateModuleAccountRequest)(x)
+}
+
+func (x *CreateModuleAccountRequest) slowProtoReflect() protoreflect.Message {
+	mi := &file_cosmos_authn_v1_internal_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+var _fastReflection_CreateModuleAccountRequest_messageType fastReflection_CreateModuleAccountRequest_messageType
+var _ protoreflect.MessageType = fastReflection_CreateModuleAccountRequest_messageType{}
+
+type fastReflection_CreateModuleAccountRequest_messageType struct{}
+
+func (x fastReflection_CreateModuleAccountRequest_messageType) Zero() protoreflect.Message {
+	return (*fastReflection_CreateModuleAccountRequest)(nil)
+}
+func (x fastReflection_CreateModuleAccountRequest_messageType) New() protoreflect.Message {
+	return new(fastReflection_CreateModuleAccountRequest)
+}
+func (x fastReflection_CreateModuleAccountRequest_messageType) Descriptor() protoreflect.MessageDescriptor {
+	return md_CreateModuleAccountRequest
+}
+
+// Descriptor returns message descriptor, which contains only the protobuf
+// type information for the message.
+func (x *fastReflection_CreateModuleAccountRequest) Descriptor() protoreflect.MessageDescriptor {
+	return md_CreateModuleAccountRequest
+}
+
+// Type returns the message type, which encapsulates both Go and protobuf
+// type information. If the Go type information is not needed,
+// it is recommended that the message descriptor be used instead.
+func (x *fastReflection_CreateModuleAccountRequest) Type() protoreflect.MessageType {
+	return _fastReflection_CreateModuleAccountRequest_messageType
+}
+
+// New returns a newly allocated and mutable empty message.
+func (x *fastReflection_CreateModuleAccountRequest) New() protoreflect.Message {
+	return new(fastReflection_CreateModuleAccountRequest)
+}
+
+// Interface unwraps the message reflection interface and
+// returns the underlying ProtoMessage interface.
+func (x *fastReflection_CreateModuleAccountRequest) Interface() protoreflect.ProtoMessage {
+	return (*CreateModuleAccountRequest)(x)
+}
+
+// Range iterates over every populated field in an undefined order,
+// calling f for each field descriptor and value encountered.
+// Range returns immediately if f returns false.
+// While iterating, mutating operations may only be performed
+// on the current field descriptor.
+func (x *fastReflection_CreateModuleAccountRequest) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+	if len(x.DerivationPath) != 0 {
+		value := protoreflect.ValueOfBytes(x.DerivationPath)
+		if !f(fd_CreateModuleAccountRequest_derivation_path, value) {
+			return
+		}
+	}
+	if x.Credential != nil {
+		value := protoreflect.ValueOfMessage(x.Credential.ProtoReflect())
+		if !f(fd_CreateModuleAccountRequest_credential, value) {
+			return
+		}
+	}
+}
+
+// Has reports whether a field is populated.
+//
+// Some fields have the property of nullability where it is possible to
+// distinguish between the default value of a field and whether the field
+// was explicitly populated with the default value. Singular message fields,
+// member fields of a oneof, and proto2 scalar fields are nullable. Such
+// fields are populated only if explicitly set.
+//
+// In other cases (aside from the nullable cases above),
+// a proto3 scalar field is populated if it contains a non-zero value, and
+// a repeated field is populated if it is non-empty.
+func (x *fastReflection_CreateModuleAccountRequest) Has(fd protoreflect.FieldDescriptor) bool {
+	switch fd.FullName() {
+	case "cosmos.authn.v1.CreateModuleAccountRequest.derivation_path":
+		return len(x.DerivationPath) != 0
+	case "cosmos.authn.v1.CreateModuleAccountRequest.credential":
+		return x.Credential != nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountRequest"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Clear clears the field such that a subsequent Has call reports false.
+//
+// Clearing an extension field clears both the extension type and value
+// associated with the given field number.
+//
+// Clear is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_CreateModuleAccountRequest) Clear(fd protoreflect.FieldDescriptor) {
+	switch fd.FullName() {
+	case "cosmos.authn.v1.CreateModuleAccountRequest.derivation_path":
+		x.DerivationPath = nil
+	case "cosmos.authn.v1.CreateModuleAccountRequest.credential":
+		x.Credential = nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountRequest"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Get retrieves the value for a field.
+//
+// For unpopulated scalars, it returns the default value, where
+// the default value of a bytes scalar is guaranteed to be a copy.
+// For unpopulated composite types, it returns an empty, read-only view
+// of the value; to obtain a mutable reference, use Mutable.
+func (x *fastReflection_CreateModuleAccountRequest) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
+	switch descriptor.FullName() {
+	case "cosmos.authn.v1.CreateModuleAccountRequest.derivation_path":
+		value := x.DerivationPath
+		return protoreflect.ValueOfBytes(value)
+	case "cosmos.authn.v1.CreateModuleAccountRequest.credential":
+		value := x.Credential
+		return protoreflect.ValueOfMessage(value.ProtoReflect())
+	default:
+		if descriptor.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountRequest"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountRequest does not contain field %s", descriptor.FullName()))
+	}
+}
+
+// Set stores the value for a field.
+//
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType.
+// When setting a composite type, it is unspecified whether the stored value
+// aliases the source's memory in any way. If the composite value is an
+// empty, read-only value, then it panics.
+//
+// Set is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_CreateModuleAccountRequest) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
+	switch fd.FullName() {
+	case "cosmos.authn.v1.CreateModuleAccountRequest.derivation_path":
+		x.DerivationPath = value.Bytes()
+	case "cosmos.authn.v1.CreateModuleAccountRequest.credential":
+		x.Credential = value.Message().Interface().(*anypb.Any)
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountRequest"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Mutable returns a mutable reference to a composite type.
+//
+// If the field is unpopulated, it may allocate a composite value.
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType
+// if not already stored.
+// It panics if the field does not contain a composite type.
+//
+// Mutable is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_CreateModuleAccountRequest) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "cosmos.authn.v1.CreateModuleAccountRequest.credential":
+		if x.Credential == nil {
+			x.Credential = new(anypb.Any)
+		}
+		return protoreflect.ValueOfMessage(x.Credential.ProtoReflect())
+	case "cosmos.authn.v1.CreateModuleAccountRequest.derivation_path":
+		panic(fmt.Errorf("field derivation_path of message cosmos.authn.v1.CreateModuleAccountRequest is not mutable"))
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountRequest"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// NewField returns a new value that is assignable to the field
+// for the given descriptor. For scalars, this returns the default value.
+// For lists, maps, and messages, this returns a new, empty, mutable value.
+func (x *fastReflection_CreateModuleAccountRequest) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "cosmos.authn.v1.CreateModuleAccountRequest.derivation_path":
+		return protoreflect.ValueOfBytes(nil)
+	case "cosmos.authn.v1.CreateModuleAccountRequest.credential":
+		m := new(anypb.Any)
+		return protoreflect.ValueOfMessage(m.ProtoReflect())
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountRequest"))
+		}
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// WhichOneof reports which field within the oneof is populated,
+// returning nil if none are populated.
+// It panics if the oneof descriptor does not belong to this message.
+func (x *fastReflection_CreateModuleAccountRequest) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
+	switch d.FullName() {
+	default:
+		panic(fmt.Errorf("%s is not a oneof field in cosmos.authn.v1.CreateModuleAccountRequest", d.FullName()))
+	}
+	panic("unreachable")
+}
+
+// GetUnknown retrieves the entire list of unknown fields.
+// The caller may only mutate the contents of the RawFields
+// if the mutated bytes are stored back into the message with SetUnknown.
+func (x *fastReflection_CreateModuleAccountRequest) GetUnknown() protoreflect.RawFields {
+	return x.unknownFields
+}
+
+// SetUnknown stores an entire list of unknown fields.
+// The raw fields must be syntactically valid according to the wire format.
+// An implementation may panic if this is not the case.
+// Once stored, the caller must not mutate the content of the RawFields.
+// An empty RawFields may be passed to clear the fields.
+//
+// SetUnknown is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_CreateModuleAccountRequest) SetUnknown(fields protoreflect.RawFields) {
+	x.unknownFields = fields
+}
+
+// IsValid reports whether the message is valid.
+//
+// An invalid message is an empty, read-only value.
+//
+// An invalid message often corresponds to a nil pointer of the concrete
+// message type, but the details are implementation dependent.
+// Validity is not part of the protobuf data model, and may not
+// be preserved in marshaling or other operations.
+func (x *fastReflection_CreateModuleAccountRequest) IsValid() bool {
+	return x != nil
+}
+
+// ProtoMethods returns optional fastReflectionFeature-path implementations of various operations.
+// This method may return nil.
+//
+// The returned methods type is identical to
+// "google.golang.org/protobuf/runtime/protoiface".Methods.
+// Consult the protoiface package documentation for details.
+func (x *fastReflection_CreateModuleAccountRequest) ProtoMethods() *protoiface.Methods {
+	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
+		x := input.Message.Interface().(*CreateModuleAccountRequest)
+		if x == nil {
+			return protoiface.SizeOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Size:              0,
+			}
+		}
+		options := runtime.SizeInputToOptions(input)
+		_ = options
+		var n int
+		var l int
+		_ = l
+		l = len(x.DerivationPath)
+		if l > 0 {
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if x.Credential != nil {
+			l = options.Size(x.Credential)
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if x.unknownFields != nil {
+			n += len(x.unknownFields)
+		}
+		return protoiface.SizeOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Size:              n,
+		}
+	}
+
+	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
+		x := input.Message.Interface().(*CreateModuleAccountRequest)
+		if x == nil {
+			return protoiface.MarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Buf:               input.Buf,
+			}, nil
+		}
+		options := runtime.MarshalInputToOptions(input)
+		_ = options
+		size := options.Size(x)
+		dAtA := make([]byte, size)
+		i := len(dAtA)
+		_ = i
+		var l int
+		_ = l
+		if x.unknownFields != nil {
+			i -= len(x.unknownFields)
+			copy(dAtA[i:], x.unknownFields)
+		}
+		if x.Credential != nil {
+			encoded, err := options.Marshal(x.Credential)
+			if err != nil {
+				return protoiface.MarshalOutput{
+					NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+					Buf:               input.Buf,
+				}, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			i--
+			dAtA[i] = 0x12
+		}
+		if len(x.DerivationPath) > 0 {
+			i -= len(x.DerivationPath)
+			copy(dAtA[i:], x.DerivationPath)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.DerivationPath)))
+			i--
+			dAtA[i] = 0xa
+		}
+		if input.Buf != nil {
+			input.Buf = append(input.Buf, dAtA...)
+		} else {
+			input.Buf = dAtA
+		}
+		return protoiface.MarshalOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Buf:               input.Buf,
+		}, nil
+	}
+	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
+		x := input.Message.Interface().(*CreateModuleAccountRequest)
+		if x == nil {
+			return protoiface.UnmarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Flags:             input.Flags,
+			}, nil
+		}
+		options := runtime.UnmarshalInputToOptions(input)
+		_ = options
+		dAtA := input.Buf
+		l := len(dAtA)
+		iNdEx := 0
+		for iNdEx < l {
+			preIndex := iNdEx
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: CreateModuleAccountRequest: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: CreateModuleAccountRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
 			switch fieldNum {
 			case 1:
@@ -517,28 +1422,28 @@ func (x *fastReflection_CreateAccountRequest) ProtoMethods() *protoiface.Methods
 }
 
 var (
-	md_CreateAccountResponse            protoreflect.MessageDescriptor
-	fd_CreateAccountResponse_account_id protoreflect.FieldDescriptor
-	fd_CreateAccountResponse_address    protoreflect.FieldDescriptor
+	md_CreateModuleAccountResponse            protoreflect.MessageDescriptor
+	fd_CreateModuleAccountResponse_account_id protoreflect.FieldDescriptor
+	fd_CreateModuleAccountResponse_address    protoreflect.FieldDescriptor
 )
 
 func init() {
 	file_cosmos_authn_v1_internal_proto_init()
-	md_CreateAccountResponse = File_cosmos_authn_v1_internal_proto.Messages().ByName("CreateAccountResponse")
-	fd_CreateAccountResponse_account_id = md_CreateAccountResponse.Fields().ByName("account_id")
-	fd_CreateAccountResponse_address = md_CreateAccountResponse.Fields().ByName("address")
+	md_CreateModuleAccountResponse = File_cosmos_authn_v1_internal_proto.Messages().ByName("CreateModuleAccountResponse")
+	fd_CreateModuleAccountResponse_account_id = md_CreateModuleAccountResponse.Fields().ByName("account_id")
+	fd_CreateModuleAccountResponse_address = md_CreateModuleAccountResponse.Fields().ByName("address")
 }
 
-var _ protoreflect.Message = (*fastReflection_CreateAccountResponse)(nil)
+var _ protoreflect.Message = (*fastReflection_CreateModuleAccountResponse)(nil)
 
-type fastReflection_CreateAccountResponse CreateAccountResponse
+type fastReflection_CreateModuleAccountResponse CreateModuleAccountResponse
 
-func (x *CreateAccountResponse) ProtoReflect() protoreflect.Message {
-	return (*fastReflection_CreateAccountResponse)(x)
+func (x *CreateModuleAccountResponse) ProtoReflect() protoreflect.Message {
+	return (*fastReflection_CreateModuleAccountResponse)(x)
 }
 
-func (x *CreateAccountResponse) slowProtoReflect() protoreflect.Message {
-	mi := &file_cosmos_authn_v1_internal_proto_msgTypes[1]
+func (x *CreateModuleAccountResponse) slowProtoReflect() protoreflect.Message {
+	mi := &file_cosmos_authn_v1_internal_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -549,43 +1454,43 @@ func (x *CreateAccountResponse) slowProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-var _fastReflection_CreateAccountResponse_messageType fastReflection_CreateAccountResponse_messageType
-var _ protoreflect.MessageType = fastReflection_CreateAccountResponse_messageType{}
+var _fastReflection_CreateModuleAccountResponse_messageType fastReflection_CreateModuleAccountResponse_messageType
+var _ protoreflect.MessageType = fastReflection_CreateModuleAccountResponse_messageType{}
 
-type fastReflection_CreateAccountResponse_messageType struct{}
+type fastReflection_CreateModuleAccountResponse_messageType struct{}
 
-func (x fastReflection_CreateAccountResponse_messageType) Zero() protoreflect.Message {
-	return (*fastReflection_CreateAccountResponse)(nil)
+func (x fastReflection_CreateModuleAccountResponse_messageType) Zero() protoreflect.Message {
+	return (*fastReflection_CreateModuleAccountResponse)(nil)
 }
-func (x fastReflection_CreateAccountResponse_messageType) New() protoreflect.Message {
-	return new(fastReflection_CreateAccountResponse)
+func (x fastReflection_CreateModuleAccountResponse_messageType) New() protoreflect.Message {
+	return new(fastReflection_CreateModuleAccountResponse)
 }
-func (x fastReflection_CreateAccountResponse_messageType) Descriptor() protoreflect.MessageDescriptor {
-	return md_CreateAccountResponse
+func (x fastReflection_CreateModuleAccountResponse_messageType) Descriptor() protoreflect.MessageDescriptor {
+	return md_CreateModuleAccountResponse
 }
 
 // Descriptor returns message descriptor, which contains only the protobuf
 // type information for the message.
-func (x *fastReflection_CreateAccountResponse) Descriptor() protoreflect.MessageDescriptor {
-	return md_CreateAccountResponse
+func (x *fastReflection_CreateModuleAccountResponse) Descriptor() protoreflect.MessageDescriptor {
+	return md_CreateModuleAccountResponse
 }
 
 // Type returns the message type, which encapsulates both Go and protobuf
 // type information. If the Go type information is not needed,
 // it is recommended that the message descriptor be used instead.
-func (x *fastReflection_CreateAccountResponse) Type() protoreflect.MessageType {
-	return _fastReflection_CreateAccountResponse_messageType
+func (x *fastReflection_CreateModuleAccountResponse) Type() protoreflect.MessageType {
+	return _fastReflection_CreateModuleAccountResponse_messageType
 }
 
 // New returns a newly allocated and mutable empty message.
-func (x *fastReflection_CreateAccountResponse) New() protoreflect.Message {
-	return new(fastReflection_CreateAccountResponse)
+func (x *fastReflection_CreateModuleAccountResponse) New() protoreflect.Message {
+	return new(fastReflection_CreateModuleAccountResponse)
 }
 
 // Interface unwraps the message reflection interface and
 // returns the underlying ProtoMessage interface.
-func (x *fastReflection_CreateAccountResponse) Interface() protoreflect.ProtoMessage {
-	return (*CreateAccountResponse)(x)
+func (x *fastReflection_CreateModuleAccountResponse) Interface() protoreflect.ProtoMessage {
+	return (*CreateModuleAccountResponse)(x)
 }
 
 // Range iterates over every populated field in an undefined order,
@@ -593,16 +1498,16 @@ func (x *fastReflection_CreateAccountResponse) Interface() protoreflect.ProtoMes
 // Range returns immediately if f returns false.
 // While iterating, mutating operations may only be performed
 // on the current field descriptor.
-func (x *fastReflection_CreateAccountResponse) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+func (x *fastReflection_CreateModuleAccountResponse) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
 	if x.AccountId != uint64(0) {
 		value := protoreflect.ValueOfUint64(x.AccountId)
-		if !f(fd_CreateAccountResponse_account_id, value) {
+		if !f(fd_CreateModuleAccountResponse_account_id, value) {
 			return
 		}
 	}
 	if len(x.Address) != 0 {
 		value := protoreflect.ValueOfBytes(x.Address)
-		if !f(fd_CreateAccountResponse_address, value) {
+		if !f(fd_CreateModuleAccountResponse_address, value) {
 			return
 		}
 	}
@@ -619,17 +1524,17 @@ func (x *fastReflection_CreateAccountResponse) Range(f func(protoreflect.FieldDe
 // In other cases (aside from the nullable cases above),
 // a proto3 scalar field is populated if it contains a non-zero value, and
 // a repeated field is populated if it is non-empty.
-func (x *fastReflection_CreateAccountResponse) Has(fd protoreflect.FieldDescriptor) bool {
+func (x *fastReflection_CreateModuleAccountResponse) Has(fd protoreflect.FieldDescriptor) bool {
 	switch fd.FullName() {
-	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+	case "cosmos.authn.v1.CreateModuleAccountResponse.account_id":
 		return x.AccountId != uint64(0)
-	case "cosmos.authn.v1.CreateAccountResponse.address":
+	case "cosmos.authn.v1.CreateModuleAccountResponse.address":
 		return len(x.Address) != 0
 	default:
 		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountResponse"))
 		}
-		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", fd.FullName()))
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountResponse does not contain field %s", fd.FullName()))
 	}
 }
 
@@ -639,17 +1544,17 @@ func (x *fastReflection_CreateAccountResponse) Has(fd protoreflect.FieldDescript
 // associated with the given field number.
 //
 // Clear is a mutating operation and unsafe for concurrent use.
-func (x *fastReflection_CreateAccountResponse) Clear(fd protoreflect.FieldDescriptor) {
+func (x *fastReflection_CreateModuleAccountResponse) Clear(fd protoreflect.FieldDescriptor) {
 	switch fd.FullName() {
-	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+	case "cosmos.authn.v1.CreateModuleAccountResponse.account_id":
 		x.AccountId = uint64(0)
-	case "cosmos.authn.v1.CreateAccountResponse.address":
+	case "cosmos.authn.v1.CreateModuleAccountResponse.address":
 		x.Address = nil
 	default:
 		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountResponse"))
 		}
-		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", fd.FullName()))
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountResponse does not contain field %s", fd.FullName()))
 	}
 }
 
@@ -659,19 +1564,19 @@ func (x *fastReflection_CreateAccountResponse) Clear(fd protoreflect.FieldDescri
 // the default value of a bytes scalar is guaranteed to be a copy.
 // For unpopulated composite types, it returns an empty, read-only view
 // of the value; to obtain a mutable reference, use Mutable.
-func (x *fastReflection_CreateAccountResponse) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
+func (x *fastReflection_CreateModuleAccountResponse) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
 	switch descriptor.FullName() {
-	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+	case "cosmos.authn.v1.CreateModuleAccountResponse.account_id":
 		value := x.AccountId
 		return protoreflect.ValueOfUint64(value)
-	case "cosmos.authn.v1.CreateAccountResponse.address":
+	case "cosmos.authn.v1.CreateModuleAccountResponse.address":
 		value := x.Address
 		return protoreflect.ValueOfBytes(value)
 	default:
 		if descriptor.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountResponse"))
 		}
-		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", descriptor.FullName()))
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountResponse does not contain field %s", descriptor.FullName()))
 	}
 }
 
@@ -685,17 +1590,17 @@ func (x *fastReflection_CreateAccountResponse) Get(descriptor protoreflect.Field
 // empty, read-only value, then it panics.
 //
 // Set is a mutating operation and unsafe for concurrent use.
-func (x *fastReflection_CreateAccountResponse) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
+func (x *fastReflection_CreateModuleAccountResponse) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
 	switch fd.FullName() {
-	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+	case "cosmos.authn.v1.CreateModuleAccountResponse.account_id":
 		x.AccountId = value.Uint()
-	case "cosmos.authn.v1.CreateAccountResponse.address":
+	case "cosmos.authn.v1.CreateModuleAccountResponse.address":
 		x.Address = value.Bytes()
 	default:
 		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountResponse"))
 		}
-		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", fd.FullName()))
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountResponse does not contain field %s", fd.FullName()))
 	}
 }
 
@@ -709,44 +1614,44 @@ func (x *fastReflection_CreateAccountResponse) Set(fd protoreflect.FieldDescript
 // It panics if the field does not contain a composite type.
 //
 // Mutable is a mutating operation and unsafe for concurrent use.
-func (x *fastReflection_CreateAccountResponse) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
+func (x *fastReflection_CreateModuleAccountResponse) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
 	switch fd.FullName() {
-	case "cosmos.authn.v1.CreateAccountResponse.account_id":
-		panic(fmt.Errorf("field account_id of message cosmos.authn.v1.CreateAccountResponse is not mutable"))
-	case "cosmos.authn.v1.CreateAccountResponse.address":
-		panic(fmt.Errorf("field address of message cosmos.authn.v1.CreateAccountResponse is not mutable"))
+	case "cosmos.authn.v1.CreateModuleAccountResponse.account_id":
+		panic(fmt.Errorf("field account_id of message cosmos.authn.v1.CreateModuleAccountResponse is not mutable"))
+	case "cosmos.authn.v1.CreateModuleAccountResponse.address":
+		panic(fmt.Errorf("field address of message cosmos.authn.v1.CreateModuleAccountResponse is not mutable"))
 	default:
 		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountResponse"))
 		}
-		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", fd.FullName()))
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountResponse does not contain field %s", fd.FullName()))
 	}
 }
 
 // NewField returns a new value that is assignable to the field
 // for the given descriptor. For scalars, this returns the default value.
 // For lists, maps, and messages, this returns a new, empty, mutable value.
-func (x *fastReflection_CreateAccountResponse) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
+func (x *fastReflection_CreateModuleAccountResponse) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
 	switch fd.FullName() {
-	case "cosmos.authn.v1.CreateAccountResponse.account_id":
+	case "cosmos.authn.v1.CreateModuleAccountResponse.account_id":
 		return protoreflect.ValueOfUint64(uint64(0))
-	case "cosmos.authn.v1.CreateAccountResponse.address":
+	case "cosmos.authn.v1.CreateModuleAccountResponse.address":
 		return protoreflect.ValueOfBytes(nil)
 	default:
 		if fd.IsExtension() {
-			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateAccountResponse"))
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: cosmos.authn.v1.CreateModuleAccountResponse"))
 		}
-		panic(fmt.Errorf("message cosmos.authn.v1.CreateAccountResponse does not contain field %s", fd.FullName()))
+		panic(fmt.Errorf("message cosmos.authn.v1.CreateModuleAccountResponse does not contain field %s", fd.FullName()))
 	}
 }
 
 // WhichOneof reports which field within the oneof is populated,
 // returning nil if none are populated.
 // It panics if the oneof descriptor does not belong to this message.
-func (x *fastReflection_CreateAccountResponse) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
+func (x *fastReflection_CreateModuleAccountResponse) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
 	switch d.FullName() {
 	default:
-		panic(fmt.Errorf("%s is not a oneof field in cosmos.authn.v1.CreateAccountResponse", d.FullName()))
+		panic(fmt.Errorf("%s is not a oneof field in cosmos.authn.v1.CreateModuleAccountResponse", d.FullName()))
 	}
 	panic("unreachable")
 }
@@ -754,7 +1659,7 @@ func (x *fastReflection_CreateAccountResponse) WhichOneof(d protoreflect.OneofDe
 // GetUnknown retrieves the entire list of unknown fields.
 // The caller may only mutate the contents of the RawFields
 // if the mutated bytes are stored back into the message with SetUnknown.
-func (x *fastReflection_CreateAccountResponse) GetUnknown() protoreflect.RawFields {
+func (x *fastReflection_CreateModuleAccountResponse) GetUnknown() protoreflect.RawFields {
 	return x.unknownFields
 }
 
@@ -765,7 +1670,7 @@ func (x *fastReflection_CreateAccountResponse) GetUnknown() protoreflect.RawFiel
 // An empty RawFields may be passed to clear the fields.
 //
 // SetUnknown is a mutating operation and unsafe for concurrent use.
-func (x *fastReflection_CreateAccountResponse) SetUnknown(fields protoreflect.RawFields) {
+func (x *fastReflection_CreateModuleAccountResponse) SetUnknown(fields protoreflect.RawFields) {
 	x.unknownFields = fields
 }
 
@@ -777,7 +1682,7 @@ func (x *fastReflection_CreateAccountResponse) SetUnknown(fields protoreflect.Ra
 // message type, but the details are implementation dependent.
 // Validity is not part of the protobuf data model, and may not
 // be preserved in marshaling or other operations.
-func (x *fastReflection_CreateAccountResponse) IsValid() bool {
+func (x *fastReflection_CreateModuleAccountResponse) IsValid() bool {
 	return x != nil
 }
 
@@ -787,9 +1692,9 @@ func (x *fastReflection_CreateAccountResponse) IsValid() bool {
 // The returned methods type is identical to
 // "google.golang.org/protobuf/runtime/protoiface".Methods.
 // Consult the protoiface package documentation for details.
-func (x *fastReflection_CreateAccountResponse) ProtoMethods() *protoiface.Methods {
+func (x *fastReflection_CreateModuleAccountResponse) ProtoMethods() *protoiface.Methods {
 	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
-		x := input.Message.Interface().(*CreateAccountResponse)
+		x := input.Message.Interface().(*CreateModuleAccountResponse)
 		if x == nil {
 			return protoiface.SizeOutput{
 				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
@@ -818,7 +1723,7 @@ func (x *fastReflection_CreateAccountResponse) ProtoMethods() *protoiface.Method
 	}
 
 	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
-		x := input.Message.Interface().(*CreateAccountResponse)
+		x := input.Message.Interface().(*CreateModuleAccountResponse)
 		if x == nil {
 			return protoiface.MarshalOutput{
 				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
@@ -860,7 +1765,7 @@ func (x *fastReflection_CreateAccountResponse) ProtoMethods() *protoiface.Method
 		}, nil
 	}
 	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
-		x := input.Message.Interface().(*CreateAccountResponse)
+		x := input.Message.Interface().(*CreateModuleAccountResponse)
 		if x == nil {
 			return protoiface.UnmarshalOutput{
 				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
@@ -892,10 +1797,10 @@ func (x *fastReflection_CreateAccountResponse) ProtoMethods() *protoiface.Method
 			fieldNum := int32(wire >> 3)
 			wireType := int(wire & 0x7)
 			if wireType == 4 {
-				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: CreateAccountResponse: wiretype end group for non-group")
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: CreateModuleAccountResponse: wiretype end group for non-group")
 			}
 			if fieldNum <= 0 {
-				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: CreateAccountResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: CreateModuleAccountResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 			}
 			switch fieldNum {
 			case 1:
@@ -1006,7 +1911,7 @@ func (x *IncrementSeqRequest) ProtoReflect() protoreflect.Message {
 }
 
 func (x *IncrementSeqRequest) slowProtoReflect() protoreflect.Message {
-	mi := &file_cosmos_authn_v1_internal_proto_msgTypes[2]
+	mi := &file_cosmos_authn_v1_internal_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1428,7 +2333,7 @@ func (x *IncrementSeqResponse) ProtoReflect() protoreflect.Message {
 }
 
 func (x *IncrementSeqResponse) slowProtoReflect() protoreflect.Message {
-	mi := &file_cosmos_authn_v1_internal_proto_msgTypes[3]
+	mi := &file_cosmos_authn_v1_internal_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1830,8 +2735,8 @@ type CreateAccountRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	DerivationPath []byte     `protobuf:"bytes,1,opt,name=derivation_path,json=derivationPath,proto3" json:"derivation_path,omitempty"`
-	Credential     *anypb.Any `protobuf:"bytes,2,opt,name=credential,proto3" json:"credential,omitempty"`
+	Address    []byte     `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Credential *anypb.Any `protobuf:"bytes,2,opt,name=credential,proto3" json:"credential,omitempty"`
 }
 
 func (x *CreateAccountRequest) Reset() {
@@ -1854,9 +2759,9 @@ func (*CreateAccountRequest) Descriptor() ([]byte, []int) {
 	return file_cosmos_authn_v1_internal_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CreateAccountRequest) GetDerivationPath() []byte {
+func (x *CreateAccountRequest) GetAddress() []byte {
 	if x != nil {
-		return x.DerivationPath
+		return x.Address
 	}
 	return nil
 }
@@ -1874,7 +2779,6 @@ type CreateAccountResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	AccountId uint64 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	Address   []byte `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 }
 
 func (x *CreateAccountResponse) Reset() {
@@ -1904,7 +2808,86 @@ func (x *CreateAccountResponse) GetAccountId() uint64 {
 	return 0
 }
 
-func (x *CreateAccountResponse) GetAddress() []byte {
+type CreateModuleAccountRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	DerivationPath []byte     `protobuf:"bytes,1,opt,name=derivation_path,json=derivationPath,proto3" json:"derivation_path,omitempty"`
+	Credential     *anypb.Any `protobuf:"bytes,2,opt,name=credential,proto3" json:"credential,omitempty"`
+}
+
+func (x *CreateModuleAccountRequest) Reset() {
+	*x = CreateModuleAccountRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_cosmos_authn_v1_internal_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateModuleAccountRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateModuleAccountRequest) ProtoMessage() {}
+
+// Deprecated: Use CreateModuleAccountRequest.ProtoReflect.Descriptor instead.
+func (*CreateModuleAccountRequest) Descriptor() ([]byte, []int) {
+	return file_cosmos_authn_v1_internal_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CreateModuleAccountRequest) GetDerivationPath() []byte {
+	if x != nil {
+		return x.DerivationPath
+	}
+	return nil
+}
+
+func (x *CreateModuleAccountRequest) GetCredential() *anypb.Any {
+	if x != nil {
+		return x.Credential
+	}
+	return nil
+}
+
+type CreateModuleAccountResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	AccountId uint64 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Address   []byte `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+}
+
+func (x *CreateModuleAccountResponse) Reset() {
+	*x = CreateModuleAccountResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_cosmos_authn_v1_internal_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateModuleAccountResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateModuleAccountResponse) ProtoMessage() {}
+
+// Deprecated: Use CreateModuleAccountResponse.ProtoReflect.Descriptor instead.
+func (*CreateModuleAccountResponse) Descriptor() ([]byte, []int) {
+	return file_cosmos_authn_v1_internal_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CreateModuleAccountResponse) GetAccountId() uint64 {
+	if x != nil {
+		return x.AccountId
+	}
+	return 0
+}
+
+func (x *CreateModuleAccountResponse) GetAddress() []byte {
 	if x != nil {
 		return x.Address
 	}
@@ -1922,7 +2905,7 @@ type IncrementSeqRequest struct {
 func (x *IncrementSeqRequest) Reset() {
 	*x = IncrementSeqRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cosmos_authn_v1_internal_proto_msgTypes[2]
+		mi := &file_cosmos_authn_v1_internal_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1936,7 +2919,7 @@ func (*IncrementSeqRequest) ProtoMessage() {}
 
 // Deprecated: Use IncrementSeqRequest.ProtoReflect.Descriptor instead.
 func (*IncrementSeqRequest) Descriptor() ([]byte, []int) {
-	return file_cosmos_authn_v1_internal_proto_rawDescGZIP(), []int{2}
+	return file_cosmos_authn_v1_internal_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *IncrementSeqRequest) GetAddress() []byte {
@@ -1957,7 +2940,7 @@ type IncrementSeqResponse struct {
 func (x *IncrementSeqResponse) Reset() {
 	*x = IncrementSeqResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_cosmos_authn_v1_internal_proto_msgTypes[3]
+		mi := &file_cosmos_authn_v1_internal_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1971,7 +2954,7 @@ func (*IncrementSeqResponse) ProtoMessage() {}
 
 // Deprecated: Use IncrementSeqResponse.ProtoReflect.Descriptor instead.
 func (*IncrementSeqResponse) Descriptor() ([]byte, []int) {
-	return file_cosmos_authn_v1_internal_proto_rawDescGZIP(), []int{3}
+	return file_cosmos_authn_v1_internal_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *IncrementSeqResponse) GetNewSeq() uint64 {
@@ -1992,54 +2975,74 @@ var file_cosmos_authn_v1_internal_proto_rawDesc = []byte{
 	0x6f, 0x67, 0x6c, 0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f, 0x61, 0x6e,
 	0x79, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x23, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2f,
 	0x69, 0x6e, 0x74, 0x65, 0x72, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x6f,
-	0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x75, 0x0a, 0x14,
+	0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x7f, 0x0a, 0x14,
 	0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x12, 0x27, 0x0a, 0x0f, 0x64, 0x65, 0x72, 0x69, 0x76, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x5f, 0x70, 0x61, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0e, 0x64,
-	0x65, 0x72, 0x69, 0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x61, 0x74, 0x68, 0x12, 0x34, 0x0a,
-	0x0a, 0x63, 0x72, 0x65, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x14, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x62, 0x75, 0x66, 0x2e, 0x41, 0x6e, 0x79, 0x52, 0x0a, 0x63, 0x72, 0x65, 0x64, 0x65, 0x6e, 0x74,
-	0x69, 0x61, 0x6c, 0x22, 0x69, 0x0a, 0x15, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x41, 0x63, 0x63,
-	0x6f, 0x75, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1d, 0x0a, 0x0a,
-	0x61, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04,
-	0x52, 0x09, 0x61, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x49, 0x64, 0x12, 0x31, 0x0a, 0x07, 0x61,
-	0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x42, 0x17, 0xd2, 0xb4,
-	0x2d, 0x13, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73,
-	0x42, 0x79, 0x74, 0x65, 0x73, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x22, 0x48,
-	0x0a, 0x13, 0x49, 0x6e, 0x63, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x53, 0x65, 0x71, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x31, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x42, 0x17, 0xd2, 0xb4, 0x2d, 0x13, 0x63, 0x6f, 0x73, 0x6d,
-	0x6f, 0x73, 0x2e, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x42, 0x79, 0x74, 0x65, 0x73, 0x52,
-	0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x22, 0x2f, 0x0a, 0x14, 0x49, 0x6e, 0x63, 0x72,
-	0x65, 0x6d, 0x65, 0x6e, 0x74, 0x53, 0x65, 0x71, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x12, 0x17, 0x0a, 0x07, 0x6e, 0x65, 0x77, 0x5f, 0x73, 0x65, 0x71, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x04, 0x52, 0x06, 0x6e, 0x65, 0x77, 0x53, 0x65, 0x71, 0x32, 0xcf, 0x01, 0x0a, 0x08, 0x49, 0x6e,
-	0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x12, 0x5e, 0x0a, 0x0d, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65,
-	0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x12, 0x25, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73,
+	0x75, 0x65, 0x73, 0x74, 0x12, 0x31, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0c, 0x42, 0x17, 0xd2, 0xb4, 0x2d, 0x13, 0x63, 0x6f, 0x73, 0x6d, 0x6f,
+	0x73, 0x2e, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x42, 0x79, 0x74, 0x65, 0x73, 0x52, 0x07,
+	0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x34, 0x0a, 0x0a, 0x63, 0x72, 0x65, 0x64, 0x65,
+	0x6e, 0x74, 0x69, 0x61, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x67, 0x6f,
+	0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x41, 0x6e,
+	0x79, 0x52, 0x0a, 0x63, 0x72, 0x65, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x22, 0x36, 0x0a,
+	0x15, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x61, 0x63, 0x63, 0x6f, 0x75, 0x6e,
+	0x74, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x09, 0x61, 0x63, 0x63, 0x6f,
+	0x75, 0x6e, 0x74, 0x49, 0x64, 0x22, 0x7b, 0x0a, 0x1a, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4d,
+	0x6f, 0x64, 0x75, 0x6c, 0x65, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x12, 0x27, 0x0a, 0x0f, 0x64, 0x65, 0x72, 0x69, 0x76, 0x61, 0x74, 0x69, 0x6f,
+	0x6e, 0x5f, 0x70, 0x61, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0e, 0x64, 0x65,
+	0x72, 0x69, 0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x61, 0x74, 0x68, 0x12, 0x34, 0x0a, 0x0a,
+	0x63, 0x72, 0x65, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x14, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62,
+	0x75, 0x66, 0x2e, 0x41, 0x6e, 0x79, 0x52, 0x0a, 0x63, 0x72, 0x65, 0x64, 0x65, 0x6e, 0x74, 0x69,
+	0x61, 0x6c, 0x22, 0x6f, 0x0a, 0x1b, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4d, 0x6f, 0x64, 0x75,
+	0x6c, 0x65, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x61, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x5f, 0x69, 0x64, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x09, 0x61, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x49, 0x64,
+	0x12, 0x31, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x0c, 0x42, 0x17, 0xd2, 0xb4, 0x2d, 0x13, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x41, 0x64,
+	0x64, 0x72, 0x65, 0x73, 0x73, 0x42, 0x79, 0x74, 0x65, 0x73, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72,
+	0x65, 0x73, 0x73, 0x22, 0x48, 0x0a, 0x13, 0x49, 0x6e, 0x63, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74,
+	0x53, 0x65, 0x71, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x31, 0x0a, 0x07, 0x61, 0x64,
+	0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x42, 0x17, 0xd2, 0xb4, 0x2d,
+	0x13, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x42,
+	0x79, 0x74, 0x65, 0x73, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x22, 0x2f, 0x0a,
+	0x14, 0x49, 0x6e, 0x63, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x53, 0x65, 0x71, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x65, 0x77, 0x5f, 0x73, 0x65, 0x71,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x6e, 0x65, 0x77, 0x53, 0x65, 0x71, 0x32, 0x84,
+	0x01, 0x0a, 0x08, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x12, 0x70, 0x0a, 0x13, 0x43,
+	0x72, 0x65, 0x61, 0x74, 0x65, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x41, 0x63, 0x63, 0x6f, 0x75,
+	0x6e, 0x74, 0x12, 0x2b, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x61, 0x75, 0x74, 0x68,
+	0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4d, 0x6f, 0x64, 0x75, 0x6c,
+	0x65, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x2c, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6e, 0x2e, 0x76,
+	0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x41, 0x63,
+	0x63, 0x6f, 0x75, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x1a, 0x06, 0x98,
+	0xfb, 0xb5, 0xb9, 0x0f, 0x01, 0x32, 0xcc, 0x01, 0x0a, 0x05, 0x41, 0x64, 0x6d, 0x69, 0x6e, 0x12,
+	0x5e, 0x0a, 0x0d, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74,
+	0x12, 0x25, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6e, 0x2e,
+	0x76, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73,
 	0x2e, 0x61, 0x75, 0x74, 0x68, 0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65,
-	0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26,
-	0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6e, 0x2e, 0x76, 0x31,
-	0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x5b, 0x0a, 0x0c, 0x49, 0x6e, 0x63, 0x72, 0x65, 0x6d,
-	0x65, 0x6e, 0x74, 0x53, 0x65, 0x71, 0x12, 0x24, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e,
-	0x61, 0x75, 0x74, 0x68, 0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x6e, 0x63, 0x72, 0x65, 0x6d, 0x65,
-	0x6e, 0x74, 0x53, 0x65, 0x71, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x25, 0x2e, 0x63,
-	0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x49,
-	0x6e, 0x63, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x53, 0x65, 0x71, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x1a, 0x06, 0x98, 0xfb, 0xb5, 0xb9, 0x0f, 0x01, 0x42, 0xac, 0x01, 0x0a, 0x13,
-	0x63, 0x6f, 0x6d, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6e,
-	0x2e, 0x76, 0x31, 0x42, 0x0d, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f,
-	0x74, 0x6f, 0x50, 0x01, 0x5a, 0x28, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73, 0x64, 0x6b, 0x2e,
-	0x69, 0x6f, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2f, 0x61, 0x75,
-	0x74, 0x68, 0x6e, 0x2f, 0x76, 0x31, 0x3b, 0x61, 0x75, 0x74, 0x68, 0x6e, 0x76, 0x31, 0xa2, 0x02,
-	0x03, 0x43, 0x41, 0x58, 0xaa, 0x02, 0x0f, 0x43, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x41, 0x75,
-	0x74, 0x68, 0x6e, 0x2e, 0x56, 0x31, 0xca, 0x02, 0x0f, 0x43, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x5c,
-	0x41, 0x75, 0x74, 0x68, 0x6e, 0x5c, 0x56, 0x31, 0xe2, 0x02, 0x1b, 0x43, 0x6f, 0x73, 0x6d, 0x6f,
-	0x73, 0x5c, 0x41, 0x75, 0x74, 0x68, 0x6e, 0x5c, 0x56, 0x31, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65,
-	0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02, 0x11, 0x43, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x3a,
-	0x3a, 0x41, 0x75, 0x74, 0x68, 0x6e, 0x3a, 0x3a, 0x56, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x41, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x5b, 0x0a, 0x0c, 0x49, 0x6e, 0x63, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x53, 0x65, 0x71, 0x12,
+	0x24, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6e, 0x2e, 0x76,
+	0x31, 0x2e, 0x49, 0x6e, 0x63, 0x72, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x53, 0x65, 0x71, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x25, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x61,
+	0x75, 0x74, 0x68, 0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x49, 0x6e, 0x63, 0x72, 0x65, 0x6d, 0x65, 0x6e,
+	0x74, 0x53, 0x65, 0x71, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x1a, 0x06, 0x98, 0xfb,
+	0xb5, 0xb9, 0x0f, 0x01, 0x42, 0xac, 0x01, 0x0a, 0x13, 0x63, 0x6f, 0x6d, 0x2e, 0x63, 0x6f, 0x73,
+	0x6d, 0x6f, 0x73, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6e, 0x2e, 0x76, 0x31, 0x42, 0x0d, 0x49, 0x6e,
+	0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x28, 0x63,
+	0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73, 0x64, 0x6b, 0x2e, 0x69, 0x6f, 0x2f, 0x61, 0x70, 0x69, 0x2f,
+	0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2f, 0x61, 0x75, 0x74, 0x68, 0x6e, 0x2f, 0x76, 0x31, 0x3b,
+	0x61, 0x75, 0x74, 0x68, 0x6e, 0x76, 0x31, 0xa2, 0x02, 0x03, 0x43, 0x41, 0x58, 0xaa, 0x02, 0x0f,
+	0x43, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x41, 0x75, 0x74, 0x68, 0x6e, 0x2e, 0x56, 0x31, 0xca,
+	0x02, 0x0f, 0x43, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x5c, 0x41, 0x75, 0x74, 0x68, 0x6e, 0x5c, 0x56,
+	0x31, 0xe2, 0x02, 0x1b, 0x43, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x5c, 0x41, 0x75, 0x74, 0x68, 0x6e,
+	0x5c, 0x56, 0x31, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea,
+	0x02, 0x11, 0x43, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x3a, 0x3a, 0x41, 0x75, 0x74, 0x68, 0x6e, 0x3a,
+	0x3a, 0x56, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -2054,25 +3057,30 @@ func file_cosmos_authn_v1_internal_proto_rawDescGZIP() []byte {
 	return file_cosmos_authn_v1_internal_proto_rawDescData
 }
 
-var file_cosmos_authn_v1_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_cosmos_authn_v1_internal_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_cosmos_authn_v1_internal_proto_goTypes = []interface{}{
-	(*CreateAccountRequest)(nil),  // 0: cosmos.authn.v1.CreateAccountRequest
-	(*CreateAccountResponse)(nil), // 1: cosmos.authn.v1.CreateAccountResponse
-	(*IncrementSeqRequest)(nil),   // 2: cosmos.authn.v1.IncrementSeqRequest
-	(*IncrementSeqResponse)(nil),  // 3: cosmos.authn.v1.IncrementSeqResponse
-	(*anypb.Any)(nil),             // 4: google.protobuf.Any
+	(*CreateAccountRequest)(nil),        // 0: cosmos.authn.v1.CreateAccountRequest
+	(*CreateAccountResponse)(nil),       // 1: cosmos.authn.v1.CreateAccountResponse
+	(*CreateModuleAccountRequest)(nil),  // 2: cosmos.authn.v1.CreateModuleAccountRequest
+	(*CreateModuleAccountResponse)(nil), // 3: cosmos.authn.v1.CreateModuleAccountResponse
+	(*IncrementSeqRequest)(nil),         // 4: cosmos.authn.v1.IncrementSeqRequest
+	(*IncrementSeqResponse)(nil),        // 5: cosmos.authn.v1.IncrementSeqResponse
+	(*anypb.Any)(nil),                   // 6: google.protobuf.Any
 }
 var file_cosmos_authn_v1_internal_proto_depIdxs = []int32{
-	4, // 0: cosmos.authn.v1.CreateAccountRequest.credential:type_name -> google.protobuf.Any
-	0, // 1: cosmos.authn.v1.Internal.CreateAccount:input_type -> cosmos.authn.v1.CreateAccountRequest
-	2, // 2: cosmos.authn.v1.Internal.IncrementSeq:input_type -> cosmos.authn.v1.IncrementSeqRequest
-	1, // 3: cosmos.authn.v1.Internal.CreateAccount:output_type -> cosmos.authn.v1.CreateAccountResponse
-	3, // 4: cosmos.authn.v1.Internal.IncrementSeq:output_type -> cosmos.authn.v1.IncrementSeqResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	6, // 0: cosmos.authn.v1.CreateAccountRequest.credential:type_name -> google.protobuf.Any
+	6, // 1: cosmos.authn.v1.CreateModuleAccountRequest.credential:type_name -> google.protobuf.Any
+	2, // 2: cosmos.authn.v1.Internal.CreateModuleAccount:input_type -> cosmos.authn.v1.CreateModuleAccountRequest
+	0, // 3: cosmos.authn.v1.Admin.CreateAccount:input_type -> cosmos.authn.v1.CreateAccountRequest
+	4, // 4: cosmos.authn.v1.Admin.IncrementSeq:input_type -> cosmos.authn.v1.IncrementSeqRequest
+	3, // 5: cosmos.authn.v1.Internal.CreateModuleAccount:output_type -> cosmos.authn.v1.CreateModuleAccountResponse
+	1, // 6: cosmos.authn.v1.Admin.CreateAccount:output_type -> cosmos.authn.v1.CreateAccountResponse
+	5, // 7: cosmos.authn.v1.Admin.IncrementSeq:output_type -> cosmos.authn.v1.IncrementSeqResponse
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_cosmos_authn_v1_internal_proto_init() }
@@ -2106,7 +3114,7 @@ func file_cosmos_authn_v1_internal_proto_init() {
 			}
 		}
 		file_cosmos_authn_v1_internal_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*IncrementSeqRequest); i {
+			switch v := v.(*CreateModuleAccountRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2118,6 +3126,30 @@ func file_cosmos_authn_v1_internal_proto_init() {
 			}
 		}
 		file_cosmos_authn_v1_internal_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CreateModuleAccountResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_cosmos_authn_v1_internal_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*IncrementSeqRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_cosmos_authn_v1_internal_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*IncrementSeqResponse); i {
 			case 0:
 				return &v.state
@@ -2136,9 +3168,9 @@ func file_cosmos_authn_v1_internal_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_cosmos_authn_v1_internal_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_cosmos_authn_v1_internal_proto_goTypes,
 		DependencyIndexes: file_cosmos_authn_v1_internal_proto_depIdxs,

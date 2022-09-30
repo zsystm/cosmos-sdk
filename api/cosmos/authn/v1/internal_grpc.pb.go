@@ -22,8 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InternalClient interface {
-	CreateAccount(ctx context.Context, in *CreateAccountRequest, opts ...grpc.CallOption) (*CreateAccountResponse, error)
-	IncrementSeq(ctx context.Context, in *IncrementSeqRequest, opts ...grpc.CallOption) (*IncrementSeqResponse, error)
+	CreateModuleAccount(ctx context.Context, in *CreateModuleAccountRequest, opts ...grpc.CallOption) (*CreateModuleAccountResponse, error)
 }
 
 type internalClient struct {
@@ -34,18 +33,9 @@ func NewInternalClient(cc grpc.ClientConnInterface) InternalClient {
 	return &internalClient{cc}
 }
 
-func (c *internalClient) CreateAccount(ctx context.Context, in *CreateAccountRequest, opts ...grpc.CallOption) (*CreateAccountResponse, error) {
-	out := new(CreateAccountResponse)
-	err := c.cc.Invoke(ctx, "/cosmos.authn.v1.Internal/CreateAccount", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *internalClient) IncrementSeq(ctx context.Context, in *IncrementSeqRequest, opts ...grpc.CallOption) (*IncrementSeqResponse, error) {
-	out := new(IncrementSeqResponse)
-	err := c.cc.Invoke(ctx, "/cosmos.authn.v1.Internal/IncrementSeq", in, out, opts...)
+func (c *internalClient) CreateModuleAccount(ctx context.Context, in *CreateModuleAccountRequest, opts ...grpc.CallOption) (*CreateModuleAccountResponse, error) {
+	out := new(CreateModuleAccountResponse)
+	err := c.cc.Invoke(ctx, "/cosmos.authn.v1.Internal/CreateModuleAccount", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +46,7 @@ func (c *internalClient) IncrementSeq(ctx context.Context, in *IncrementSeqReque
 // All implementations must embed UnimplementedInternalServer
 // for forward compatibility
 type InternalServer interface {
-	CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error)
-	IncrementSeq(context.Context, *IncrementSeqRequest) (*IncrementSeqResponse, error)
+	CreateModuleAccount(context.Context, *CreateModuleAccountRequest) (*CreateModuleAccountResponse, error)
 	mustEmbedUnimplementedInternalServer()
 }
 
@@ -65,11 +54,8 @@ type InternalServer interface {
 type UnimplementedInternalServer struct {
 }
 
-func (UnimplementedInternalServer) CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateAccount not implemented")
-}
-func (UnimplementedInternalServer) IncrementSeq(context.Context, *IncrementSeqRequest) (*IncrementSeqResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method IncrementSeq not implemented")
+func (UnimplementedInternalServer) CreateModuleAccount(context.Context, *CreateModuleAccountRequest) (*CreateModuleAccountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateModuleAccount not implemented")
 }
 func (UnimplementedInternalServer) mustEmbedUnimplementedInternalServer() {}
 
@@ -84,38 +70,20 @@ func RegisterInternalServer(s grpc.ServiceRegistrar, srv InternalServer) {
 	s.RegisterService(&Internal_ServiceDesc, srv)
 }
 
-func _Internal_CreateAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateAccountRequest)
+func _Internal_CreateModuleAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateModuleAccountRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InternalServer).CreateAccount(ctx, in)
+		return srv.(InternalServer).CreateModuleAccount(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cosmos.authn.v1.Internal/CreateAccount",
+		FullMethod: "/cosmos.authn.v1.Internal/CreateModuleAccount",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).CreateAccount(ctx, req.(*CreateAccountRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Internal_IncrementSeq_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IncrementSeqRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(InternalServer).IncrementSeq(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cosmos.authn.v1.Internal/IncrementSeq",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InternalServer).IncrementSeq(ctx, req.(*IncrementSeqRequest))
+		return srv.(InternalServer).CreateModuleAccount(ctx, req.(*CreateModuleAccountRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -128,12 +96,130 @@ var Internal_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*InternalServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "CreateModuleAccount",
+			Handler:    _Internal_CreateModuleAccount_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "cosmos/authn/v1/internal.proto",
+}
+
+// AdminClient is the client API for Admin service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type AdminClient interface {
+	CreateAccount(ctx context.Context, in *CreateAccountRequest, opts ...grpc.CallOption) (*CreateAccountResponse, error)
+	IncrementSeq(ctx context.Context, in *IncrementSeqRequest, opts ...grpc.CallOption) (*IncrementSeqResponse, error)
+}
+
+type adminClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewAdminClient(cc grpc.ClientConnInterface) AdminClient {
+	return &adminClient{cc}
+}
+
+func (c *adminClient) CreateAccount(ctx context.Context, in *CreateAccountRequest, opts ...grpc.CallOption) (*CreateAccountResponse, error) {
+	out := new(CreateAccountResponse)
+	err := c.cc.Invoke(ctx, "/cosmos.authn.v1.Admin/CreateAccount", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *adminClient) IncrementSeq(ctx context.Context, in *IncrementSeqRequest, opts ...grpc.CallOption) (*IncrementSeqResponse, error) {
+	out := new(IncrementSeqResponse)
+	err := c.cc.Invoke(ctx, "/cosmos.authn.v1.Admin/IncrementSeq", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// AdminServer is the server API for Admin service.
+// All implementations must embed UnimplementedAdminServer
+// for forward compatibility
+type AdminServer interface {
+	CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error)
+	IncrementSeq(context.Context, *IncrementSeqRequest) (*IncrementSeqResponse, error)
+	mustEmbedUnimplementedAdminServer()
+}
+
+// UnimplementedAdminServer must be embedded to have forward compatible implementations.
+type UnimplementedAdminServer struct {
+}
+
+func (UnimplementedAdminServer) CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateAccount not implemented")
+}
+func (UnimplementedAdminServer) IncrementSeq(context.Context, *IncrementSeqRequest) (*IncrementSeqResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IncrementSeq not implemented")
+}
+func (UnimplementedAdminServer) mustEmbedUnimplementedAdminServer() {}
+
+// UnsafeAdminServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to AdminServer will
+// result in compilation errors.
+type UnsafeAdminServer interface {
+	mustEmbedUnimplementedAdminServer()
+}
+
+func RegisterAdminServer(s grpc.ServiceRegistrar, srv AdminServer) {
+	s.RegisterService(&Admin_ServiceDesc, srv)
+}
+
+func _Admin_CreateAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServer).CreateAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cosmos.authn.v1.Admin/CreateAccount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServer).CreateAccount(ctx, req.(*CreateAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Admin_IncrementSeq_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IncrementSeqRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServer).IncrementSeq(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cosmos.authn.v1.Admin/IncrementSeq",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServer).IncrementSeq(ctx, req.(*IncrementSeqRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Admin_ServiceDesc is the grpc.ServiceDesc for Admin service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Admin_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "cosmos.authn.v1.Admin",
+	HandlerType: (*AdminServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
 			MethodName: "CreateAccount",
-			Handler:    _Internal_CreateAccount_Handler,
+			Handler:    _Admin_CreateAccount_Handler,
 		},
 		{
 			MethodName: "IncrementSeq",
-			Handler:    _Internal_IncrementSeq_Handler,
+			Handler:    _Admin_IncrementSeq_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -17,6 +17,7 @@ import (
 type Keeper struct {
 	authnv1.UnimplementedMsgServer
 	authnv1.UnimplementedInternalServer
+	authnv1.UnimplementedAdminServer
 
 	addressCodec Bech32Codec
 	adminModules map[string]bool
@@ -74,6 +75,33 @@ func (s Keeper) SetCredential(ctx context.Context, msg *authnv1.MsgSetCredential
 
 func (s Keeper) CreateAccount(ctx context.Context, request *authnv1.CreateAccountRequest) (*authnv1.CreateAccountResponse, error) {
 	callingModule := s.appService.InternalServiceCaller(ctx)
+	if !s.adminModules[callingModule] {
+		return nil, status.Errorf(codes.PermissionDenied, "%s is not an admin module", callingModule)
+	}
+
+	acc := &authnv1.Account{
+		Address:    request.Address,
+		Credential: request.Credential,
+	}
+
+	id, err := s.stateStore.AccountTable().InsertReturningId(ctx, acc)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.stateStore.AccountSequenceTable().Insert(ctx, &authnv1.AccountSequence{
+		Address: request.Address,
+		Seq:     0,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &authnv1.CreateAccountResponse{AccountId: id}, nil
+}
+
+func (s Keeper) CreateModuleAccount(ctx context.Context, request *authnv1.CreateModuleAccountRequest) (*authnv1.CreateModuleAccountResponse, error) {
+	callingModule := s.appService.InternalServiceCaller(ctx)
 	addrBytes := address.Module(callingModule, request.DerivationPath)
 	acc := &authnv1.Account{
 		Address:    addrBytes,
@@ -93,7 +121,7 @@ func (s Keeper) CreateAccount(ctx context.Context, request *authnv1.CreateAccoun
 		return nil, err
 	}
 
-	return &authnv1.CreateAccountResponse{AccountId: id, Address: addrBytes}, nil
+	return &authnv1.CreateModuleAccountResponse{AccountId: id, Address: addrBytes}, nil
 }
 
 func (s Keeper) IncrementSeq(ctx context.Context, request *authnv1.IncrementSeqRequest) (*authnv1.IncrementSeqResponse, error) {
@@ -118,3 +146,4 @@ func (s Keeper) IncrementSeq(ctx context.Context, request *authnv1.IncrementSeqR
 
 var _ authnv1.MsgServer = &Keeper{}
 var _ authnv1.InternalServer = &Keeper{}
+var _ authnv1.AdminServer = &Keeper{}
