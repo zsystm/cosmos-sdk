@@ -65,18 +65,18 @@ func (k keeper) Send(ctx context.Context, from, to, denom string, amount uint64)
 }
 
 func (k keeper) Mint(ctx context.Context, acct, denom string, amount uint64) error {
-	supply, err := k.store.SupplyTable().Get(ctx, denom)
-	if err != nil && !ormerrors.IsNotFound(err) {
+	supply, err := k.store.SupplyTable().GetMut(ctx, denom)
+	if err != nil {
 		return err
 	}
 
-	if supply == nil {
-		supply = &testpb.Supply{Denom: denom, Amount: amount}
+	if supply.NotFound() {
+		supply.Supply = &testpb.Supply{Denom: denom, Amount: amount}
 	} else {
 		supply.Amount = supply.Amount + amount
 	}
 
-	err = k.store.SupplyTable().Save(ctx, supply)
+	err = supply.Save()
 	if err != nil {
 		return err
 	}
@@ -85,22 +85,21 @@ func (k keeper) Mint(ctx context.Context, acct, denom string, amount uint64) err
 }
 
 func (k keeper) Burn(ctx context.Context, acct, denom string, amount uint64) error {
-	supplyStore := k.store.SupplyTable()
-	supply, err := supplyStore.Get(ctx, denom)
+	supply, err := k.store.SupplyTable().GetMut(ctx, denom)
 	if err != nil {
 		return err
 	}
 
-	if amount > supply.Amount {
+	if supply.NotFound() || amount > supply.Amount {
 		return fmt.Errorf("insufficient supply")
 	}
 
 	supply.Amount = supply.Amount - amount
 
 	if supply.Amount == 0 {
-		err = supplyStore.Delete(ctx, supply)
+		err = supply.Delete()
 	} else {
-		err = supplyStore.Save(ctx, supply)
+		err = supply.Save()
 	}
 	if err != nil {
 		return err
@@ -134,13 +133,13 @@ func (k keeper) Supply(ctx context.Context, denom string) (uint64, error) {
 }
 
 func (k keeper) addBalance(ctx context.Context, acct, denom string, amount uint64) error {
-	balance, err := k.store.BalanceTable().Get(ctx, acct, denom)
-	if err != nil && !ormerrors.IsNotFound(err) {
+	balance, err := k.store.BalanceTable().GetMut(ctx, acct, denom)
+	if err != nil {
 		return err
 	}
 
-	if balance == nil {
-		balance = &testpb.Balance{
+	if balance.NotFound() {
+		balance.Balance = &testpb.Balance{
 			Address: acct,
 			Denom:   denom,
 			Amount:  amount,
@@ -149,26 +148,25 @@ func (k keeper) addBalance(ctx context.Context, acct, denom string, amount uint6
 		balance.Amount = balance.Amount + amount
 	}
 
-	return k.store.BalanceTable().Save(ctx, balance)
+	return balance.Save()
 }
 
 func (k keeper) safeSubBalance(ctx context.Context, acct, denom string, amount uint64) error {
-	balanceStore := k.store.BalanceTable()
-	balance, err := balanceStore.Get(ctx, acct, denom)
+	balance, err := k.store.BalanceTable().GetMut(ctx, acct, denom)
 	if err != nil {
 		return err
 	}
 
-	if amount > balance.Amount {
+	if balance.NotFound() || amount > balance.Amount {
 		return fmt.Errorf("insufficient funds")
 	}
 
 	balance.Amount = balance.Amount - amount
 
 	if balance.Amount == 0 {
-		return balanceStore.Delete(ctx, balance)
+		return balance.Delete()
 	} else {
-		return balanceStore.Save(ctx, balance)
+		return balance.Save()
 	}
 }
 
@@ -205,6 +203,7 @@ func TestModuleDB(t *testing.T) {
 	// send coins
 	acct2 := "sally"
 	err = k.Send(ctx, acct1, acct2, denom, 30)
+	assert.NilError(t, err)
 	bal, err = k.Balance(ctx, acct1, denom)
 	assert.NilError(t, err)
 	assert.Equal(t, uint64(70), bal)

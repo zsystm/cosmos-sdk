@@ -55,6 +55,7 @@ func (t tableGen) gen() {
 	t.genTableImpl()
 	t.genTableImplGuard()
 	t.genConstructor()
+	t.genUpdater()
 }
 
 func (t tableGen) getTableInterface() {
@@ -69,6 +70,7 @@ func (t tableGen) getTableInterface() {
 	t.P("Has(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (found bool, err error)")
 	t.P("// Get", notFoundDocs)
 	t.P("Get(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (*", t.QualifiedGoIdent(t.msg.GoIdent), ", error)")
+	t.P("GetMut(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (*", t.updaterTypeName(), ", error)")
 
 	for _, idx := range t.uniqueIndexes {
 		t.genUniqueIndexSig(idx)
@@ -206,6 +208,23 @@ func (t tableGen) genTableImpl() {
 	t.P("}")
 	t.P()
 
+	// GetMut
+	t.P(receiver, "GetMut(ctx ", contextPkg.Ident("Context"), ", ", t.fieldsArgs(t.primaryKeyFields.Names()), ") (*", t.updaterTypeName(), ", error) {")
+	t.P("updater, err := ", receiverVar, ".table.PrimaryKey().GetMut(ctx, ", t.primaryKeyFields.String(), ")")
+	t.P("if err != nil {")
+	t.P("return nil, err")
+	t.P("}")
+	t.P("var value *", varTypeName)
+	t.P("if updater.Value != nil {")
+	t.P("value = updater.Value.(*", varTypeName, ")")
+	t.P("}")
+	t.P("return &", t.updaterTypeName(), "{")
+	t.P(t.msg.GoIdent.GoName, ": value,")
+	t.P("updater: updater,")
+	t.P("}, nil")
+	t.P("}")
+	t.P()
+
 	for _, idx := range t.uniqueIndexes {
 		fields := strings.Split(idx.Fields, ",")
 		hasName, getName, _ := t.uniqueIndexSig(idx.Fields)
@@ -295,4 +314,33 @@ func (t tableGen) genConstructor() {
 		t.P("return ", t.messageTableReceiverName(t.msg), "{table}, nil")
 	}
 	t.P("}")
+}
+
+func (t tableGen) updaterTypeName() string {
+	return fmt.Sprintf("%sUpdater", t.msg.Desc.Name())
+}
+
+func (t tableGen) genUpdater() {
+	updaterTypeName := t.updaterTypeName()
+	t.P("type ", updaterTypeName, " struct {")
+	typeName := t.QualifiedGoIdent(t.msg.GoIdent)
+	t.P("*", typeName)
+	t.P("updater *", ormTablePkg.Ident("Updater"))
+	t.P("}")
+	t.P()
+
+	t.P("func (u ", updaterTypeName, ") NotFound() bool {")
+	t.P("return u.", t.msg.GoIdent.GoName, " == nil")
+	t.P("}")
+	t.P()
+
+	t.P("func (u ", updaterTypeName, ") Save() error {")
+	t.P("return u.updater.Save(u.", t.msg.GoIdent.GoName, ")")
+	t.P("}")
+	t.P()
+
+	t.P("func (u ", updaterTypeName, ") Delete() error {")
+	t.P("return u.updater.Delete()")
+	t.P("}")
+	t.P()
 }

@@ -4,7 +4,6 @@ package testpb
 
 import (
 	context "context"
-
 	ormlist "github.com/cosmos/cosmos-sdk/orm/model/ormlist"
 	ormtable "github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 	ormerrors "github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
@@ -18,6 +17,7 @@ type BalanceTable interface {
 	Has(ctx context.Context, address string, denom string) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, address string, denom string) (*Balance, error)
+	GetMut(ctx context.Context, address string, denom string) (*BalanceUpdater, error)
 	List(ctx context.Context, prefixKey BalanceIndexKey, opts ...ormlist.Option) (BalanceIterator, error)
 	ListRange(ctx context.Context, from, to BalanceIndexKey, opts ...ormlist.Option) (BalanceIterator, error)
 	DeleteBy(ctx context.Context, prefixKey BalanceIndexKey) error
@@ -112,6 +112,21 @@ func (this balanceTable) Get(ctx context.Context, address string, denom string) 
 	return &balance, nil
 }
 
+func (this balanceTable) GetMut(ctx context.Context, address string, denom string) (*BalanceUpdater, error) {
+	updater, err := this.table.PrimaryKey().GetMut(ctx, address, denom)
+	if err != nil {
+		return nil, err
+	}
+	var value *Balance
+	if updater.Value != nil {
+		value = updater.Value.(*Balance)
+	}
+	return &BalanceUpdater{
+		Balance: value,
+		updater: updater,
+	}, nil
+}
+
 func (this balanceTable) List(ctx context.Context, prefixKey BalanceIndexKey, opts ...ormlist.Option) (BalanceIterator, error) {
 	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return BalanceIterator{it}, err
@@ -142,6 +157,23 @@ func NewBalanceTable(db ormtable.Schema) (BalanceTable, error) {
 	return balanceTable{table}, nil
 }
 
+type BalanceUpdater struct {
+	*Balance
+	updater *ormtable.Updater
+}
+
+func (u BalanceUpdater) NotFound() bool {
+	return u.Balance == nil
+}
+
+func (u BalanceUpdater) Save() error {
+	return u.updater.Save(u.Balance)
+}
+
+func (u BalanceUpdater) Delete() error {
+	return u.updater.Delete()
+}
+
 type SupplyTable interface {
 	Insert(ctx context.Context, supply *Supply) error
 	Update(ctx context.Context, supply *Supply) error
@@ -150,6 +182,7 @@ type SupplyTable interface {
 	Has(ctx context.Context, denom string) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, denom string) (*Supply, error)
+	GetMut(ctx context.Context, denom string) (*SupplyUpdater, error)
 	List(ctx context.Context, prefixKey SupplyIndexKey, opts ...ormlist.Option) (SupplyIterator, error)
 	ListRange(ctx context.Context, from, to SupplyIndexKey, opts ...ormlist.Option) (SupplyIterator, error)
 	DeleteBy(ctx context.Context, prefixKey SupplyIndexKey) error
@@ -226,6 +259,21 @@ func (this supplyTable) Get(ctx context.Context, denom string) (*Supply, error) 
 	return &supply, nil
 }
 
+func (this supplyTable) GetMut(ctx context.Context, denom string) (*SupplyUpdater, error) {
+	updater, err := this.table.PrimaryKey().GetMut(ctx, denom)
+	if err != nil {
+		return nil, err
+	}
+	var value *Supply
+	if updater.Value != nil {
+		value = updater.Value.(*Supply)
+	}
+	return &SupplyUpdater{
+		Supply:  value,
+		updater: updater,
+	}, nil
+}
+
 func (this supplyTable) List(ctx context.Context, prefixKey SupplyIndexKey, opts ...ormlist.Option) (SupplyIterator, error) {
 	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return SupplyIterator{it}, err
@@ -254,6 +302,23 @@ func NewSupplyTable(db ormtable.Schema) (SupplyTable, error) {
 		return nil, ormerrors.TableNotFound.Wrap(string((&Supply{}).ProtoReflect().Descriptor().FullName()))
 	}
 	return supplyTable{table}, nil
+}
+
+type SupplyUpdater struct {
+	*Supply
+	updater *ormtable.Updater
+}
+
+func (u SupplyUpdater) NotFound() bool {
+	return u.Supply == nil
+}
+
+func (u SupplyUpdater) Save() error {
+	return u.updater.Save(u.Supply)
+}
+
+func (u SupplyUpdater) Delete() error {
+	return u.updater.Delete()
 }
 
 type BankStore interface {

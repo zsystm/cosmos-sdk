@@ -92,6 +92,21 @@ func (t tableImpl) doSave(ctx context.Context, writer *batchIndexCommitmentWrite
 	if err != nil {
 		return err
 	}
+	if !haveExisting {
+		existing = nil
+	}
+
+	return t.doSaveWithOrig(ctx, writer, existing, message, mode)
+}
+
+func (t tableImpl) doSaveWithOrig(ctx context.Context, writer *batchIndexCommitmentWriter, orig, message proto.Message, mode saveMode) error {
+	mref := message.ProtoReflect()
+	pkValues, pk, err := t.EncodeKeyFromMessage(mref)
+	if err != nil {
+		return err
+	}
+
+	haveExisting := orig != nil
 
 	if haveExisting {
 		if mode == saveModeInsert {
@@ -99,7 +114,7 @@ func (t tableImpl) doSave(ctx context.Context, writer *batchIndexCommitmentWrite
 		}
 
 		if validateHooks := writer.ValidateHooks(); validateHooks != nil {
-			err = validateHooks.ValidateUpdate(ctx, existing, message)
+			err = validateHooks.ValidateUpdate(ctx, orig, message)
 			if err != nil {
 				return err
 			}
@@ -146,7 +161,7 @@ func (t tableImpl) doSave(ctx context.Context, writer *batchIndexCommitmentWrite
 			})
 		}
 	} else {
-		existingMref := existing.ProtoReflect()
+		existingMref := orig.ProtoReflect()
 		for _, idx := range t.indexers {
 			err = idx.onUpdate(indexStoreWriter, mref, existingMref)
 			if err != nil {
@@ -155,7 +170,7 @@ func (t tableImpl) doSave(ctx context.Context, writer *batchIndexCommitmentWrite
 		}
 		if writeHooks := writer.WriteHooks(); writeHooks != nil {
 			writer.enqueueHook(func() {
-				writeHooks.OnUpdate(ctx, existing, message)
+				writeHooks.OnUpdate(ctx, orig, message)
 			})
 		}
 	}

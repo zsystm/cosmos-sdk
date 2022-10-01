@@ -94,6 +94,7 @@ func Build(options Options) (Table, error) {
 	}
 
 	pkIndex := table.primaryKeyIndex
+	pkIndex.table = table
 
 	tableDesc := options.TableDescriptor
 	if tableDesc == nil {
@@ -206,6 +207,7 @@ func Build(options Options) (Table, error) {
 				fields:         idxFields,
 				primaryKey:     pkIndex,
 				getReadBackend: backendResolver,
+				table:          table,
 			}
 			table.uniqueIndexesByFields[idxFields] = uniqIdx
 			index = uniqIdx

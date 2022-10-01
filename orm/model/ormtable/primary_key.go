@@ -23,6 +23,70 @@ type primaryKeyIndex struct {
 	fields     fieldnames.FieldNames
 	indexers   []indexer
 	getBackend func(context.Context) (ReadBackend, error)
+	table      *tableImpl
+}
+
+func (p primaryKeyIndex) GetMut(ctx context.Context, keyValues ...interface{}) (updater *Updater, err error) {
+	msg := p.MessageType().New().Interface()
+	found, err := p.Get(ctx, msg, keyValues...)
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		return &Updater{
+			Value: nil,
+			updateFn: func(message proto.Message) error {
+				if message == nil {
+					// trying to delete when the entity doesn't exist is a no-op
+					return nil
+				} else {
+					// insert
+					backend, err := p.getWriteBackend(ctx)
+					if err != nil {
+						return err
+					}
+
+					writer := newBatchIndexCommitmentWriter(backend)
+					defer writer.Close()
+
+					return p.table.doSaveWithOrig(ctx, writer, nil, message, saveModeInsert)
+				}
+			},
+		}, nil
+	}
+
+	orig := proto.Clone(msg)
+	return &Updater{
+		Value: msg,
+		updateFn: func(message proto.Message) error {
+			backend, err := p.getWriteBackend(ctx)
+			if err != nil {
+				return err
+			}
+
+			writer := newBatchIndexCommitmentWriter(backend)
+			defer writer.Close()
+
+			pkValues := encodeutil.ValuesOf(keyValues...)
+			pk, err := p.EncodeKey(pkValues)
+			if err != nil {
+				return err
+			}
+
+			if message == nil {
+				// delete
+				err = p.doDeleteWithWriteBatch(ctx, backend, writer, pk, orig)
+				if err != nil {
+					return err
+				}
+
+				return writer.Write()
+			} else {
+				return p.table.doSaveWithOrig(ctx, writer, orig, message, saveModeUpdate)
+			}
+		},
+	}, nil
 }
 
 func (p primaryKeyIndex) List(ctx context.Context, prefixKey []interface{}, options ...ormlist.Option) (Iterator, error) {

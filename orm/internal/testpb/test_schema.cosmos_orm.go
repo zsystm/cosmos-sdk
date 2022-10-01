@@ -4,7 +4,6 @@ package testpb
 
 import (
 	context "context"
-
 	ormlist "github.com/cosmos/cosmos-sdk/orm/model/ormlist"
 	ormtable "github.com/cosmos/cosmos-sdk/orm/model/ormtable"
 	ormerrors "github.com/cosmos/cosmos-sdk/orm/types/ormerrors"
@@ -19,6 +18,7 @@ type ExampleTableTable interface {
 	Has(ctx context.Context, u32 uint32, i64 int64, str string) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, u32 uint32, i64 int64, str string) (*ExampleTable, error)
+	GetMut(ctx context.Context, u32 uint32, i64 int64, str string) (*ExampleTableUpdater, error)
 	HasByU64Str(ctx context.Context, u64 uint64, str string) (found bool, err error)
 	// GetByU64Str returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	GetByU64Str(ctx context.Context, u64 uint64, str string) (*ExampleTable, error)
@@ -162,6 +162,21 @@ func (this exampleTableTable) Get(ctx context.Context, u32 uint32, i64 int64, st
 	return &exampleTable, nil
 }
 
+func (this exampleTableTable) GetMut(ctx context.Context, u32 uint32, i64 int64, str string) (*ExampleTableUpdater, error) {
+	updater, err := this.table.PrimaryKey().GetMut(ctx, u32, i64, str)
+	if err != nil {
+		return nil, err
+	}
+	var value *ExampleTable
+	if updater.Value != nil {
+		value = updater.Value.(*ExampleTable)
+	}
+	return &ExampleTableUpdater{
+		ExampleTable: value,
+		updater:      updater,
+	}, nil
+}
+
 func (this exampleTableTable) HasByU64Str(ctx context.Context, u64 uint64, str string) (found bool, err error) {
 	return this.table.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
 		u64,
@@ -214,6 +229,23 @@ func NewExampleTableTable(db ormtable.Schema) (ExampleTableTable, error) {
 	return exampleTableTable{table}, nil
 }
 
+type ExampleTableUpdater struct {
+	*ExampleTable
+	updater *ormtable.Updater
+}
+
+func (u ExampleTableUpdater) NotFound() bool {
+	return u.ExampleTable == nil
+}
+
+func (u ExampleTableUpdater) Save() error {
+	return u.updater.Save(u.ExampleTable)
+}
+
+func (u ExampleTableUpdater) Delete() error {
+	return u.updater.Delete()
+}
+
 type ExampleAutoIncrementTableTable interface {
 	Insert(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) error
 	InsertReturningId(ctx context.Context, exampleAutoIncrementTable *ExampleAutoIncrementTable) (uint64, error)
@@ -223,6 +255,7 @@ type ExampleAutoIncrementTableTable interface {
 	Has(ctx context.Context, id uint64) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, id uint64) (*ExampleAutoIncrementTable, error)
+	GetMut(ctx context.Context, id uint64) (*ExampleAutoIncrementTableUpdater, error)
 	HasByX(ctx context.Context, x string) (found bool, err error)
 	// GetByX returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	GetByX(ctx context.Context, x string) (*ExampleAutoIncrementTable, error)
@@ -319,6 +352,21 @@ func (this exampleAutoIncrementTableTable) Get(ctx context.Context, id uint64) (
 	return &exampleAutoIncrementTable, nil
 }
 
+func (this exampleAutoIncrementTableTable) GetMut(ctx context.Context, id uint64) (*ExampleAutoIncrementTableUpdater, error) {
+	updater, err := this.table.PrimaryKey().GetMut(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	var value *ExampleAutoIncrementTable
+	if updater.Value != nil {
+		value = updater.Value.(*ExampleAutoIncrementTable)
+	}
+	return &ExampleAutoIncrementTableUpdater{
+		ExampleAutoIncrementTable: value,
+		updater:                   updater,
+	}, nil
+}
+
 func (this exampleAutoIncrementTableTable) HasByX(ctx context.Context, x string) (found bool, err error) {
 	return this.table.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
 		x,
@@ -369,6 +417,23 @@ func NewExampleAutoIncrementTableTable(db ormtable.Schema) (ExampleAutoIncrement
 	return exampleAutoIncrementTableTable{table.(ormtable.AutoIncrementTable)}, nil
 }
 
+type ExampleAutoIncrementTableUpdater struct {
+	*ExampleAutoIncrementTable
+	updater *ormtable.Updater
+}
+
+func (u ExampleAutoIncrementTableUpdater) NotFound() bool {
+	return u.ExampleAutoIncrementTable == nil
+}
+
+func (u ExampleAutoIncrementTableUpdater) Save() error {
+	return u.updater.Save(u.ExampleAutoIncrementTable)
+}
+
+func (u ExampleAutoIncrementTableUpdater) Delete() error {
+	return u.updater.Delete()
+}
+
 // singleton store
 type ExampleSingletonTable interface {
 	Get(ctx context.Context) (*ExampleSingleton, error)
@@ -408,6 +473,7 @@ type ExampleTimestampTable interface {
 	Has(ctx context.Context, id uint64) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, id uint64) (*ExampleTimestamp, error)
+	GetMut(ctx context.Context, id uint64) (*ExampleTimestampUpdater, error)
 	List(ctx context.Context, prefixKey ExampleTimestampIndexKey, opts ...ormlist.Option) (ExampleTimestampIterator, error)
 	ListRange(ctx context.Context, from, to ExampleTimestampIndexKey, opts ...ormlist.Option) (ExampleTimestampIterator, error)
 	DeleteBy(ctx context.Context, prefixKey ExampleTimestampIndexKey) error
@@ -501,6 +567,21 @@ func (this exampleTimestampTable) Get(ctx context.Context, id uint64) (*ExampleT
 	return &exampleTimestamp, nil
 }
 
+func (this exampleTimestampTable) GetMut(ctx context.Context, id uint64) (*ExampleTimestampUpdater, error) {
+	updater, err := this.table.PrimaryKey().GetMut(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	var value *ExampleTimestamp
+	if updater.Value != nil {
+		value = updater.Value.(*ExampleTimestamp)
+	}
+	return &ExampleTimestampUpdater{
+		ExampleTimestamp: value,
+		updater:          updater,
+	}, nil
+}
+
 func (this exampleTimestampTable) List(ctx context.Context, prefixKey ExampleTimestampIndexKey, opts ...ormlist.Option) (ExampleTimestampIterator, error) {
 	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return ExampleTimestampIterator{it}, err
@@ -531,6 +612,23 @@ func NewExampleTimestampTable(db ormtable.Schema) (ExampleTimestampTable, error)
 	return exampleTimestampTable{table.(ormtable.AutoIncrementTable)}, nil
 }
 
+type ExampleTimestampUpdater struct {
+	*ExampleTimestamp
+	updater *ormtable.Updater
+}
+
+func (u ExampleTimestampUpdater) NotFound() bool {
+	return u.ExampleTimestamp == nil
+}
+
+func (u ExampleTimestampUpdater) Save() error {
+	return u.updater.Save(u.ExampleTimestamp)
+}
+
+func (u ExampleTimestampUpdater) Delete() error {
+	return u.updater.Delete()
+}
+
 type SimpleExampleTable interface {
 	Insert(ctx context.Context, simpleExample *SimpleExample) error
 	Update(ctx context.Context, simpleExample *SimpleExample) error
@@ -539,6 +637,7 @@ type SimpleExampleTable interface {
 	Has(ctx context.Context, name string) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, name string) (*SimpleExample, error)
+	GetMut(ctx context.Context, name string) (*SimpleExampleUpdater, error)
 	HasByUnique(ctx context.Context, unique string) (found bool, err error)
 	// GetByUnique returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	GetByUnique(ctx context.Context, unique string) (*SimpleExample, error)
@@ -631,6 +730,21 @@ func (this simpleExampleTable) Get(ctx context.Context, name string) (*SimpleExa
 	return &simpleExample, nil
 }
 
+func (this simpleExampleTable) GetMut(ctx context.Context, name string) (*SimpleExampleUpdater, error) {
+	updater, err := this.table.PrimaryKey().GetMut(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	var value *SimpleExample
+	if updater.Value != nil {
+		value = updater.Value.(*SimpleExample)
+	}
+	return &SimpleExampleUpdater{
+		SimpleExample: value,
+		updater:       updater,
+	}, nil
+}
+
 func (this simpleExampleTable) HasByUnique(ctx context.Context, unique string) (found bool, err error) {
 	return this.table.GetIndexByID(1).(ormtable.UniqueIndex).Has(ctx,
 		unique,
@@ -681,6 +795,23 @@ func NewSimpleExampleTable(db ormtable.Schema) (SimpleExampleTable, error) {
 	return simpleExampleTable{table}, nil
 }
 
+type SimpleExampleUpdater struct {
+	*SimpleExample
+	updater *ormtable.Updater
+}
+
+func (u SimpleExampleUpdater) NotFound() bool {
+	return u.SimpleExample == nil
+}
+
+func (u SimpleExampleUpdater) Save() error {
+	return u.updater.Save(u.SimpleExample)
+}
+
+func (u SimpleExampleUpdater) Delete() error {
+	return u.updater.Delete()
+}
+
 type ExampleAutoIncFieldNameTable interface {
 	Insert(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) error
 	InsertReturningFoo(ctx context.Context, exampleAutoIncFieldName *ExampleAutoIncFieldName) (uint64, error)
@@ -690,6 +821,7 @@ type ExampleAutoIncFieldNameTable interface {
 	Has(ctx context.Context, foo uint64) (found bool, err error)
 	// Get returns nil and an error which responds true to ormerrors.IsNotFound() if the record was not found.
 	Get(ctx context.Context, foo uint64) (*ExampleAutoIncFieldName, error)
+	GetMut(ctx context.Context, foo uint64) (*ExampleAutoIncFieldNameUpdater, error)
 	List(ctx context.Context, prefixKey ExampleAutoIncFieldNameIndexKey, opts ...ormlist.Option) (ExampleAutoIncFieldNameIterator, error)
 	ListRange(ctx context.Context, from, to ExampleAutoIncFieldNameIndexKey, opts ...ormlist.Option) (ExampleAutoIncFieldNameIterator, error)
 	DeleteBy(ctx context.Context, prefixKey ExampleAutoIncFieldNameIndexKey) error
@@ -770,6 +902,21 @@ func (this exampleAutoIncFieldNameTable) Get(ctx context.Context, foo uint64) (*
 	return &exampleAutoIncFieldName, nil
 }
 
+func (this exampleAutoIncFieldNameTable) GetMut(ctx context.Context, foo uint64) (*ExampleAutoIncFieldNameUpdater, error) {
+	updater, err := this.table.PrimaryKey().GetMut(ctx, foo)
+	if err != nil {
+		return nil, err
+	}
+	var value *ExampleAutoIncFieldName
+	if updater.Value != nil {
+		value = updater.Value.(*ExampleAutoIncFieldName)
+	}
+	return &ExampleAutoIncFieldNameUpdater{
+		ExampleAutoIncFieldName: value,
+		updater:                 updater,
+	}, nil
+}
+
 func (this exampleAutoIncFieldNameTable) List(ctx context.Context, prefixKey ExampleAutoIncFieldNameIndexKey, opts ...ormlist.Option) (ExampleAutoIncFieldNameIterator, error) {
 	it, err := this.table.GetIndexByID(prefixKey.id()).List(ctx, prefixKey.values(), opts...)
 	return ExampleAutoIncFieldNameIterator{it}, err
@@ -798,6 +945,23 @@ func NewExampleAutoIncFieldNameTable(db ormtable.Schema) (ExampleAutoIncFieldNam
 		return nil, ormerrors.TableNotFound.Wrap(string((&ExampleAutoIncFieldName{}).ProtoReflect().Descriptor().FullName()))
 	}
 	return exampleAutoIncFieldNameTable{table.(ormtable.AutoIncrementTable)}, nil
+}
+
+type ExampleAutoIncFieldNameUpdater struct {
+	*ExampleAutoIncFieldName
+	updater *ormtable.Updater
+}
+
+func (u ExampleAutoIncFieldNameUpdater) NotFound() bool {
+	return u.ExampleAutoIncFieldName == nil
+}
+
+func (u ExampleAutoIncFieldNameUpdater) Save() error {
+	return u.updater.Save(u.ExampleAutoIncFieldName)
+}
+
+func (u ExampleAutoIncFieldNameUpdater) Delete() error {
+	return u.updater.Delete()
 }
 
 type TestSchemaStore interface {
