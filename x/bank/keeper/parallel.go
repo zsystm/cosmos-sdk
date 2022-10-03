@@ -95,8 +95,16 @@ func (m parallelMsgServerImpl) Send(ctx PrepareContext, request *types.MsgSend, 
 		ctx.Exec(func(ctx ExecContext) error {
 			// actually read and write balances here
 			from := fromBalance.Value(ctx)
-			newFrom := Subtract(from, coin.Amount)
+			newFrom, err := SafeSub(from, coin.Amount)
+			if err != nil {
+				return err
+			}
+
 			fromBalance.SetValue(ctx, newFrom)
+			to := toBalance.Value(ctx)
+			newTo := Add(nil, coin.Amount)
+			toBalance.SetValue(ctx, newTo)
+			return nil
 		})
 	}
 
