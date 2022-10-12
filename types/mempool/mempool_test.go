@@ -169,7 +169,6 @@ func TestDefaultMempool(t *testing.T) {
 
 type txSpec struct {
 	i int
-	h int
 	p int
 	n int
 	a sdk.AccAddress
@@ -306,6 +305,15 @@ func (s *MempoolTestSuite) TestTxOrder() {
 				{p: 7, a: sc, n: 3},
 			},
 			order: []int{3, 2, 0, 4, 1, 5, 6, 7, 8},
+		},
+		{
+			txs: []txSpec{
+				{p: 5, n: 1, a: sa},
+				{p: 10, n: 2, a: sa},
+				{p: 5, n: 1, a: sb},
+				{p: 99, n: 2, a: sb},
+			},
+			order: []int{2, 3, 0, 1},
 		},
 	}
 	for i, tt := range tests {

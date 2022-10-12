@@ -21,6 +21,7 @@ type priorityMempool struct {
 	priorityIndex *huandu.SkipList
 	senderIndices map[string]*huandu.SkipList
 	scores        map[txKey]int64
+	priorityTies  map[int64][]*huandu.Element
 	onRead        func(tx Tx)
 }
 
@@ -94,7 +95,8 @@ func (mp *priorityMempool) Insert(ctx sdk.Context, tx Tx) error {
 	sig := sigs[0]
 	sender := sig.PubKey.Address().String()
 	nonce := sig.Sequence
-	tk := txKey{nonce: nonce, priority: ctx.Priority(), sender: sender}
+	priority := ctx.Priority()
+	tk := txKey{nonce: nonce, priority: priority, sender: sender}
 
 	senderIndex, ok := mp.senderIndices[sender]
 	if !ok {
@@ -115,8 +117,9 @@ func (mp *priorityMempool) Insert(ctx sdk.Context, tx Tx) error {
 	if oldScore, txExists := mp.scores[sk]; txExists {
 		mp.priorityIndex.Remove(txKey{nonce: nonce, priority: oldScore, sender: sender})
 	}
-	mp.scores[sk] = ctx.Priority()
-	mp.priorityIndex.Set(tk, tx)
+	mp.scores[sk] = priority
+	priorityElement := mp.priorityIndex.Set(tk, tx)
+	mp.priorityTies[priority] = append(mp.priorityTies[priority], priorityElement)
 
 	return nil
 }
@@ -167,12 +170,22 @@ func (mp *priorityMempool) Select(_ [][]byte, maxBytes int64) ([]Tx, error) {
 	return selectedTxs, nil
 }
 
-func (mp *priorityMempool) fetchSenderCursor(senderCursors map[string]*huandu.Element, sender string) *huandu.Element {
-	senderTx, ok := senderCursors[sender]
-	if !ok {
-		senderTx = mp.senderIndices[sender].Front()
+func (mp *priorityMempool) fetchSenderCursor(
+	senderCursors map[string]*huandu.Element,
+	sender string,
+	priority int64) *huandu.Element {
+
+	// first choose sender
+	_, tie := mp.priorityTies[priority]
+	if tie {
+
 	}
-	return senderTx
+
+	senderIndex, ok := senderCursors[sender]
+	if !ok {
+		senderIndex = mp.senderIndices[sender].Front()
+	}
+	return senderIndex
 }
 
 func nextPriority(priorityNode *huandu.Element) (int64, *huandu.Element) {
