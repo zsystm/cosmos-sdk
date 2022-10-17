@@ -8,6 +8,8 @@ COPY go.mod go.sum /work/
 COPY db/go.mod db/go.sum /work/db/
 COPY errors/go.mod errors/go.sum /work/errors/
 COPY math/go.mod math/go.sum /work/math/
+RUN mkdir -p /work/ics23/go
+COPY ./ics23/go/go.mod /work/ics23/go/go.mod
 
 RUN go mod download
 COPY ./ /work
