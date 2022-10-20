@@ -1,0 +1,54 @@
+[
+    {
+        "proto": {},
+        "screens": []
+    },
+    {
+        "proto": {
+            "messages": [
+                {
+                    "full_name": "the scanner",
+                    "child_bar": {
+                        "bar_id": "goku"
+                    }
+                }
+            ]
+        },
+        "screens": [
+            {"text": "Baz: 1 Foo", "indent": 0},
+            {"text": "Messages (1/1): Foo object", "indent": 1},
+            {"text": "Full name: the scanner", "indent": 2},
+            {"text": "Child bar: Bar object", "indent": 2},
+            {"text": "Bar id: goku", "indent": 3}
+       ]
+    },
+    {
+        "proto": {
+            "messages": [
+                {
+                    "full_name": "the scanner",
+                    "child_bar": {
+                        "bar_id": "goku"
+                    }
+                },
+                {
+                    "full_name": "the villain",
+                    "child_bar": {
+                        "bar_id": "cel"
+                    }
+                }
+            ]
+        },
+        "screens": [
+            {"text": "Baz: 2 Foo", "indent": 0},
+            {"text": "Messages (1/2): Foo object", "indent": 1},
+            {"text": "Full name: the scanner", "indent": 2},
+            {"text": "Child bar: Bar object", "indent": 2},
+            {"text": "Bar id: goku", "indent": 3},
+            {"text": "Messages (2/2): Foo object", "indent": 1},
+            {"text": "Full name: the villain", "indent": 2},
+            {"text": "Child bar: Bar object", "indent": 2},
+            {"text": "Bar id: cel", "indent": 3}
+       ]
+    }
+]
