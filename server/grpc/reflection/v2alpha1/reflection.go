@@ -46,7 +46,11 @@ func (r reflectionServiceServer) GetCodecDescriptor(_ context.Context, _ *GetCod
 	return &GetCodecDescriptorResponse{Codec: r.desc.Codec}, nil
 }
 
-func (r reflectionServiceServer) GetConfigurationDescriptor(_ context.Context, _ *GetConfigurationDescriptorRequest) (*GetConfigurationDescriptorResponse, error) {
+func (r reflectionServiceServer) GetConfigurationDescriptor(ctx context.Context, _ *GetConfigurationDescriptorRequest) (*GetConfigurationDescriptorResponse, error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	r.desc.Configuration.MinimumGasPrice = sdkCtx.MinGasPrices().String()
+
 	return &GetConfigurationDescriptorResponse{Config: r.desc.Configuration}, nil
 }
 
@@ -63,7 +67,9 @@ func newReflectionServiceServer(grpcSrv *grpc.Server, conf Config) (reflectionSe
 	chainDescriptor := &ChainDescriptor{Id: conf.ChainID}
 	// set configuration descriptor
 	configurationDescriptor := &ConfigurationDescriptor{
-		Bech32AccountAddressPrefix: conf.SdkConfig.GetBech32AccountAddrPrefix(),
+		Bech32AccountAddressPrefix:   conf.SdkConfig.GetBech32AccountAddrPrefix(),
+		Bech32ValidatorAddressPrefix: conf.SdkConfig.GetBech32ValidatorAddrPrefix(),
+		Bech32ConsensusAddressPrefix: conf.SdkConfig.GetBech32ConsensusAddrPrefix(),
 	}
 	// set codec descriptor
 	codecDescriptor, err := newCodecDescriptor(conf.InterfaceRegistry)
