@@ -397,7 +397,7 @@ func (s *MempoolTestSuite) TestTxOrder() {
 				require.NoError(t, err)
 			}
 
-			mempool.DebugPrintKeys(pool)
+			//mempool.DebugPrintKeys(pool)
 
 			orderedTxs, err := pool.Select(nil, 1000)
 			require.NoError(t, err)
@@ -408,11 +408,12 @@ func (s *MempoolTestSuite) TestTxOrder() {
 			require.Equal(t, tt.order, txOrder)
 			require.NoError(t, validateOrder(orderedTxs))
 
-			for _, tx := range orderedTxs {
-				require.NoError(t, pool.Remove(tx))
-			}
-
-			require.NoError(t, mempool.IsEmpty(pool))
+			//for _, tx := range orderedTxs {
+			//	require.NoError(t, pool.Remove(tx))
+			//}
+			//
+			//require.NoError(t, mempool.IsEmpty(pool))
+			s.resetMempool()
 		})
 	}
 }
@@ -474,9 +475,10 @@ type MempoolTestSuite struct {
 
 func (s *MempoolTestSuite) resetMempool() {
 	s.iterations = 0
-	s.mempool = mempool.NewPriorityMempool(mempool.WithOnRead(func(tx mempool.Tx) {
-		s.iterations++
-	}))
+	//s.mempool = mempool.NewPriorityMempool(mempool.WithOnRead(func(tx mempool.Tx) {
+	//	s.iterations++
+	//}))
+	s.mempool = mempool.NewGraph()
 }
 
 func (s *MempoolTestSuite) SetupTest() {
