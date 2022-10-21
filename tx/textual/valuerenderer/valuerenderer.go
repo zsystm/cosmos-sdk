@@ -46,7 +46,9 @@ func NewTextual(q CoinMetadataQueryFn) Textual {
 }
 
 // GetValueRenderer returns the value renderer for the given FieldDescriptor.
-func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (ValueRenderer, error) {
+func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (vr ValueRenderer, err error) {
+	md := fd.Message()
+
 	switch {
 	// Scalars, such as sdk.Int and sdk.Dec encoded as strings.
 	case fd.Kind() == protoreflect.StringKind && proto.GetExtension(fd.Options(), cosmos_proto.E_Scalar) != "":
@@ -56,47 +58,49 @@ func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (ValueRendere
 				return nil, fmt.Errorf("got extension option %s of type %T", scalar, scalar)
 			}
 
-			vr := r.scalars[scalar]
+			vr = r.scalars[scalar]
 			if vr == nil {
 				return nil, fmt.Errorf("got empty value renderer for scalar %s", scalar)
 			}
-
-			return vr, nil
 		}
+
 	case fd.Kind() == protoreflect.BytesKind:
-		return NewBytesValueRenderer(), nil
+		vr = NewBytesValueRenderer()
 
 	// Integers
 	case fd.Kind() == protoreflect.Uint32Kind ||
 		fd.Kind() == protoreflect.Uint64Kind ||
 		fd.Kind() == protoreflect.Int32Kind ||
 		fd.Kind() == protoreflect.Int64Kind:
-		{
-			return NewIntValueRenderer(), nil
-		}
+		vr = NewIntValueRenderer()
 
 	case fd.Kind() == protoreflect.StringKind:
-		return stringValueRenderer{}, nil
+		vr = stringValueRenderer{}
 
 	case fd.Kind() == protoreflect.MessageKind:
-		md := fd.Message()
 		fullName := md.FullName()
 
-		vr, found := r.messages[fullName]
+		rend, found := r.messages[fullName]
 		if found {
-			return vr, nil
+			vr = rend
+		} else {
+			vr = NewMessageValueRenderer(&r, md)
 		}
+
 		if fd.IsMap() {
 			return nil, fmt.Errorf("value renderers cannot format value of type map")
 		}
-		if fd.IsList() {
-			return NewRepeatedValueRenderer(&r, md, NewMessageValueRenderer(&r, md)), nil
-		}
-		return NewMessageValueRenderer(&r, md), nil
 
 	default:
 		return nil, fmt.Errorf("value renderers cannot format value of type %s", fd.Kind())
 	}
+
+	if fd.IsList() && md.FullName() != (&basev1beta1.Coin{}).ProtoReflect().Descriptor().FullName() {
+		vr = NewRepeatedValueRenderer(&r, md, vr)
+	}
+
+	return vr, nil
+
 }
 
 func (r *Textual) init() {
