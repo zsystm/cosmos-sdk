@@ -51,8 +51,8 @@ func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (vr ValueRend
 
 	switch {
 	// Scalars, such as sdk.Int and sdk.Dec encoded as strings.
-	case fd.Kind() == protoreflect.StringKind && proto.GetExtension(fd.Options(), cosmos_proto.E_Scalar) != "":
-		{
+	case fd.Kind() == protoreflect.StringKind:
+		if proto.GetExtension(fd.Options(), cosmos_proto.E_Scalar) != "" {
 			scalar, ok := proto.GetExtension(fd.Options(), cosmos_proto.E_Scalar).(string)
 			if !ok || scalar == "" {
 				return nil, fmt.Errorf("got extension option %s of type %T", scalar, scalar)
@@ -62,6 +62,8 @@ func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (vr ValueRend
 			if vr == nil {
 				return nil, fmt.Errorf("got empty value renderer for scalar %s", scalar)
 			}
+		} else {
+			vr = stringValueRenderer{}
 		}
 
 	case fd.Kind() == protoreflect.BytesKind:
@@ -73,9 +75,6 @@ func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (vr ValueRend
 		fd.Kind() == protoreflect.Int32Kind ||
 		fd.Kind() == protoreflect.Int64Kind:
 		vr = NewIntValueRenderer()
-
-	case fd.Kind() == protoreflect.StringKind:
-		vr = stringValueRenderer{}
 
 	case fd.Kind() == protoreflect.MessageKind:
 		fullName := md.FullName()
@@ -95,6 +94,7 @@ func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (vr ValueRend
 		return nil, fmt.Errorf("value renderers cannot format value of type %s", fd.Kind())
 	}
 
+	// Coins are handled differently from other repeated values
 	if fd.IsList() && md.FullName() != (&basev1beta1.Coin{}).ProtoReflect().Descriptor().FullName() {
 		vr = NewRepeatedValueRenderer(&r, md, vr)
 	}
