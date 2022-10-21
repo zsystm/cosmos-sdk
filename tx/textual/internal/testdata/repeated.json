@@ -1,7 +1,9 @@
 [
     {
         "proto": {},
-        "screens": []
+        "screens": [
+            {"text": "Baz object", "indent": 0}
+        ]
     },
     {
         "proto": {
@@ -13,10 +15,11 @@
             ]
         },
         "screens": [
-            {"text": "Baz: 1 Foo", "indent": 0},
-            {"text": "Messages (1/1): Foo object", "indent": 1},
-            {"text": "Full name: thing one", "indent": 2},
-            {"text": "Nickname: :thing two", "indent": 2}
+            {"text": "Baz object", "indent": 0},
+            {"text": "Messages: 1 Foo", "indent": 1},
+            {"text": "Full name (1/1): Foo object", "indent": 2},
+            {"text": "Full name: thing one", "indent": 3},
+            {"text": "Nickname: :thing two", "indent": 3}
        ]
     },
     {
@@ -33,13 +36,30 @@
             ]
         },
         "screens": [
-            {"text": "Baz: 2 Foo", "indent": 0},
-            {"text": "Messages (1/2): Foo object", "indent": 1},
-            {"text": "Full name: thing one", "indent": 2},
-            {"text": "Nickname: thing two", "indent": 2},
-            {"text": "Messages (2/2): Foo object", "indent": 1},
-            {"text": "Full name: thing three", "indent": 2},
-            {"text": "Nickname: thing four", "indent": 2}
+            {"text": "Baz object", "indent": 0},
+            {"text": "Messages: 2 Foo", "indent": 1},
+            {"text": "Full name (1/2): Foo object", "indent": 2},
+            {"text": "Full name: thing one", "indent": 3},
+            {"text": "Nickname: thing two", "indent": 3},
+            {"text": "Full name (2/2): Foo object", "indent": 2},
+            {"text": "Full name: thing three", "indent": 3},
+            {"text": "Nickname: thing four", "indent": 3}
        ]
+    },
+    {
+        "proto": {
+            "string_messages": [
+                "/OmniFlix.onft.v1beta1.MsgTransferONFT",
+                "/OmniFlix.onft.v1beta1.MsgBurnONFT",
+                "/OmniFlix.marketplace.v1beta1.MsgListNFT"
+            ]
+        },
+        "screens": [
+            {"text": "Baz object", "indent": 0},
+            {"text": "String messages: 3 String", "indent": 1},
+            {"text": "String (1/3): /OmniFlix.onft.v1beta1.MsgTransferONFT", "indent": 2},
+            {"text": "String (2/3): /OmniFlix.onft.v1beta1.MsgBurnONFT", "indent": 2},
+            {"text": "String (3/3): /OmniFlix.marketplace.v1beta1.MsgListNFT", "indent": 2}
+        ]
     }
 ]

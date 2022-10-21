@@ -30,9 +30,10 @@ func TestRepeatedJsonTestcases(t *testing.T) {
 	tr := valuerenderer.NewTextual(EmptyCoinMetadataQuerier)
 	for i, tc := range testcases {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			rend := valuerenderer.NewRepeatedValueRenderer(&tr, (&testpb.Baz{}).ProtoReflect().Descriptor(), valuerenderer.NewMessageValueRenderer(&tr, (&testpb.Foo{}).ProtoReflect().Descriptor()))
+			rend := valuerenderer.NewMessageValueRenderer(&tr, (&testpb.Baz{}).ProtoReflect().Descriptor())
+			require.NoError(t, err)
 
-			screens, err := rend.Format(context.Background(), protoreflect.ValueOfList(NewGenericList(tc.Proto.Messages)))
+			screens, err := rend.Format(context.Background(), protoreflect.ValueOf(tc.Proto.ProtoReflect()))
 			require.NoError(t, err)
 			require.Equal(t, tc.Screens, screens)
 

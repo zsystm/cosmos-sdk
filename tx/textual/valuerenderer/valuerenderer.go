@@ -63,7 +63,7 @@ func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (vr ValueRend
 				return nil, fmt.Errorf("got empty value renderer for scalar %s", scalar)
 			}
 		} else {
-			vr = stringValueRenderer{}
+			vr = NewStringValueRenderer()
 		}
 
 	case fd.Kind() == protoreflect.BytesKind:
@@ -95,8 +95,8 @@ func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (vr ValueRend
 	}
 
 	// Coins are handled differently from other repeated values
-	if fd.IsList() && md.FullName() != (&basev1beta1.Coin{}).ProtoReflect().Descriptor().FullName() {
-		vr = NewRepeatedValueRenderer(&r, md, vr)
+	if fd.IsList() && (md == nil || md.FullName() != (&basev1beta1.Coin{}).ProtoReflect().Descriptor().FullName()) {
+		vr = NewRepeatedValueRenderer(&r, md, fd.Kind().String(), vr)
 	}
 
 	return vr, nil

@@ -3160,15 +3160,63 @@ func (x *_Baz_1_list) IsValid() bool {
 	return x.list != nil
 }
 
+var _ protoreflect.List = (*_Baz_2_list)(nil)
+
+type _Baz_2_list struct {
+	list *[]string
+}
+
+func (x *_Baz_2_list) Len() int {
+	if x.list == nil {
+		return 0
+	}
+	return len(*x.list)
+}
+
+func (x *_Baz_2_list) Get(i int) protoreflect.Value {
+	return protoreflect.ValueOfString((*x.list)[i])
+}
+
+func (x *_Baz_2_list) Set(i int, value protoreflect.Value) {
+	valueUnwrapped := value.String()
+	concreteValue := valueUnwrapped
+	(*x.list)[i] = concreteValue
+}
+
+func (x *_Baz_2_list) Append(value protoreflect.Value) {
+	valueUnwrapped := value.String()
+	concreteValue := valueUnwrapped
+	*x.list = append(*x.list, concreteValue)
+}
+
+func (x *_Baz_2_list) AppendMutable() protoreflect.Value {
+	panic(fmt.Errorf("AppendMutable can not be called on message Baz at list field StringMessages as it is not of Message kind"))
+}
+
+func (x *_Baz_2_list) Truncate(n int) {
+	*x.list = (*x.list)[:n]
+}
+
+func (x *_Baz_2_list) NewElement() protoreflect.Value {
+	v := ""
+	return protoreflect.ValueOfString(v)
+}
+
+func (x *_Baz_2_list) IsValid() bool {
+	return x.list != nil
+}
+
 var (
-	md_Baz          protoreflect.MessageDescriptor
-	fd_Baz_messages protoreflect.FieldDescriptor
+	md_Baz                 protoreflect.MessageDescriptor
+	fd_Baz_messages        protoreflect.FieldDescriptor
+	fd_Baz_string_messages protoreflect.FieldDescriptor
 )
 
 func init() {
 	file__1_proto_init()
 	md_Baz = File__1_proto.Messages().ByName("Baz")
 	fd_Baz_messages = md_Baz.Fields().ByName("messages")
+	fd_Baz_string_messages = md_Baz.Fields().ByName("string_messages")
 }
 
 var _ protoreflect.Message = (*fastReflection_Baz)(nil)
@@ -3242,6 +3290,12 @@ func (x *fastReflection_Baz) Range(f func(protoreflect.FieldDescriptor, protoref
 			return
 		}
 	}
+	if len(x.StringMessages) != 0 {
+		value := protoreflect.ValueOfList(&_Baz_2_list{list: &x.StringMessages})
+		if !f(fd_Baz_string_messages, value) {
+			return
+		}
+	}
 }
 
 // Has reports whether a field is populated.
@@ -3259,6 +3313,8 @@ func (x *fastReflection_Baz) Has(fd protoreflect.FieldDescriptor) bool {
 	switch fd.FullName() {
 	case "Baz.messages":
 		return len(x.Messages) != 0
+	case "Baz.string_messages":
+		return len(x.StringMessages) != 0
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: Baz"))
@@ -3277,6 +3333,8 @@ func (x *fastReflection_Baz) Clear(fd protoreflect.FieldDescriptor) {
 	switch fd.FullName() {
 	case "Baz.messages":
 		x.Messages = nil
+	case "Baz.string_messages":
+		x.StringMessages = nil
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: Baz"))
@@ -3298,6 +3356,12 @@ func (x *fastReflection_Baz) Get(descriptor protoreflect.FieldDescriptor) protor
 			return protoreflect.ValueOfList(&_Baz_1_list{})
 		}
 		listValue := &_Baz_1_list{list: &x.Messages}
+		return protoreflect.ValueOfList(listValue)
+	case "Baz.string_messages":
+		if len(x.StringMessages) == 0 {
+			return protoreflect.ValueOfList(&_Baz_2_list{})
+		}
+		listValue := &_Baz_2_list{list: &x.StringMessages}
 		return protoreflect.ValueOfList(listValue)
 	default:
 		if descriptor.IsExtension() {
@@ -3323,6 +3387,10 @@ func (x *fastReflection_Baz) Set(fd protoreflect.FieldDescriptor, value protoref
 		lv := value.List()
 		clv := lv.(*_Baz_1_list)
 		x.Messages = *clv.list
+	case "Baz.string_messages":
+		lv := value.List()
+		clv := lv.(*_Baz_2_list)
+		x.StringMessages = *clv.list
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: Baz"))
@@ -3349,6 +3417,12 @@ func (x *fastReflection_Baz) Mutable(fd protoreflect.FieldDescriptor) protorefle
 		}
 		value := &_Baz_1_list{list: &x.Messages}
 		return protoreflect.ValueOfList(value)
+	case "Baz.string_messages":
+		if x.StringMessages == nil {
+			x.StringMessages = []string{}
+		}
+		value := &_Baz_2_list{list: &x.StringMessages}
+		return protoreflect.ValueOfList(value)
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: Baz"))
@@ -3365,6 +3439,9 @@ func (x *fastReflection_Baz) NewField(fd protoreflect.FieldDescriptor) protorefl
 	case "Baz.messages":
 		list := []*Foo{}
 		return protoreflect.ValueOfList(&_Baz_1_list{list: &list})
+	case "Baz.string_messages":
+		list := []string{}
+		return protoreflect.ValueOfList(&_Baz_2_list{list: &list})
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: Baz"))
@@ -3440,6 +3517,12 @@ func (x *fastReflection_Baz) ProtoMethods() *protoiface.Methods {
 				n += 1 + l + runtime.Sov(uint64(l))
 			}
 		}
+		if len(x.StringMessages) > 0 {
+			for _, s := range x.StringMessages {
+				l = len(s)
+				n += 1 + l + runtime.Sov(uint64(l))
+			}
+		}
 		if x.unknownFields != nil {
 			n += len(x.unknownFields)
 		}
@@ -3468,6 +3551,15 @@ func (x *fastReflection_Baz) ProtoMethods() *protoiface.Methods {
 		if x.unknownFields != nil {
 			i -= len(x.unknownFields)
 			copy(dAtA[i:], x.unknownFields)
+		}
+		if len(x.StringMessages) > 0 {
+			for iNdEx := len(x.StringMessages) - 1; iNdEx >= 0; iNdEx-- {
+				i -= len(x.StringMessages[iNdEx])
+				copy(dAtA[i:], x.StringMessages[iNdEx])
+				i = runtime.EncodeVarint(dAtA, i, uint64(len(x.StringMessages[iNdEx])))
+				i--
+				dAtA[i] = 0x12
+			}
 		}
 		if len(x.Messages) > 0 {
 			for iNdEx := len(x.Messages) - 1; iNdEx >= 0; iNdEx-- {
@@ -3567,6 +3659,38 @@ func (x *fastReflection_Baz) ProtoMethods() *protoiface.Methods {
 				if err := options.Unmarshal(dAtA[iNdEx:postIndex], x.Messages[len(x.Messages)-1]); err != nil {
 					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
 				}
+				iNdEx = postIndex
+			case 2:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field StringMessages", wireType)
+				}
+				var stringLen uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLen |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLen := int(stringLen)
+				if intStringLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + intStringLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.StringMessages = append(x.StringMessages, string(dAtA[iNdEx:postIndex]))
 				iNdEx = postIndex
 			default:
 				iNdEx = preIndex
@@ -3978,7 +4102,8 @@ type Baz struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Messages []*Foo `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
+	Messages       []*Foo   `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
+	StringMessages []string `protobuf:"bytes,2,rep,name=string_messages,json=stringMessages,proto3" json:"string_messages,omitempty"`
 }
 
 func (x *Baz) Reset() {
@@ -4004,6 +4129,13 @@ func (*Baz) Descriptor() ([]byte, []int) {
 func (x *Baz) GetMessages() []*Foo {
 	if x != nil {
 		return x.Messages
+	}
+	return nil
+}
+
+func (x *Baz) GetStringMessages() []string {
+	if x != nil {
+		return x.StringMessages
 	}
 	return nil
 }
@@ -4080,15 +4212,18 @@ var file__1_proto_rawDesc = []byte{
 	0x72, 0x52, 0x03, 0x62, 0x61, 0x72, 0x22, 0x30, 0x0a, 0x03, 0x42, 0x61, 0x72, 0x12, 0x15, 0x0a,
 	0x06, 0x62, 0x61, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x62,
 	0x61, 0x72, 0x49, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x27, 0x0a, 0x03, 0x42, 0x61, 0x7a, 0x12,
+	0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x50, 0x0a, 0x03, 0x42, 0x61, 0x7a, 0x12,
 	0x20, 0x0a, 0x08, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28,
 	0x0b, 0x32, 0x04, 0x2e, 0x46, 0x6f, 0x6f, 0x52, 0x08, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
-	0x73, 0x2a, 0x1f, 0x0a, 0x0b, 0x45, 0x6e, 0x75, 0x6d, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e,
-	0x12, 0x07, 0x0a, 0x03, 0x4f, 0x6e, 0x65, 0x10, 0x00, 0x12, 0x07, 0x0a, 0x03, 0x54, 0x77, 0x6f,
-	0x10, 0x01, 0x42, 0x33, 0x42, 0x06, 0x31, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x27,
-	0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73, 0x64, 0x6b, 0x2e, 0x69, 0x6f, 0x2f, 0x74, 0x78, 0x2f,
-	0x74, 0x65, 0x78, 0x74, 0x75, 0x61, 0x6c, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c,
-	0x2f, 0x74, 0x65, 0x73, 0x74, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x73, 0x12, 0x27, 0x0a, 0x0f, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x5f, 0x6d, 0x65, 0x73, 0x73,
+	0x61, 0x67, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0e, 0x73, 0x74, 0x72, 0x69,
+	0x6e, 0x67, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x73, 0x2a, 0x1f, 0x0a, 0x0b, 0x45, 0x6e,
+	0x75, 0x6d, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x07, 0x0a, 0x03, 0x4f, 0x6e, 0x65,
+	0x10, 0x00, 0x12, 0x07, 0x0a, 0x03, 0x54, 0x77, 0x6f, 0x10, 0x01, 0x42, 0x33, 0x42, 0x06, 0x31,
+	0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x27, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73,
+	0x64, 0x6b, 0x2e, 0x69, 0x6f, 0x2f, 0x74, 0x78, 0x2f, 0x74, 0x65, 0x78, 0x74, 0x75, 0x61, 0x6c,
+	0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x74, 0x65, 0x73, 0x74, 0x70, 0x62,
+	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (

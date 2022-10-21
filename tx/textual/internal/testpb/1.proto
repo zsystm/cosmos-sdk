@@ -59,4 +59,5 @@ message Bar {
 // Baz is a sample message type used for testing repeated rendering.
 message Baz {
   repeated Foo messages = 1;
+  repeated string string_messages = 2;
 }
