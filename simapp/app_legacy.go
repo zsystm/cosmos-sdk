@@ -22,7 +22,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -149,7 +148,6 @@ var (
 )
 
 var (
-	_ runtime.AppI            = (*SimApp)(nil)
 	_ servertypes.Application = (*SimApp)(nil)
 )
 
@@ -189,9 +187,6 @@ type SimApp struct {
 
 	// the module manager
 	ModuleManager *module.Manager
-
-	// simulation manager
-	sm *module.SimulationManager
 
 	// module configurator
 	configurator module.Configurator
@@ -525,9 +520,6 @@ func (app *SimApp) setPostHandler() {
 	app.SetPostHandler(postHandler)
 }
 
-// Name returns the name of the App
-func (app *SimApp) Name() string { return app.BaseApp.Name() }
-
 // BeginBlocker application updates every begin block
 func (app *SimApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
 	return app.ModuleManager.BeginBlock(ctx, req)
@@ -594,11 +586,6 @@ func (app *SimApp) GetMemKey(storeKey string) *storetypes.MemoryStoreKey {
 func (app *SimApp) GetSubspace(moduleName string) paramstypes.Subspace {
 	subspace, _ := app.ParamsKeeper.GetSubspace(moduleName)
 	return subspace
-}
-
-// SimulationManager implements the SimulationApp interface
-func (app *SimApp) SimulationManager() *module.SimulationManager {
-	return app.sm
 }
 
 // RegisterAPIRoutes registers all application module routes with the provided

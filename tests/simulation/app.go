@@ -113,7 +113,7 @@ func SetupWithDB(
 
 	// NOTE: this is not required apps that don't use the simulator for fuzz testing transactions
 	overrideModules := map[string]module.AppModuleSimulation{
-		authtypes.ModuleName: auth.NewAppModule(app.Codec, *app.Keepers.AccountKeeper, authsims.RandomGenesisAccounts),
+		authtypes.ModuleName: auth.NewAppModule(app.Codec, *app.AccountKeeper, authsims.RandomGenesisAccounts),
 	}
 
 	// Setup Simulation Manager for Sim Testing
