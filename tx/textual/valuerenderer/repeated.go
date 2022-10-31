@@ -10,20 +10,31 @@ import (
 type repeatedValueRenderer struct {
 	tr      *Textual
 	msgDesc protoreflect.MessageDescriptor
+	field   string
 	kind    string
 	vr      ValueRenderer
 }
 
-func NewRepeatedValueRenderer(t *Textual, msgDesc protoreflect.MessageDescriptor, kind string, v ValueRenderer) ValueRenderer {
-	return &repeatedValueRenderer{tr: t, msgDesc: msgDesc, kind: kind, vr: v}
+func NewRepeatedValueRenderer(t *Textual, msgDesc protoreflect.MessageDescriptor, field, kind string, v ValueRenderer) ValueRenderer {
+	return &repeatedValueRenderer{
+		tr:      t,
+		msgDesc: msgDesc,
+		field:   field,
+		kind:    kind,
+		vr:      v,
+	}
 }
 
-func (mr *repeatedValueRenderer) header(len int) string {
+func (mr *repeatedValueRenderer) name() string {
 	name := mr.kind
 	if mr.msgDesc != nil {
 		name = string(mr.msgDesc.Name())
 	}
-	return fmt.Sprintf("%d %s", len, formatFieldName(name))
+	return name
+}
+
+func (mr *repeatedValueRenderer) header(len int) string {
+	return fmt.Sprintf("%d %s", len, formatFieldName(mr.name()))
 }
 
 func (mr *repeatedValueRenderer) Format(ctx context.Context, v protoreflect.Value) ([]Screen, error) {
@@ -53,13 +64,8 @@ func (mr *repeatedValueRenderer) Format(ctx context.Context, v protoreflect.Valu
 			return nil, fmt.Errorf("empty rendering")
 		}
 
-		fieldname := mr.kind
-		if mr.msgDesc != nil {
-			fieldname = string(mr.msgDesc.Fields().Get(0).Name())
-		}
-
 		headerScreen := Screen{
-			Text:   fmt.Sprintf("%s (%d/%d): %s", formatFieldName(fieldname), i+1, l.Len(), subscreens[0].Text),
+			Text:   fmt.Sprintf("%s (%d/%d): %s", formatFieldName(mr.field), i+1, l.Len(), subscreens[0].Text),
 			Indent: subscreens[0].Indent + 1,
 			Expert: subscreens[0].Expert,
 		}
