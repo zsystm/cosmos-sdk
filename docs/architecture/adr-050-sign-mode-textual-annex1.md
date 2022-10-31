@@ -62,7 +62,7 @@ Value Renderers describe how values of different Protobuf types should be encode
 - A repeated type has the following template:
 
 ```
-<message_name> has <int> <field_name>
+<message_name>: <int> <field_kind>
 <field_name> (<int>/<int>): <value rendered 1st line>
 <optional value rendered in the next lines>
 <field_name> (<int>/<int>): <value rendered 1st line>
@@ -76,6 +76,7 @@ where:
 - `int` is the length of the array,
 - `field_name` is the Protobuf field name of the repeated field,
   - add an optional `s` at the end if `<int> > 1` and the `field_name` doesn't already end with `s`.
+- `field_kind` is the type of the Protobuf repeated field
 
 #### Examples
 
@@ -150,7 +151,7 @@ we get the following encoding for the `Vote` message:
 ```
 Vote object
 > Proposal id: 4
-> Vote: cosmos1abc...def
+> Voter: cosmos1abc...def
 > Options: 2 WeightedVoteOptions
 > Options (1/2): WeightedVoteOption object
 >> Option: Yes

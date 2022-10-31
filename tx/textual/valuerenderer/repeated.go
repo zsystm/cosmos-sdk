@@ -3,6 +3,7 @@ package valuerenderer
 import (
 	"context"
 	"fmt"
+	"unicode/utf8"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -25,16 +26,35 @@ func NewRepeatedValueRenderer(t *Textual, msgDesc protoreflect.MessageDescriptor
 	}
 }
 
-func (mr *repeatedValueRenderer) name() string {
-	name := mr.kind
+func (mr *repeatedValueRenderer) fieldKind() string {
+	fieldKind := mr.kind
 	if mr.msgDesc != nil {
-		name = string(mr.msgDesc.Name())
+		fieldKind = formatFieldName(string(mr.msgDesc.Name()))
 	}
-	return name
+	return fieldKind
+}
+
+// formatPluralFieldKind makes an honest attempt at making the kind plural, if
+// the length is not one.  Note: It makes no attempts to handle the various oddities
+// of pluralization.  For instance.. Oddity will become Odditys (instead of Oddities)
+func formatPluralFieldKind(length int, kind string) string {
+	formatted := formatFieldName(kind)
+	if length == 1 {
+		return formatted
+	}
+	pluralized := []rune(formatted)
+	pluralizedLen := utf8.RuneCountInString(formatted)
+	lastRune := pluralized[pluralizedLen-1]
+	ess := rune('s')
+	if lastRune != ess {
+		pluralized = append(pluralized, ess)
+	}
+	return string(pluralized)
 }
 
 func (mr *repeatedValueRenderer) header(len int) string {
-	return fmt.Sprintf("%d %s", len, formatFieldName(mr.name()))
+	// <message_name>: <int> <field_kind>
+	return fmt.Sprintf("%d %s", len, formatPluralFieldKind(len, mr.fieldKind()))
 }
 
 func (mr *repeatedValueRenderer) Format(ctx context.Context, v protoreflect.Value) ([]Screen, error) {
@@ -58,12 +78,14 @@ func (mr *repeatedValueRenderer) Format(ctx context.Context, v protoreflect.Valu
 		}
 
 		headerScreen := Screen{
+			// <field_name> (<int>/<int>): <value rendered 1st line>
 			Text:   fmt.Sprintf("%s (%d/%d): %s", formatFieldName(mr.field), i+1, l.Len(), subscreens[0].Text),
 			Indent: subscreens[0].Indent + 1,
 			Expert: subscreens[0].Expert,
 		}
 		screens = append(screens, headerScreen)
 
+		// <optional value rendered in the next lines>
 		for i := 1; i < len(subscreens); i++ {
 			extraScreen := Screen{
 				Text:   subscreens[i].Text,
@@ -72,8 +94,14 @@ func (mr *repeatedValueRenderer) Format(ctx context.Context, v protoreflect.Valu
 			}
 			screens = append(screens, extraScreen)
 		}
+
 	}
 
+	// End of <field_name>.
+	terminalScreen := Screen{
+		Text: fmt.Sprintf("End of %s", formatPluralFieldKind(l.Len(), mr.field)),
+	}
+	screens = append(screens, terminalScreen)
 	return screens, nil
 }
 
