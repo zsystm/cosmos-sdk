@@ -44,14 +44,7 @@ func (mr *repeatedValueRenderer) Format(ctx context.Context, v protoreflect.Valu
 		return nil, fmt.Errorf("non-List value")
 	}
 
-	if l.Len() == 0 {
-		return []Screen{}, nil
-	}
-
 	screens := make([]Screen, 1)
-
-	//Is this the best way to obtain the field name?
-	// screens[0].Text = mr.header(l.Len(), formatFieldName(string(l.Get(0).Message().Descriptor().Name())))
 	screens[0].Text = mr.header(l.Len())
 
 	for i := 0; i < l.Len(); i++ {
