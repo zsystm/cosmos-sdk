@@ -472,8 +472,10 @@
     - [UnbondingDelegationEntry](#cosmos.staking.v1beta1.UnbondingDelegationEntry)
     - [ValAddresses](#cosmos.staking.v1beta1.ValAddresses)
     - [Validator](#cosmos.staking.v1beta1.Validator)
+    - [ValidatorUpdates](#cosmos.staking.v1beta1.ValidatorUpdates)
   
     - [BondStatus](#cosmos.staking.v1beta1.BondStatus)
+    - [Infraction](#cosmos.staking.v1beta1.Infraction)
   
 - [cosmos/staking/v1beta1/genesis.proto](#cosmos/staking/v1beta1/genesis.proto)
     - [GenesisState](#cosmos.staking.v1beta1.GenesisState)
@@ -6781,6 +6783,22 @@ multiplied by exchange rate.
 
 
 
+
+<a name="cosmos.staking.v1beta1.ValidatorUpdates"></a>
+
+### ValidatorUpdates
+ValidatorUpdates defines an array of abci.ValidatorUpdate objects.
+TODO: explore moving this to proto/cosmos/base to separate modules from tendermint dependence
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `updates` | [tendermint.abci.ValidatorUpdate](#tendermint.abci.ValidatorUpdate) | repeated |  |
+
+
+
+
+
  <!-- end messages -->
 
 
@@ -6795,6 +6813,19 @@ BondStatus is the status of a validator.
 | BOND_STATUS_UNBONDED | 1 | UNBONDED defines a validator that is not bonded. |
 | BOND_STATUS_UNBONDING | 2 | UNBONDING defines a validator that is unbonding. |
 | BOND_STATUS_BONDED | 3 | BONDED defines a validator that is bonded. |
+
+
+
+<a name="cosmos.staking.v1beta1.Infraction"></a>
+
+### Infraction
+Infraction indicates the infraction a validator commited.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| INFRACTION_UNSPECIFIED | 0 | UNSPECIFIED defines an empty infraction. |
+| INFRACTION_DOUBLE_SIGN | 1 | DOUBLE_SIGN defines a validator that double-signs a block. |
+| INFRACTION_DOWNTIME | 2 | DOWNTIME defines a validator that missed signing too many blocks. |
 
 
  <!-- end enums -->

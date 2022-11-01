@@ -9,6 +9,7 @@ import "google/protobuf/timestamp.proto";
 import "cosmos_proto/cosmos.proto";
 import "cosmos/base/v1beta1/coin.proto";
 import "tendermint/types/types.proto";
+import "tendermint/abci/types.proto";
 
 option go_package = "github.com/cosmos/cosmos-sdk/x/staking/types";
 
@@ -331,4 +332,20 @@ message Pool {
     (gogoproto.nullable)   = false,
     (gogoproto.moretags)   = "yaml:\"bonded_tokens\""
   ];
+}
+
+// Infraction indicates the infraction a validator commited.
+enum Infraction {
+  // UNSPECIFIED defines an empty infraction.
+  INFRACTION_UNSPECIFIED = 0;
+  // DOUBLE_SIGN defines a validator that double-signs a block.
+  INFRACTION_DOUBLE_SIGN = 1;
+  // DOWNTIME defines a validator that missed signing too many blocks.
+  INFRACTION_DOWNTIME = 2;
+}
+
+// ValidatorUpdates defines an array of abci.ValidatorUpdate objects.
+// TODO: explore moving this to proto/cosmos/base to separate modules from tendermint dependence
+message ValidatorUpdates {
+  repeated tendermint.abci.ValidatorUpdate updates = 1 [(gogoproto.nullable) = false];
 }
