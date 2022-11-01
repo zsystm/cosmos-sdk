@@ -118,6 +118,11 @@ message Validator {
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.nullable)   = false
   ];
+  // strictly positive if this validator's unbonding has been stopped by external modules
+  int64 unbonding_on_hold_ref_count = 12;
+
+  // list of unbonding ids, each uniquely identifing an unbonding of this validator
+  repeated uint64 unbonding_ids = 13;
 }
 
 // BondStatus is the status of a validator.
@@ -227,6 +232,11 @@ message UnbondingDelegationEntry {
   ];
   // balance defines the tokens to receive at completion.
   string balance = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int", (gogoproto.nullable) = false];
+  // Incrementing id that uniquely identifies this entry
+  uint64 unbonding_id = 5;
+
+  // Strictly positive if this entry's unbonding has been stopped by external modules
+  int64 unbonding_on_hold_ref_count = 6;
 }
 
 // RedelegationEntry defines a redelegation object with relevant metadata.
@@ -248,6 +258,11 @@ message RedelegationEntry {
   // shares_dst is the amount of destination-validator shares created by redelegation.
   string shares_dst = 4
       [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
+  // Incrementing id that uniquely identifies this entry
+  uint64 unbonding_id = 5;
+
+  // Strictly positive if this entry's unbonding has been stopped by external modules
+  int64 unbonding_on_hold_ref_count = 6;
 }
 
 // Redelegation contains the list of a particular delegator's redelegating bonds
