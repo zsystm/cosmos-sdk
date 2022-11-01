@@ -148,6 +148,7 @@ func TestUnbondingDelegation(t *testing.T) {
 		0,
 		time.Unix(0, 0).UTC(),
 		sdk.NewInt(5),
+		app.StakingKeeper.IncrementUnbondingId(ctx),
 	)
 
 	// set and retrieve a record
@@ -615,7 +616,7 @@ func TestGetRedelegationsFromSrcValidator(t *testing.T) {
 
 	rd := types.NewRedelegation(addrDels[0], addrVals[0], addrVals[1], 0,
 		time.Unix(0, 0), sdk.NewInt(5),
-		sdk.NewDec(5))
+		sdk.NewDec(5), 1)
 
 	// set and retrieve a record
 	app.StakingKeeper.SetRedelegation(ctx, rd)
@@ -642,7 +643,7 @@ func TestRedelegation(t *testing.T) {
 
 	rd := types.NewRedelegation(addrDels[0], addrVals[0], addrVals[1], 0,
 		time.Unix(0, 0).UTC(), sdk.NewInt(5),
-		sdk.NewDec(5))
+		sdk.NewDec(5), 1)
 
 	// test shouldn't have and redelegations
 	has := app.StakingKeeper.HasReceivingRedelegation(ctx, addrDels[0], addrVals[1])

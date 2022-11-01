@@ -25,10 +25,9 @@ import (
 //	Slash will not slash unbonded validators (for the above reason)
 //
 // CONTRACT:
-//
-//	Infraction was committed at the current height or at a past height,
-//	not at a height in the future
-func (k Keeper) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, infractionHeight int64, power int64, slashFactor sdk.Dec) {
+//    Infraction was committed at the current height or at a past height,
+//    not at a height in the future
+func (k Keeper) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, infractionHeight int64, power int64, slashFactor sdk.Dec, _ types.InfractionType) {
 	logger := k.Logger(ctx)
 
 	if slashFactor.IsNegative() {
@@ -184,7 +183,7 @@ func (k Keeper) SlashUnbondingDelegation(ctx sdk.Context, unbondingDelegation ty
 			continue
 		}
 
-		if entry.IsMature(now) {
+		if entry.IsMature(now) && !entry.OnHold() {
 			// Unbonding delegation no longer eligible for slashing, skip it
 			continue
 		}
@@ -238,7 +237,7 @@ func (k Keeper) SlashRedelegation(ctx sdk.Context, srcValidator types.Validator,
 			continue
 		}
 
-		if entry.IsMature(now) {
+		if entry.IsMature(now) && !entry.OnHold() {
 			// Redelegation no longer eligible for slashing, skip it
 			continue
 		}

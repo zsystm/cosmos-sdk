@@ -3,6 +3,7 @@ package keeper
 import (
 	"fmt"
 
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -92,4 +93,20 @@ func (k Keeper) SetLastTotalPower(ctx sdk.Context, power sdk.Int) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshal(&sdk.IntProto{Int: power})
 	store.Set(types.LastTotalPowerKey, bz)
+}
+
+// SetValidatorUpdates sets the ABCI validator power updates for the current block.
+func (k Keeper) SetValidatorUpdates(ctx sdk.Context, valUpdates []abci.ValidatorUpdate) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshal(&types.ValidatorUpdates{Updates: valUpdates})
+	store.Set(types.ValidatorUpdatesKey, bz)
+}
+
+// GetValidatorUpdates returns the ABCI validator power updates within the current block.
+func (k Keeper) GetValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.ValidatorUpdatesKey)
+	var valUpdates types.ValidatorUpdates
+	k.cdc.MustUnmarshal(bz, &valUpdates)
+	return valUpdates.Updates
 }
