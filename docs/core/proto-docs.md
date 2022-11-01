@@ -475,7 +475,7 @@
     - [ValidatorUpdates](#cosmos.staking.v1beta1.ValidatorUpdates)
   
     - [BondStatus](#cosmos.staking.v1beta1.BondStatus)
-    - [Infraction](#cosmos.staking.v1beta1.Infraction)
+    - [InfractionType](#cosmos.staking.v1beta1.InfractionType)
   
 - [cosmos/staking/v1beta1/genesis.proto](#cosmos/staking/v1beta1/genesis.proto)
     - [GenesisState](#cosmos.staking.v1beta1.GenesisState)
@@ -6822,9 +6822,9 @@ BondStatus is the status of a validator.
 
 
 
-<a name="cosmos.staking.v1beta1.Infraction"></a>
+<a name="cosmos.staking.v1beta1.InfractionType"></a>
 
-### Infraction
+### InfractionType
 Infraction indicates the infraction a validator commited.
 
 | Name | Number | Description |

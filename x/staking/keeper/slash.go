@@ -12,16 +12,25 @@ import (
 // of it, updating unbonding delegations & redelegations appropriately
 //
 // CONTRACT:
-//    slashFactor is non-negative
+//
+//	slashFactor is non-negative
+//
 // CONTRACT:
-//    Infraction was committed equal to or less than an unbonding period in the past,
-//    so all unbonding delegations and redelegations from that height are stored
+//
+//	Infraction was committed equal to or less than an unbonding period in the past,
+//	so all unbonding delegations and redelegations from that height are stored
+//
 // CONTRACT:
-//    Slash will not slash unbonded validators (for the above reason)
+//
+//	Slash will not slash unbonded validators (for the above reason)
+//
 // CONTRACT:
-//    Infraction was committed at the current height or at a past height,
-//    not at a height in the future
-func (k Keeper) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, infractionHeight int64, power int64, slashFactor sdk.Dec) {
+//
+//	Infraction was committed at the current height or at a past height,
+//	not at a height in the future
+//
+// Slash implementation doesn't require the infraction (types.Infraction) to work but the IS one does. It is here to have IS satisfy the Slash signature.
+func (k Keeper) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, infractionHeight int64, power int64, slashFactor sdk.Dec, _ types.InfractionType) {
 	logger := k.Logger(ctx)
 
 	if slashFactor.IsNegative() {
