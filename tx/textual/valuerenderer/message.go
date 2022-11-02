@@ -65,7 +65,7 @@ func (mr *messageValueRenderer) Format(ctx context.Context, v protoreflect.Value
 		subscreens := make([]Screen, 0)
 		if fd.IsList() {
 			// If the field is a list, we need to format each element of the list
-			subscreens, err = mr.FormatRepeated(ctx, vr, v.Message().Get(fd), formatFieldName(string(fd.Name())))
+			subscreens, err = mr.FormatRepeated(ctx, vr, fd, v.Message().Get(fd))
 		} else {
 			// If the field is not list, we need to format the field
 			subscreens, err = vr.Format(ctx, v.Message().Get(fd))
@@ -98,7 +98,18 @@ func (mr *messageValueRenderer) Format(ctx context.Context, v protoreflect.Value
 	return screens, nil
 }
 
-func (mr *messageValueRenderer) FormatRepeated(ctx context.Context, vr ValueRenderer, v protoreflect.Value, name string) ([]Screen, error) {
+// getKind returns the field kind: if the field is a protobuf
+// message, then we return the message's name. Or else, we
+// return the protobuf kind.
+func (mr *messageValueRenderer) getKind(fd protoreflect.FieldDescriptor) string {
+	if fd.Kind() == protoreflect.MessageKind {
+		return string(fd.Message().Name())
+	}
+
+	return fd.Kind().String()
+}
+
+func (mr *messageValueRenderer) FormatRepeated(ctx context.Context, vr ValueRenderer, fd protoreflect.FieldDescriptor, v protoreflect.Value) ([]Screen, error) {
 	l := v.List()
 
 	if l == nil {
@@ -107,7 +118,8 @@ func (mr *messageValueRenderer) FormatRepeated(ctx context.Context, vr ValueRend
 
 	screens := make([]Screen, 1)
 
-	screens[0].Text = fmt.Sprintf("%d %s", l.Len(), formatPluralFieldKind(l.Len(), vr.Kind()))
+	screens[0].Text = fmt.Sprintf("%d %s", l.Len(), formatPluralFieldKind(l.Len(), mr.getKind(fd)))
+	name := formatFieldName(string(fd.Name()))
 
 	for i := 0; i < l.Len(); i++ {
 		subscreens, err := vr.Format(ctx, l.Get(i))
