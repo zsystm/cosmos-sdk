@@ -56,7 +56,7 @@ func TestRepeatedJsonTestcases(t *testing.T) {
 	raw, err := os.ReadFile("../internal/testdata/repeated.json")
 	require.NoError(t, err)
 
-	var testcases []repeatedJsonTest
+	var testcases []messageJsonTest
 	err = json.Unmarshal(raw, &testcases)
 	require.NoError(t, err)
 
