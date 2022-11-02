@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -31,6 +32,16 @@ func (mr *messageValueRenderer) header() string {
 	return fmt.Sprintf("%s object", mr.msgDesc.Name())
 }
 
+func (mr *messageValueRenderer) listHeader(len int) string {
+	// <message_name>: <int> <field_kind>
+	return fmt.Sprintf("%d %s", len, formatPluralFieldKind(len, mr.Kind()))
+}
+
+// Kind implements the ValueRenderer interface.
+func (mr *messageValueRenderer) Kind() string {
+	return string(mr.msgDesc.FullName())
+}
+
 func (mr *messageValueRenderer) Format(ctx context.Context, v protoreflect.Value) ([]Screen, error) {
 	fullName := v.Message().Descriptor().FullName()
 	wantFullName := mr.msgDesc.FullName()
@@ -51,7 +62,15 @@ func (mr *messageValueRenderer) Format(ctx context.Context, v protoreflect.Value
 			continue
 		}
 
-		subscreens, err := vr.Format(ctx, v.Message().Get(fd))
+		subscreens := make([]Screen, 0)
+		if fd.IsList() {
+			// If the field is a list, we need to format each element of the list
+			subscreens, err = mr.FormatRepeated(ctx, vr, v.Message().Get(fd), formatFieldName(string(fd.Name())))
+		} else {
+			// If the field is not list, we need to format the field
+			subscreens, err = vr.Format(ctx, v.Message().Get(fd))
+		}
+
 		if err != nil {
 			return nil, err
 		}
@@ -77,6 +96,73 @@ func (mr *messageValueRenderer) Format(ctx context.Context, v protoreflect.Value
 	}
 
 	return screens, nil
+}
+
+func (mr *messageValueRenderer) FormatRepeated(ctx context.Context, vr ValueRenderer, v protoreflect.Value, name string) ([]Screen, error) {
+	l := v.List()
+
+	if l == nil {
+		return nil, fmt.Errorf("non-List value")
+	}
+
+	screens := make([]Screen, 1)
+
+	screens[0].Text = fmt.Sprintf("%d %s", l.Len(), formatPluralFieldKind(l.Len(), vr.Kind()))
+
+	for i := 0; i < l.Len(); i++ {
+		subscreens, err := vr.Format(ctx, l.Get(i))
+		if err != nil {
+			return nil, err
+		}
+
+		if len(subscreens) == 0 {
+			return nil, fmt.Errorf("empty rendering")
+		}
+
+		headerScreen := Screen{
+			// <field_name> (<int>/<int>): <value rendered 1st line>
+			Text:   fmt.Sprintf("%s (%d/%d): %s", name, i+1, l.Len(), subscreens[0].Text),
+			Indent: subscreens[0].Indent + 1,
+			Expert: subscreens[0].Expert,
+		}
+		screens = append(screens, headerScreen)
+
+		// <optional value rendered in the next lines>
+		for i := 1; i < len(subscreens); i++ {
+			extraScreen := Screen{
+				Text:   subscreens[i].Text,
+				Indent: subscreens[i].Indent + 1,
+				Expert: subscreens[i].Expert,
+			}
+			screens = append(screens, extraScreen)
+		}
+
+	}
+
+	// End of <field_name>.
+	terminalScreen := Screen{
+		Text: fmt.Sprintf("End of %s", formatPluralFieldKind(l.Len(), name)),
+	}
+	screens = append(screens, terminalScreen)
+	return screens, nil
+}
+
+// formatPluralFieldKind makes an honest attempt at making the kind plural, if
+// the length is not one.  Note: It makes no attempts to handle the various oddities
+// of pluralization.  For instance.. Oddity will become Odditys (instead of Oddities)
+func formatPluralFieldKind(length int, kind string) string {
+	formatted := formatFieldName(kind)
+	if length == 1 {
+		return formatted
+	}
+	pluralized := []rune(formatted)
+	pluralizedLen := utf8.RuneCountInString(formatted)
+	lastRune := pluralized[pluralizedLen-1]
+	ess := rune('s')
+	if lastRune != ess {
+		pluralized = append(pluralized, ess)
+	}
+	return string(pluralized)
 }
 
 // formatFieldName formats a field name in sentence case, as specified in:

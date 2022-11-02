@@ -16,6 +16,10 @@ func NewStringValueRenderer() ValueRenderer {
 	return stringValueRenderer{}
 }
 
+func (sr stringValueRenderer) Kind() string {
+	return "String"
+}
+
 func (sr stringValueRenderer) Format(_ context.Context, v protoreflect.Value) ([]Screen, error) {
 	return []Screen{{Text: v.String()}}, nil
 }

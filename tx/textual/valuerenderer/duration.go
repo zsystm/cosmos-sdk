@@ -63,6 +63,11 @@ func formatSeconds(seconds int64, nanos int32) string {
 	return s
 }
 
+// Kind implements the ValueRenderer interface.
+func (dr durationValueRenderer) Kind() string {
+	return "Duration"
+}
+
 // Format implements the ValueRenderer interface.
 func (dr durationValueRenderer) Format(_ context.Context, v protoreflect.Value) ([]Screen, error) {
 	// Reify the reflected message as a proto Duration

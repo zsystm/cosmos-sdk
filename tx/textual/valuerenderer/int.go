@@ -17,6 +17,11 @@ type intValueRenderer struct{}
 
 var _ ValueRenderer = intValueRenderer{}
 
+// Kind implements the ValueRenderer interface.
+func (vr intValueRenderer) Kind() string {
+	return "Integer"
+}
+
 func (vr intValueRenderer) Format(_ context.Context, v protoreflect.Value) ([]Screen, error) {
 	formatted, err := math.FormatInt(v.String())
 	if err != nil {

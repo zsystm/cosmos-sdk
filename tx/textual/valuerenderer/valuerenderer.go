@@ -46,9 +46,7 @@ func NewTextual(q CoinMetadataQueryFn) Textual {
 }
 
 // GetValueRenderer returns the value renderer for the given FieldDescriptor.
-func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (vr ValueRenderer, err error) {
-	md := fd.Message()
-
+func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (ValueRenderer, error) {
 	switch {
 	// Scalars, such as sdk.Int and sdk.Dec encoded as strings.
 	case fd.Kind() == protoreflect.StringKind:
@@ -58,48 +56,42 @@ func (r Textual) GetValueRenderer(fd protoreflect.FieldDescriptor) (vr ValueRend
 				return nil, fmt.Errorf("got extension option %s of type %T", scalar, scalar)
 			}
 
-			vr = r.scalars[scalar]
+			vr := r.scalars[scalar]
 			if vr == nil {
 				return nil, fmt.Errorf("got empty value renderer for scalar %s", scalar)
 			}
+
+			return vr, nil
 		} else {
-			vr = NewStringValueRenderer()
+			return NewStringValueRenderer(), nil
 		}
 
 	case fd.Kind() == protoreflect.BytesKind:
-		vr = NewBytesValueRenderer()
+		return NewBytesValueRenderer(), nil
 
 	// Integers
 	case fd.Kind() == protoreflect.Uint32Kind ||
 		fd.Kind() == protoreflect.Uint64Kind ||
 		fd.Kind() == protoreflect.Int32Kind ||
 		fd.Kind() == protoreflect.Int64Kind:
-		vr = NewIntValueRenderer()
+		return NewIntValueRenderer(), nil
 
 	case fd.Kind() == protoreflect.MessageKind:
+		md := fd.Message()
 		fullName := md.FullName()
 
-		rend, found := r.messages[fullName]
+		vr, found := r.messages[fullName]
 		if found {
-			vr = rend
-		} else {
-			vr = NewMessageValueRenderer(&r, md)
+			return vr, nil
 		}
-
 		if fd.IsMap() {
 			return nil, fmt.Errorf("value renderers cannot format value of type map")
 		}
+		return NewMessageValueRenderer(&r, md), nil
 
 	default:
 		return nil, fmt.Errorf("value renderers cannot format value of type %s", fd.Kind())
 	}
-
-	// Coins are handled differently from other repeated values
-	if fd.IsList() && (md == nil || md.FullName() != (&basev1beta1.Coin{}).ProtoReflect().Descriptor().FullName()) {
-		vr = NewRepeatedValueRenderer(&r, md, string(fd.Name()), fd.Kind().String(), vr)
-	}
-
-	return vr, nil
 
 }
 
