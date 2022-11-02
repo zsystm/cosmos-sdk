@@ -25,6 +25,11 @@ type messageJsonTest struct {
 	Screens []valuerenderer.Screen
 }
 
+type repeatedJsonTest struct {
+	Proto   *testpb.Baz
+	Screens []valuerenderer.Screen
+}
+
 func TestMessageJsonTestcases(t *testing.T) {
 	raw, err := os.ReadFile("../internal/testdata/message.json")
 	require.NoError(t, err)
@@ -56,7 +61,7 @@ func TestRepeatedJsonTestcases(t *testing.T) {
 	raw, err := os.ReadFile("../internal/testdata/repeated.json")
 	require.NoError(t, err)
 
-	var testcases []messageJsonTest
+	var testcases []repeatedJsonTest
 	err = json.Unmarshal(raw, &testcases)
 	require.NoError(t, err)
 
