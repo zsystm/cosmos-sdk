@@ -49,43 +49,38 @@ func (k Keeper) AfterValidatorBeginUnbonding(ctx sdk.Context, consAddr sdk.ConsA
 }
 
 // BeforeDelegationCreated - call hook if registered
-func (k Keeper) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (k Keeper) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
 	if k.hooks != nil {
-		return k.hooks.BeforeDelegationCreated(ctx, delAddr, valAddr)
+		k.hooks.BeforeDelegationCreated(ctx, delAddr, valAddr)
 	}
-	return nil
 }
 
 // BeforeDelegationSharesModified - call hook if registered
-func (k Keeper) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (k Keeper) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
 	if k.hooks != nil {
-		return k.hooks.BeforeDelegationSharesModified(ctx, delAddr, valAddr)
+		k.hooks.BeforeDelegationSharesModified(ctx, delAddr, valAddr)
 	}
-	return nil
 }
 
 // BeforeDelegationRemoved - call hook if registered
-func (k Keeper) BeforeDelegationRemoved(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (k Keeper) BeforeDelegationRemoved(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
 	if k.hooks != nil {
 		k.hooks.BeforeDelegationRemoved(ctx, delAddr, valAddr)
 	}
-	return nil
 }
 
 // AfterDelegationModified - call hook if registered
-func (k Keeper) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (k Keeper) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
 	if k.hooks != nil {
-		return k.hooks.AfterDelegationModified(ctx, delAddr, valAddr)
+		k.hooks.AfterDelegationModified(ctx, delAddr, valAddr)
 	}
-	return nil
 }
 
 // BeforeValidatorSlashed - call hook if registered
-func (k Keeper) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) error {
+func (k Keeper) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
 	if k.hooks != nil {
-		return k.hooks.BeforeValidatorSlashed(ctx, valAddr, fraction)
+		k.hooks.BeforeValidatorSlashed(ctx, valAddr, fraction)
 	}
-	return nil
 }
 
 // This is called when an UnbondingDelegationEntry is first created

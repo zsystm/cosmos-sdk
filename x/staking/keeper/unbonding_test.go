@@ -6,6 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/cosmos/cosmos-sdk/x/staking/teststaking"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -24,7 +25,7 @@ func (h MockStakingHooks) AfterUnbondingInitiated(_ sdk.Context, id uint64) {
 func setup(t *testing.T, hookCalled *bool, ubdeID *uint64) (
 	app *simapp.SimApp, ctx sdk.Context, bondDenom string, addrDels []sdk.AccAddress, addrVals []sdk.ValAddress,
 ) {
-	_, app, ctx = createTestInput()
+	_, app, ctx = createTestInput(t)
 
 	stakingKeeper := keeper.NewKeeper(
 		app.AppCodec(),
@@ -60,7 +61,7 @@ func setup(t *testing.T, hookCalled *bool, ubdeID *uint64) (
 	bondDenom = app.StakingKeeper.BondDenom(ctx)
 	notBondedPool := app.StakingKeeper.GetNotBondedPool(ctx)
 
-	require.NoError(t, simapp.FundModuleAccount(app.BankKeeper, ctx, notBondedPool.GetName(), sdk.NewCoins(sdk.NewCoin(bondDenom, startTokens))))
+	require.NoError(t, testutil.FundModuleAccount(app.BankKeeper, ctx, notBondedPool.GetName(), sdk.NewCoins(sdk.NewCoin(bondDenom, startTokens))))
 	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
 
 	// Create a validator

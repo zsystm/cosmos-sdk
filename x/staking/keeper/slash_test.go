@@ -391,7 +391,7 @@ func TestSlashWithRedelegation(t *testing.T) {
 	// set a redelegation
 	rdTokens := app.StakingKeeper.TokensFromConsensusPower(ctx, 6)
 	rd := types.NewRedelegation(addrDels[0], addrVals[0], addrVals[1], 11,
-		time.Unix(0, 0), rdTokens, rdTokens.ToDec(), 1)
+		time.Unix(0, 0), rdTokens, sdk.NewDecFromInt(rdTokens), 1)
 	app.StakingKeeper.SetRedelegation(ctx, rd)
 
 	// set the associated delegation
@@ -545,7 +545,7 @@ func TestSlashBoth(t *testing.T) {
 	rdATokens := app.StakingKeeper.TokensFromConsensusPower(ctx, 6)
 	rdA := types.NewRedelegation(addrDels[0], addrVals[0], addrVals[1], 11,
 		time.Unix(0, 0), rdATokens,
-		rdATokens.ToDec(), 1)
+		sdk.NewDecFromInt(rdATokens), 1)
 	app.StakingKeeper.SetRedelegation(ctx, rdA)
 
 	// set the associated delegation

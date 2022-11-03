@@ -122,7 +122,7 @@ func TestSimulateMsgCancelUnbondingDelegation(t *testing.T) {
 	setupValidatorRewards(app, ctx, validator0.GetOperator())
 
 	// unbonding delegation
-	udb := types.NewUnbondingDelegation(delegator.Address, validator0.GetOperator(), app.LastBlockHeight(), blockTime.Add(2*time.Minute), delTokens)
+	udb := types.NewUnbondingDelegation(delegator.Address, validator0.GetOperator(), app.LastBlockHeight(), blockTime.Add(2*time.Minute), delTokens, 0)
 	app.StakingKeeper.SetUnbondingDelegation(ctx, udb)
 	setupValidatorRewards(app, ctx, validator0.GetOperator())
 

@@ -64,18 +64,14 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data *types.GenesisState) (res []ab
 
 		// Call the before-creation hook if not exported
 		if !data.Exported {
-			if err := k.BeforeDelegationCreated(ctx, delegatorAddress, delegation.GetValidatorAddr()); err != nil {
-				panic(err)
-			}
+			k.BeforeDelegationCreated(ctx, delegatorAddress, delegation.GetValidatorAddr())
 		}
 
 		k.SetDelegation(ctx, delegation)
 
 		// Call the after-modification hook if not exported
 		if !data.Exported {
-			if err := k.AfterDelegationModified(ctx, delegatorAddress, delegation.GetValidatorAddr()); err != nil {
-				panic(err)
-			}
+			k.AfterDelegationModified(ctx, delegatorAddress, delegation.GetValidatorAddr())
 		}
 	}
 
