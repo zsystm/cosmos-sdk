@@ -35,6 +35,10 @@ type Textual struct {
 	// - Protobuf timestamp
 	// - Protobuf duration
 	messages map[protoreflect.FullName]ValueRenderer
+
+	// repeated defines a registry for custom message rendering of repeated field,
+	// as defined in. An example of special repeated rendeing is SDK coins
+	repeats map[protoreflect.FullName]struct{}
 }
 
 // NewTextual returns a new Textual which provides
@@ -107,10 +111,27 @@ func (r *Textual) init() {
 		r.messages[(&durationpb.Duration{}).ProtoReflect().Descriptor().FullName()] = NewDurationValueRenderer()
 		r.messages[(&timestamppb.Timestamp{}).ProtoReflect().Descriptor().FullName()] = NewTimestampValueRenderer()
 	}
+	if r.repeats == nil {
+		r.repeats = map[protoreflect.FullName]struct{}{}
+		r.repeats[(&basev1beta1.Coin{}).ProtoReflect().Descriptor().FullName()] = struct{}{}
+	}
 }
 
 // DefineScalar adds a value renderer to the given Cosmos scalar.
 func (r *Textual) DefineScalar(scalar string, vr ValueRenderer) {
 	r.init()
 	r.scalars[scalar] = vr
+}
+
+// DefineRepeated adds an entry into the repeats for the given type
+func (r *Textual) DefineRepeated(repeated protoreflect.FullName) {
+	r.init()
+	r.repeats[repeated] = struct{}{}
+}
+
+// HandlesRepeated returns true if a given type has custom repeated handling
+func (r *Textual) HandlesRepeated(repeated protoreflect.FullName) bool {
+	r.init()
+	_, ok := r.repeats[repeated]
+	return ok
 }

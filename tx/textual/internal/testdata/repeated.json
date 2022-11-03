@@ -110,5 +110,48 @@
             {"text": "Weight: 0.3", "indent": 4},
             {"text": "End of Options", "indent": 2}
         ]
+    },
+    {
+        "proto": {
+            "price": [
+                { "amount": "1", "denom": "ucosm" },
+                { "amount": "3", "denom": "ustake" }
+            ]
+        },
+        "metadata": {
+            "ucosm": {"display": "COSM", "denom_units": [{"denom": "COSM", "exponent": 6}, {"denom": "ucosm", "exponent": 0}]},
+            "ustake": {"display": "STAKE", "denom_units": [{"denom": "STAKE", "exponent": 6}, {"denom": "ustake", "exponent": 0}]}
+          },
+        "screens": [
+            {"text": "Baz object", "indent": 0},
+            {"text": "Price: 0.000001 COSM, 0.000003 STAKE", "indent": 1}
+        ]
+    },
+    {
+        "proto": {
+            "expirations": [
+                {"seconds": 0, "nanos": 1},
+                {"seconds": 0, "nanos": 10},
+                {"seconds": 0, "nanos": 100},
+                {"seconds": 0, "nanos": 1000},
+                {"seconds": 0, "nanos": 10000},
+                {"seconds": 0, "nanos": 100000},
+                {"seconds": 0, "nanos": 1000000},
+                {"seconds": 0, "nanos": 10000000}
+            ]
+        },   
+        "screens": [
+            {"text": "Baz object", "indent": 0},
+            {"text": "Expirations: 8 Timestamps", "indent": 1},
+            {"text": "Expirations (1/8): 1970-01-01T00:00:00.000000001Z", "indent": 2},
+            {"text": "Expirations (2/8): 1970-01-01T00:00:00.00000001Z", "indent": 2},
+            {"text": "Expirations (3/8): 1970-01-01T00:00:00.0000001Z", "indent": 2},
+            {"text": "Expirations (4/8): 1970-01-01T00:00:00.000001Z", "indent": 2},
+            {"text": "Expirations (5/8): 1970-01-01T00:00:00.00001Z", "indent": 2},
+            {"text": "Expirations (6/8): 1970-01-01T00:00:00.0001Z", "indent": 2},
+            {"text": "Expirations (7/8): 1970-01-01T00:00:00.001Z", "indent": 2},
+            {"text": "Expirations (8/8): 1970-01-01T00:00:00.01Z", "indent": 2},
+            {"text": "End of Expirations", "indent": 1}
+        ]
     }
 ]

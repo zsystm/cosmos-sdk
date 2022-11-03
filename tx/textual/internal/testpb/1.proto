@@ -58,10 +58,11 @@ message Bar {
 
 // Baz is a sample message type used for testing repeated rendering.
 message Baz {
-  repeated Foo    messages                = 1;
-  repeated string string_messages         = 2;
-  Vote            vote                    = 3;
-  repeated cosmos.base.v1beta1.Coin price = 4;
+  repeated Foo    messages                       = 1;
+  repeated string string_messages                = 2;
+  Vote            vote                           = 3;
+  repeated cosmos.base.v1beta1.Coin price        = 4;
+  repeated google.protobuf.Timestamp expirations = 5;
 }
 
 enum VoteOption {

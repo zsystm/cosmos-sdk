@@ -53,7 +53,7 @@ func (mr *messageValueRenderer) Format(ctx context.Context, v protoreflect.Value
 		}
 
 		subscreens := make([]Screen, 0)
-		if fd.IsList() {
+		if fd.IsList() && !(fd.Message() != nil && mr.tr.HandlesRepeated(fd.Message().FullName())) {
 			// If the field is a list, we need to format each element of the list
 			subscreens, err = mr.formatRepeated(ctx, v.Message().Get(fd), fd)
 		} else {
