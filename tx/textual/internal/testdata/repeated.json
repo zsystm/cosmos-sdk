@@ -139,7 +139,7 @@
                 {"seconds": 0, "nanos": 1000000},
                 {"seconds": 0, "nanos": 10000000}
             ]
-        },   
+        },
         "screens": [
             {"text": "Baz object", "indent": 0},
             {"text": "Expirations: 8 Timestamps", "indent": 1},
