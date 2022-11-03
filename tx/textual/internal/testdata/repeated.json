@@ -98,14 +98,14 @@
         },
         "screens": [
             {"text": "Baz object", "indent": 0},
-            {"text": "Vote: Vote object", "indent": 1},
+            {"text": "Vote: Ballot object", "indent": 1},
             {"text": "Proposal id: 4", "indent": 2},
             {"text": "Voter: cosmos1abc...def", "indent": 2},
-            {"text": "Options: 2 WeightedVoteOptions", "indent": 2},
-            {"text": "Options (1/2): WeightedVoteOption object", "indent": 3},
+            {"text": "Options: 2 WeightedBallotOptions", "indent": 2},
+            {"text": "Options (1/2): WeightedBallotOption object", "indent": 3},
             {"text": "Option: Yes", "indent": 4},
             {"text": "Weight: 0.7", "indent": 4},
-            {"text": "Options (2/2): WeightedVoteOption object", "indent": 3},
+            {"text": "Options (2/2): WeightedBallotOption object", "indent": 3},
             {"text": "Option: No", "indent": 4},
             {"text": "Weight: 0.3", "indent": 4},
             {"text": "End of Options", "indent": 2}
