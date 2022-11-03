@@ -33,7 +33,4 @@ type ValueRenderer interface {
 
 	// Parse should be the inverse of Format.
 	Parse(context.Context, []Screen) (protoreflect.Value, error)
-
-	// Kind should return the kind of Value Rendered
-	Kind() string
 }

@@ -18,11 +18,6 @@ func NewTimestampValueRenderer() ValueRenderer {
 	return timestampValueRenderer{}
 }
 
-// Kind impelements the ValueRenderer interface
-func (vr timestampValueRenderer) Kind() string {
-	return "Timestamp"
-}
-
 // Format implements the ValueRenderer interface.
 func (vr timestampValueRenderer) Format(_ context.Context, v protoreflect.Value) ([]Screen, error) {
 	// Reify the reflected message as a proto Timestamp

@@ -32,16 +32,6 @@ func (mr *messageValueRenderer) header() string {
 	return fmt.Sprintf("%s object", mr.msgDesc.Name())
 }
 
-func (mr *messageValueRenderer) listHeader(len int) string {
-	// <message_name>: <int> <field_kind>
-	return fmt.Sprintf("%d %s", len, formatPluralFieldKind(len, mr.Kind()))
-}
-
-// Kind implements the ValueRenderer interface.
-func (mr *messageValueRenderer) Kind() string {
-	return string(mr.msgDesc.FullName())
-}
-
 func (mr *messageValueRenderer) Format(ctx context.Context, v protoreflect.Value) ([]Screen, error) {
 	fullName := v.Message().Descriptor().FullName()
 	wantFullName := mr.msgDesc.FullName()
@@ -65,7 +55,7 @@ func (mr *messageValueRenderer) Format(ctx context.Context, v protoreflect.Value
 		subscreens := make([]Screen, 0)
 		if fd.IsList() {
 			// If the field is a list, we need to format each element of the list
-			subscreens, err = mr.FormatRepeated(ctx, vr, v.Message().Get(fd), formatFieldName(string(fd.Name())))
+			subscreens, err = mr.formatRepeated(ctx, v.Message().Get(fd), fd)
 		} else {
 			// If the field is not list, we need to format the field
 			subscreens, err = vr.Format(ctx, v.Message().Get(fd))
@@ -79,7 +69,7 @@ func (mr *messageValueRenderer) Format(ctx context.Context, v protoreflect.Value
 		}
 
 		headerScreen := Screen{
-			Text:   fmt.Sprintf("%s: %s", formatFieldName(string(fd.Name())), subscreens[0].Text),
+			Text:   fmt.Sprintf("%s: %s", toSentenceCase(string(fd.Name())), subscreens[0].Text),
 			Indent: subscreens[0].Indent + 1,
 			Expert: subscreens[0].Expert,
 		}
@@ -98,16 +88,20 @@ func (mr *messageValueRenderer) Format(ctx context.Context, v protoreflect.Value
 	return screens, nil
 }
 
-func (mr *messageValueRenderer) FormatRepeated(ctx context.Context, vr ValueRenderer, v protoreflect.Value, name string) ([]Screen, error) {
-	l := v.List()
+func (mr *messageValueRenderer) formatRepeated(ctx context.Context, v protoreflect.Value, fd protoreflect.FieldDescriptor) ([]Screen, error) {
+	vr, err := mr.tr.GetValueRenderer(fd)
+	if err != nil {
+		return nil, err
+	}
 
+	l := v.List()
 	if l == nil {
 		return nil, fmt.Errorf("non-List value")
 	}
 
 	screens := make([]Screen, 1)
-
-	screens[0].Text = fmt.Sprintf("%d %s", l.Len(), formatPluralFieldKind(l.Len(), vr.Kind()))
+	// <message_name>: <int> <field_kind>
+	screens[0].Text = fmt.Sprintf("%d %s", l.Len(), toPluralKind(l.Len(), getKind(fd)))
 
 	for i := 0; i < l.Len(); i++ {
 		subscreens, err := vr.Format(ctx, l.Get(i))
@@ -121,7 +115,7 @@ func (mr *messageValueRenderer) FormatRepeated(ctx context.Context, vr ValueRend
 
 		headerScreen := Screen{
 			// <field_name> (<int>/<int>): <value rendered 1st line>
-			Text:   fmt.Sprintf("%s (%d/%d): %s", name, i+1, l.Len(), subscreens[0].Text),
+			Text:   fmt.Sprintf("%s (%d/%d): %s", toSentenceCase(string(fd.Name())), i+1, l.Len(), subscreens[0].Text),
 			Indent: subscreens[0].Indent + 1,
 			Expert: subscreens[0].Expert,
 		}
@@ -136,22 +130,32 @@ func (mr *messageValueRenderer) FormatRepeated(ctx context.Context, vr ValueRend
 			}
 			screens = append(screens, extraScreen)
 		}
-
 	}
 
 	// End of <field_name>.
 	terminalScreen := Screen{
-		Text: fmt.Sprintf("End of %s", formatPluralFieldKind(l.Len(), name)),
+		Text: fmt.Sprintf("End of %s", toSentenceCase(string(fd.Name()))),
 	}
 	screens = append(screens, terminalScreen)
 	return screens, nil
 }
 
-// formatPluralFieldKind makes an honest attempt at making the kind plural, if
+// getKind returns the field kind: if the field is a protobuf
+// message, then we return the message's name. Or else, we
+// return the protobuf kind.
+func getKind(fd protoreflect.FieldDescriptor) string {
+	if fd.Kind() == protoreflect.MessageKind {
+		return string(fd.Message().Name())
+	}
+
+	return fd.Kind().String()
+}
+
+// toPluralKind makes an honest attempt at making the kind plural, if
 // the length is not one.  Note: It makes no attempts to handle the various oddities
 // of pluralization.  For instance.. Oddity will become Odditys (instead of Oddities)
-func formatPluralFieldKind(length int, kind string) string {
-	formatted := formatFieldName(kind)
+func toPluralKind(length int, kind string) string {
+	formatted := toSentenceCase(kind)
 	if length == 1 {
 		return formatted
 	}
@@ -165,9 +169,9 @@ func formatPluralFieldKind(length int, kind string) string {
 	return string(pluralized)
 }
 
-// formatFieldName formats a field name in sentence case, as specified in:
+// toSentenceCase formats a field name in sentence case, as specified in:
 // https://github.com/cosmos/cosmos-sdk/blob/b6f867d0b674d62e56b27aa4d00f5b6042ebac9e/docs/architecture/adr-050-sign-mode-textual-annex1.md?plain=1#L110
-func formatFieldName(name string) string {
+func toSentenceCase(name string) string {
 	if len(name) == 0 {
 		return name
 	}
@@ -211,7 +215,7 @@ func (mr *messageValueRenderer) Parse(ctx context.Context, screens []Screen) (pr
 			return nilValue, fmt.Errorf("bad message indentation: want 1, got %d", screens[idx].Indent)
 		}
 
-		prefix := formatFieldName(string(fd.Name())) + ": "
+		prefix := toSentenceCase(string(fd.Name())) + ": "
 		if !strings.HasPrefix(screens[idx].Text, prefix) {
 			// we must have skipped this fd because of a default value
 			continue

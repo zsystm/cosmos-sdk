@@ -26,10 +26,6 @@ type coinsValueRenderer struct {
 
 var _ ValueRenderer = coinsValueRenderer{}
 
-func (vr coinsValueRenderer) Kind() string {
-	return "Coins"
-}
-
 func (vr coinsValueRenderer) Format(ctx context.Context, v protoreflect.Value) ([]Screen, error) {
 	if vr.coinMetadataQuerier == nil {
 		return nil, fmt.Errorf("expected non-nil coin metadata querier")

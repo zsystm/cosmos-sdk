@@ -18,10 +18,6 @@ type decValueRenderer struct{}
 
 var _ ValueRenderer = decValueRenderer{}
 
-func (vr decValueRenderer) Kind() string {
-	return "sdk.Dec"
-}
-
 func (vr decValueRenderer) Format(_ context.Context, v protoreflect.Value) ([]Screen, error) {
 	formatted, err := math.FormatDec(v.String())
 	if err != nil {

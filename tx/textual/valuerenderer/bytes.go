@@ -37,7 +37,3 @@ func (vr bytesValueRenderer) Parse(_ context.Context, screens []Screen) (protore
 
 	return protoreflect.ValueOfBytes(data), nil
 }
-
-func (vr bytesValueRenderer) Kind() string {
-	return "Bytes"
-}
