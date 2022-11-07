@@ -28,3 +28,5 @@ func (vr intValueRenderer) Format(_ context.Context, v protoreflect.Value) ([]Sc
 func (vr intValueRenderer) Parse(_ context.Context, screens []Screen) (protoreflect.Value, error) {
 	panic("implement me")
 }
+
+func (vr intValueRenderer) handlesRepeated() bool { return false }

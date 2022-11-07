@@ -122,16 +122,3 @@ func (r *Textual) DefineScalar(scalar string, vr ValueRenderer) {
 	r.init()
 	r.scalars[scalar] = vr
 }
-
-// DefineRepeated adds an entry into the repeats for the given type
-func (r *Textual) DefineRepeated(repeated protoreflect.FullName) {
-	r.init()
-	r.repeats[repeated] = struct{}{}
-}
-
-// HandlesRepeated returns true if a given type has custom repeated handling
-func (r *Textual) HandlesRepeated(repeated protoreflect.FullName) bool {
-	r.init()
-	_, ok := r.repeats[repeated]
-	return ok
-}

@@ -53,3 +53,5 @@ func (vr timestampValueRenderer) Parse(_ context.Context, screens []Screen) (pro
 	msg := timestamp.ProtoReflect()
 	return protoreflect.ValueOfMessage(msg), nil
 }
+
+func (vr timestampValueRenderer) handlesRepeated() bool { return false }

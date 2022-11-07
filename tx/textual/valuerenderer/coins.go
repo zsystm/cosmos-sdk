@@ -80,3 +80,5 @@ func (vr coinsValueRenderer) Parse(_ context.Context, screens []Screen) (protore
 	// ref: https://github.com/cosmos/cosmos-sdk/issues/13153
 	panic("implement me, see #13153")
 }
+
+func (vr coinsValueRenderer) handlesRepeated() bool { return true }

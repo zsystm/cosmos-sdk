@@ -26,3 +26,5 @@ func (sr stringValueRenderer) Parse(_ context.Context, screens []Screen) (protor
 	}
 	return protoreflect.ValueOfString(screens[0].Text), nil
 }
+
+func (vr stringValueRenderer) handlesRepeated() bool { return false }

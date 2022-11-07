@@ -33,4 +33,8 @@ type ValueRenderer interface {
 
 	// Parse should be the inverse of Format.
 	Parse(context.Context, []Screen) (protoreflect.Value, error)
+
+	// handlesRepeated is set to true when the value renderer has a special
+	// formatting for repeated fields.
+	handlesRepeated() bool
 }

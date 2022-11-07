@@ -184,3 +184,5 @@ func (dr durationValueRenderer) Parse(_ context.Context, screens []Screen) (prot
 	msg := dur.ProtoReflect()
 	return protoreflect.ValueOfMessage(msg), nil
 }
+
+func (vr durationValueRenderer) handlesRepeated() bool { return false }
