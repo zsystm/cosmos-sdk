@@ -260,21 +260,26 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "pubkey on account is not set")
 		}
 
-		// Check account sequence number.
-		if sig.Sequence != acc.GetSequence() {
+		// Ensure the account sequence number is correct. Note, when a transaction
+		// is being simulated, we bypass this check incase the sequence number is
+		// incremented during RecheckTx.
+		accSeq := acc.GetSequence()
+		if !simulate && sig.Sequence != accSeq {
 			return ctx, sdkerrors.Wrapf(
 				sdkerrors.ErrWrongSequence,
-				"account sequence mismatch, expected %d, got %d", acc.GetSequence(), sig.Sequence,
+				"account sequence mismatch; expected %d, got %d", acc.GetSequence(), sig.Sequence,
 			)
 		}
 
-		// retrieve signer data
-		genesis := ctx.BlockHeight() == 0
-		chainID := ctx.ChainID()
-		var accNum uint64
+		var (
+			accNum  uint64
+			genesis = ctx.BlockHeight() == 0
+			chainID = ctx.ChainID()
+		)
 		if !genesis {
 			accNum = acc.GetAccountNumber()
 		}
+
 		signerData := authsigning.SignerData{
 			ChainID:       chainID,
 			AccountNumber: accNum,
