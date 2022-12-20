@@ -1398,7 +1398,7 @@ func (suite *KeeperTestSuite) TestGetSendEnabledEntry() {
 	}{
 		{
 			denom: "missing",
-			expSE: banktypes.SendEnabled{},
+			expSE: banktypes.SendEnabled{Denom: "missing"},
 			expF:  false,
 		},
 		{

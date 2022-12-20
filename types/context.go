@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"cosmossdk.io/core/store"
 	"time"
 
 	"github.com/cosmos/gogoproto/proto"
@@ -328,4 +329,18 @@ func UnwrapSDKContext(ctx context.Context) Context {
 		return sdkCtx
 	}
 	return ctx.Value(SdkContextKey).(Context)
+}
+
+type kvsk struct {
+	sk storetypes.StoreKey
+}
+
+func (k *kvsk) OpenKVStore(ctx context.Context) store.KVStore {
+	return ctx.(Context).KVStore(k.sk)
+}
+
+func KVFromSK(sk storetypes.StoreKey) store.KVStoreService {
+	return &kvsk{
+		sk: sk,
+	}
 }

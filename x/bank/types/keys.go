@@ -1,6 +1,7 @@
 package types
 
 import (
+	"cosmossdk.io/collections"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
 	"github.com/cosmos/cosmos-sdk/types/kv"
@@ -31,10 +32,10 @@ var (
 	BalancesPrefix = []byte{0x02}
 
 	// SendEnabledPrefix is the prefix for the SendDisabled flags for a Denom.
-	SendEnabledPrefix = []byte{0x04}
+	SendEnabledPrefix = collections.NewPrefix(4)
 
 	// ParamsKey is the prefix for x/bank parameters
-	ParamsKey = []byte{0x05}
+	ParamsKey = collections.NewPrefix(5)
 )
 
 // AddressAndDenomFromBalancesStore returns an account address and denom from a balances prefix
@@ -77,13 +78,5 @@ func CreateDenomAddressPrefix(denom string) []byte {
 	key := make([]byte, len(DenomAddressPrefix)+len(denom)+1)
 	copy(key, DenomAddressPrefix)
 	copy(key[len(DenomAddressPrefix):], denom)
-	return key
-}
-
-// CreateSendEnabledKey creates the key of the SendDisabled flag for a denom.
-func CreateSendEnabledKey(denom string) []byte {
-	key := make([]byte, len(SendEnabledPrefix)+len(denom))
-	copy(key, SendEnabledPrefix)
-	copy(key[len(SendEnabledPrefix):], denom)
 	return key
 }

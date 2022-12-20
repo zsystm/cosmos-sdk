@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
 	"cosmossdk.io/math"
 	gogotypes "github.com/cosmos/gogoproto/types"
@@ -253,14 +254,13 @@ func (k BaseKeeper) SendEnabled(goCtx context.Context, req *types.QuerySendEnabl
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	resp := &types.QuerySendEnabledResponse{}
 	if len(req.Denoms) > 0 {
-		store := ctx.KVStore(k.storeKey)
 		for _, denom := range req.Denoms {
-			if se, ok := k.getSendEnabled(store, denom); ok {
+			if se, err := k.BaseSendKeeper.SendEnabled.Get(ctx, denom); err == nil {
 				resp.SendEnabled = append(resp.SendEnabled, types.NewSendEnabled(denom, se))
 			}
 		}
 	} else {
-		store := k.getSendEnabledPrefixStore(ctx)
+		store := prefix.NewStore(k.BaseSendKeeper.SendEnabled.Store(ctx).(storetypes.KVStore), types.SendEnabledPrefix.Bytes()) // TODO remove when pagination supported
 		var err error
 
 		resp.Pagination, err = query.FilteredPaginate(

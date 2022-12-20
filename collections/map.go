@@ -129,6 +129,11 @@ func (m Map[K, V]) Iterate(ctx context.Context, ranger Ranger[K]) (Iterator[K, V
 	return iteratorFromRanger(ctx, m, ranger)
 }
 
+// TODO remove when pagination supported
+func (m Map[K, V]) Store(ctx context.Context) store.KVStore {
+	return m.sa(ctx)
+}
+
 func encodeKeyWithPrefix[K any](prefix []byte, kc KeyCodec[K], key K) ([]byte, error) {
 	prefixLen := len(prefix)
 	// preallocate buffer
