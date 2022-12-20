@@ -160,7 +160,7 @@ func (k BaseKeeper) DenomsMetadata(c context.Context, req *types.QueryDenomsMeta
 	}
 
 	ctx := sdk.UnwrapSDKContext(c)
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.DenomMetadataPrefix)
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.DenomMetadataPrefix.Bytes()) // TODO: remove when pagination supported in collections
 
 	metadatas := []types.Metadata{}
 	pageRes, err := query.Paginate(store, req.Pagination, func(_, value []byte) error {

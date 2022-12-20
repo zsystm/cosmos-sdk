@@ -61,8 +61,9 @@ type BaseSendKeeper struct {
 	// should be the x/gov module account.
 	authority string
 
-	SendEnabled collections.Map[string, bool]
-	Params      collections.Item[types.Params]
+	DenomMetadata collections.Map[string, types.Metadata]
+	SendEnabled   collections.Map[string, bool]
+	Params        collections.Item[types.Params]
 }
 
 func NewBaseSendKeeper(
@@ -85,6 +86,7 @@ func NewBaseSendKeeper(
 		storeKey:       storeKey,
 		blockedAddrs:   blockedAddrs,
 		authority:      authority,
+		DenomMetadata:  collections.NewMap(schema, types.DenomMetadataPrefix, "denom_metadata", collections.StringKey, codec.NewProtoValueCodec[types.Metadata](cdc)),
 		SendEnabled:    collections.NewMap(schema, types.SendEnabledPrefix, "send_enabled", collections.StringKey, codec.ProtoBoolValue),
 		Params:         collections.NewItem(schema, types.ParamsKey, "params", codec.NewProtoValueCodec[types.Params](cdc)),
 	}
