@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"cosmossdk.io/collections"
 	"fmt"
 
 	"cosmossdk.io/math"
@@ -38,6 +39,8 @@ type BaseViewKeeper struct {
 	cdc      codec.BinaryCodec
 	storeKey storetypes.StoreKey
 	ak       types.AccountKeeper
+
+	Supply collections.Map[string, math.Int]
 }
 
 // NewBaseViewKeeper returns a new BaseViewKeeper.

@@ -5,7 +5,6 @@ import (
 
 	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/internal/conv"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -29,7 +28,6 @@ type Keeper interface {
 	GetSupply(ctx sdk.Context, denom string) sdk.Coin
 	HasSupply(ctx sdk.Context, denom string) bool
 	GetPaginatedTotalSupply(ctx sdk.Context, pagination *query.PageRequest) (sdk.Coins, *query.PageResponse, error)
-	IterateTotalSupply(ctx sdk.Context, cb func(sdk.Coin) bool)
 	GetDenomMetaData(ctx sdk.Context, denom string) (types.Metadata, bool)
 	HasDenomMetaData(ctx sdk.Context, denom string) bool
 	SetDenomMetaData(ctx sdk.Context, denomMetaData types.Metadata)
@@ -63,7 +61,7 @@ type MintingRestrictionFn func(ctx sdk.Context, coins sdk.Coins) error
 // GetPaginatedTotalSupply queries for the supply, ignoring 0 coins, with a given pagination
 func (k BaseKeeper) GetPaginatedTotalSupply(ctx sdk.Context, pagination *query.PageRequest) (sdk.Coins, *query.PageResponse, error) {
 	store := ctx.KVStore(k.storeKey)
-	supplyStore := prefix.NewStore(store, types.SupplyKey)
+	supplyStore := prefix.NewStore(store, types.SupplyKey.Bytes()) // TODO: remove when collections supports pagination
 
 	supply := sdk.NewCoins()
 
@@ -214,34 +212,17 @@ func (k BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegatorAdd
 
 // GetSupply retrieves the Supply from store
 func (k BaseKeeper) GetSupply(ctx sdk.Context, denom string) sdk.Coin {
-	store := ctx.KVStore(k.storeKey)
-	supplyStore := prefix.NewStore(store, types.SupplyKey)
-
-	bz := supplyStore.Get(conv.UnsafeStrToBytes(denom))
-	if bz == nil {
-		return sdk.Coin{
-			Denom:  denom,
-			Amount: sdk.NewInt(0),
-		}
-	}
-
-	var amount math.Int
-	err := amount.Unmarshal(bz)
+	amt, err := k.Supply.Get(ctx, denom)
 	if err != nil {
-		panic(fmt.Errorf("unable to unmarshal supply value %v", err))
+		return sdk.NewInt64Coin(denom, 0)
 	}
-
-	return sdk.Coin{
-		Denom:  denom,
-		Amount: amount,
-	}
+	return sdk.NewCoin(denom, amt)
 }
 
 // HasSupply checks if the supply coin exists in store.
 func (k BaseKeeper) HasSupply(ctx sdk.Context, denom string) bool {
-	store := ctx.KVStore(k.storeKey)
-	supplyStore := prefix.NewStore(store, types.SupplyKey)
-	return supplyStore.Has(conv.UnsafeStrToBytes(denom))
+	has, err := k.Supply.Has(ctx, denom)
+	return has && err == nil
 }
 
 // GetDenomMetaData retrieves the denomination metadata. returns the metadata and true if the denom exists,
@@ -452,19 +433,10 @@ func (k BaseKeeper) BurnCoins(ctx sdk.Context, moduleName string, amounts sdk.Co
 
 // setSupply sets the supply for the given coin
 func (k BaseKeeper) setSupply(ctx sdk.Context, coin sdk.Coin) {
-	intBytes, err := coin.Amount.Marshal()
-	if err != nil {
-		panic(fmt.Errorf("unable to marshal amount value %v", err))
-	}
-
-	store := ctx.KVStore(k.storeKey)
-	supplyStore := prefix.NewStore(store, types.SupplyKey)
-
-	// Bank invariants and IBC requires to remove zero coins.
 	if coin.IsZero() {
-		supplyStore.Delete(conv.UnsafeStrToBytes(coin.GetDenom()))
+		_ = k.Supply.Remove(ctx, coin.Denom)
 	} else {
-		supplyStore.Set([]byte(coin.GetDenom()), intBytes)
+		_ = k.Supply.Set(ctx, coin.Denom, coin.Amount)
 	}
 }
 
@@ -500,32 +472,4 @@ func (k BaseKeeper) trackUndelegation(ctx sdk.Context, addr sdk.AccAddress, amt 
 	}
 
 	return nil
-}
-
-// IterateTotalSupply iterates over the total supply calling the given cb (callback) function
-// with the balance of each coin.
-// The iteration stops if the callback returns true.
-func (k BaseViewKeeper) IterateTotalSupply(ctx sdk.Context, cb func(sdk.Coin) bool) {
-	store := ctx.KVStore(k.storeKey)
-	supplyStore := prefix.NewStore(store, types.SupplyKey)
-
-	iterator := supplyStore.Iterator(nil, nil)
-	defer sdk.LogDeferred(ctx.Logger(), func() error { return iterator.Close() })
-
-	for ; iterator.Valid(); iterator.Next() {
-		var amount math.Int
-		err := amount.Unmarshal(iterator.Value())
-		if err != nil {
-			panic(fmt.Errorf("unable to unmarshal supply value %v", err))
-		}
-
-		balance := sdk.Coin{
-			Denom:  string(iterator.Key()),
-			Amount: amount,
-		}
-
-		if cb(balance) {
-			break
-		}
-	}
 }

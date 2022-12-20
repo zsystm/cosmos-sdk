@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"cosmossdk.io/collections"
+	"cosmossdk.io/math"
 	"fmt"
 	"github.com/pkg/errors"
 
@@ -61,6 +62,7 @@ type BaseSendKeeper struct {
 	// should be the x/gov module account.
 	authority string
 
+	Supply        collections.Map[string, math.Int]
 	DenomMetadata collections.Map[string, types.Metadata]
 	SendEnabled   collections.Map[string, bool]
 	Params        collections.Item[types.Params]
@@ -86,6 +88,7 @@ func NewBaseSendKeeper(
 		storeKey:       storeKey,
 		blockedAddrs:   blockedAddrs,
 		authority:      authority,
+		Supply:         collections.NewMap(schema, types.SupplyKey, "supply", collections.StringKey, math.IntValue),
 		DenomMetadata:  collections.NewMap(schema, types.DenomMetadataPrefix, "denom_metadata", collections.StringKey, codec.NewProtoValueCodec[types.Metadata](cdc)),
 		SendEnabled:    collections.NewMap(schema, types.SendEnabledPrefix, "send_enabled", collections.StringKey, codec.ProtoBoolValue),
 		Params:         collections.NewItem(schema, types.ParamsKey, "params", codec.NewProtoValueCodec[types.Params](cdc)),
