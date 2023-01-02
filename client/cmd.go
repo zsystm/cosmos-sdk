@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 // ClientContextKey defines the context key used to retrieve a client.Context from
@@ -331,4 +332,33 @@ func SetCmdClientContext(cmd *cobra.Command, clientCtx Context) error {
 	*clientCtxPtr = clientCtx
 
 	return nil
+}
+
+func GetQueryClientWithPagination(cmd *cobra.Command) (Context, error) {
+	clientCtx, err := GetClientQueryContext(cmd)
+	if err != nil {
+		return clientCtx, err
+	}
+
+	queryClient := types.NewQueryClient(clientCtx)
+	pageReq, err := ReadPageRequest(cmd.Flags())
+	if err != nil {
+		return queryClient, err
+	}
+
+	return clientCtx, queryClient, pageReq
+}
+
+func GetQueryClient(cmd *cobra.Command) (Context, error) {
+	clientCtx, err := GetClientQueryContext(cmd)
+	if err != nil {
+		return clientCtx, err
+	}
+
+	queryClient, err := types.NewQueryClient(clientCtx)
+	if err != nil {
+		return queryClient, err
+	}
+
+	return clientCtx, queryClient
 }
