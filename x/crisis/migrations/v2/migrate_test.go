@@ -3,7 +3,7 @@ package v2_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
 
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -33,11 +33,12 @@ func TestMigrate(t *testing.T) {
 	store := ctx.KVStore(storeKey)
 
 	legacySubspace := newMockSubspace(types.DefaultGenesisState().ConstantFee)
-	require.NoError(t, v2.MigrateStore(ctx, storeKey, legacySubspace, cdc))
+	assert.NilError(t, v2.MigrateStore(ctx, storeKey, legacySubspace, cdc))
 
 	var res sdk.Coin
 	bz := store.Get(v2.ConstantFeeKey)
-	require.NoError(t, cdc.Unmarshal(bz, &res))
-	require.NotNil(t, res)
-	require.Equal(t, legacySubspace.constantFee, res)
+	assert.NilError(t, cdc.Unmarshal(bz, &res))
+
+	assert.Check(t, res.IsNil() != true)
+	assert.DeepEqual(t, legacySubspace.constantFee, res)
 }

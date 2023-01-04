@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/suite"
+	"gotest.tools/v3/assert"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/testutil"
@@ -16,55 +16,58 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/crisis/types"
 )
 
-type GenesisTestSuite struct {
-	suite.Suite
-
+type genesisFixture struct {
 	sdkCtx sdk.Context
 	keeper keeper.Keeper
 	cdc    codec.BinaryCodec
 }
 
-func TestGenesisTestSuite(t *testing.T) {
-	suite.Run(t, new(GenesisTestSuite))
-}
+func initGenesisFixture(t assert.TestingT) *genesisFixture {
+	f := &genesisFixture{}
 
-func (s *GenesisTestSuite) SetupTest() {
 	key := sdk.NewKVStoreKey(types.StoreKey)
-	testCtx := testutil.DefaultContextWithDB(s.T(), key, sdk.NewTransientStoreKey("transient_test"))
+	testCtx := testutil.DefaultContextWithDB(&testing.T{}, key, sdk.NewTransientStoreKey("transient_test"))
 	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
 
 	// gomock initializations
-	ctrl := gomock.NewController(s.T())
-	s.cdc = codec.NewProtoCodec(encCfg.InterfaceRegistry)
-	s.sdkCtx = testCtx.Ctx
+	ctrl := gomock.NewController(&testing.T{})
+	f.cdc = codec.NewProtoCodec(encCfg.InterfaceRegistry)
+	f.sdkCtx = testCtx.Ctx
 
 	supplyKeeper := crisistestutil.NewMockSupplyKeeper(ctrl)
+	f.keeper = *keeper.NewKeeper(f.cdc, key, 5, supplyKeeper, "", "")
 
-	s.keeper = *keeper.NewKeeper(s.cdc, key, 5, supplyKeeper, "", "")
+	return f
 }
 
-func (s *GenesisTestSuite) TestImportExportGenesis() {
+func TestImportExportGenesis(t *testing.T) {
+	t.Parallel()
+	f := initGenesisFixture(t)
+
 	// default params
 	constantFee := sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000))
-	err := s.keeper.SetConstantFee(s.sdkCtx, constantFee)
-	s.Require().NoError(err)
-	genesis := s.keeper.ExportGenesis(s.sdkCtx)
+	err := f.keeper.SetConstantFee(f.sdkCtx, constantFee)
+	assert.NilError(t, err)
+	genesis := f.keeper.ExportGenesis(f.sdkCtx)
 
 	// set constant fee to zero
 	constantFee = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0))
-	err = s.keeper.SetConstantFee(s.sdkCtx, constantFee)
-	s.Require().NoError(err)
+	err = f.keeper.SetConstantFee(f.sdkCtx, constantFee)
+	assert.NilError(t, err)
 
-	s.keeper.InitGenesis(s.sdkCtx, genesis)
-	newGenesis := s.keeper.ExportGenesis(s.sdkCtx)
-	s.Require().Equal(genesis, newGenesis)
+	f.keeper.InitGenesis(f.sdkCtx, genesis)
+	newGenesis := f.keeper.ExportGenesis(f.sdkCtx)
+	assert.DeepEqual(t, genesis, newGenesis)
 }
 
-func (s *GenesisTestSuite) TestInitGenesis() {
+func TestInitGenesis(t *testing.T) {
+	t.Parallel()
+	f := initGenesisFixture(t)
+
 	genesisState := types.DefaultGenesisState()
 	genesisState.ConstantFee = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000))
-	s.keeper.InitGenesis(s.sdkCtx, genesisState)
+	f.keeper.InitGenesis(f.sdkCtx, genesisState)
 
-	constantFee := s.keeper.GetConstantFee(s.sdkCtx)
-	s.Require().Equal(genesisState.ConstantFee, constantFee)
+	constantFee := f.keeper.GetConstantFee(f.sdkCtx)
+	assert.DeepEqual(t, genesisState.ConstantFee, constantFee)
 }

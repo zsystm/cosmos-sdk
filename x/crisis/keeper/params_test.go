@@ -1,10 +1,17 @@
 package keeper_test
 
 import (
+	"testing"
+
+	"gotest.tools/v3/assert"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func (s *KeeperTestSuite) TestParams() {
+func TestParams(t *testing.T) {
+	t.Parallel()
+	f := initKeeperFixture(t)
+
 	// default params
 	constantFee := sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000))
 
@@ -33,20 +40,20 @@ func (s *KeeperTestSuite) TestParams() {
 
 	for _, tc := range testCases {
 		tc := tc
-		s.Run(tc.name, func() {
-			expected := s.keeper.GetConstantFee(s.ctx)
-			err := s.keeper.SetConstantFee(s.ctx, tc.constantFee)
+		t.Run(tc.name, func(t *testing.T) {
+			expected := f.keeper.GetConstantFee(f.ctx)
+			err := f.keeper.SetConstantFee(f.ctx, tc.constantFee)
 
 			if tc.expErr {
-				s.Require().Error(err)
-				s.Require().Contains(err.Error(), tc.expErrMsg)
+				assert.ErrorContains(t, err, tc.expErrMsg)
 			} else {
 				expected = tc.constantFee
-				s.Require().NoError(err)
+				assert.NilError(t, err)
 			}
 
-			params := s.keeper.GetConstantFee(s.ctx)
-			s.Require().Equal(expected, params)
+			params := f.keeper.GetConstantFee(f.ctx)
+
+			assert.DeepEqual(t, expected, params)
 		})
 	}
 }

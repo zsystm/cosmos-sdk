@@ -6,15 +6,15 @@ import (
 	"io"
 	"testing"
 
-	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
-	"github.com/stretchr/testify/require"
 	rpcclientmock "github.com/tendermint/tendermint/rpc/client/mock"
+	"gotest.tools/v3/assert"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 	"github.com/cosmos/cosmos-sdk/testutil"
+	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	testutilmod "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
@@ -83,19 +83,20 @@ func TestNewMsgVerifyInvariantTxCmd(t *testing.T) {
 
 			cmd := cli.NewMsgVerifyInvariantTxCmd()
 			cmd.SetOut(io.Discard)
-			require.NotNil(t, cmd)
+			assert.Assert(t, cmd != nil)
 
 			cmd.SetContext(ctx)
 			cmd.SetArgs(tc.args)
 
-			require.NoError(t, client.SetCmdClientContextHandler(baseCtx, cmd))
+			assert.NilError(t, client.SetCmdClientContextHandler(baseCtx, cmd))
 
 			err := cmd.Execute()
 			if tc.expectErr {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.errString)
+				var t assert.TestingT
+				assert.Error(t, err, tc.errString)
+				assert.ErrorContains(t, err, tc.errString)
 			} else {
-				require.NoError(t, err)
+				assert.NilError(t, err)
 			}
 		})
 	}

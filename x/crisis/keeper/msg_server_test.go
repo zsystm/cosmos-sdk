@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/suite"
+	"gotest.tools/v3/assert"
 
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,39 +15,44 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/crisis/types"
 )
 
-type KeeperTestSuite struct {
-	suite.Suite
-
+type keeperFixture struct {
 	ctx        sdk.Context
 	authKeeper *crisistestutil.MockSupplyKeeper
 	keeper     *keeper.Keeper
 }
 
-func (s *KeeperTestSuite) SetupTest() {
+func initKeeperFixture(t assert.TestingT) *keeperFixture {
+	f := &keeperFixture{}
+
 	// gomock initializations
-	ctrl := gomock.NewController(s.T())
+	ctrl := gomock.NewController(&testing.T{})
 	supplyKeeper := crisistestutil.NewMockSupplyKeeper(ctrl)
 
 	key := sdk.NewKVStoreKey(types.StoreKey)
-	testCtx := testutil.DefaultContextWithDB(s.T(), key, sdk.NewTransientStoreKey("transient_test"))
+	testCtx := testutil.DefaultContextWithDB(&testing.T{}, key, sdk.NewTransientStoreKey("transient_test"))
 	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
 	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "")
 
-	s.ctx = testCtx.Ctx
-	s.keeper = keeper
-	s.authKeeper = supplyKeeper
+	f.ctx = testCtx.Ctx
+	f.keeper = keeper
+	f.authKeeper = supplyKeeper
+
+	return f
 }
 
-func (s *KeeperTestSuite) TestMsgVerifyInvariant() {
+func TestMsgVerifyInvariant(t *testing.T) {
+	t.Parallel()
+	f := initKeeperFixture(t)
+
 	// default params
 	constantFee := sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000))
-	err := s.keeper.SetConstantFee(s.ctx, constantFee)
-	s.Require().NoError(err)
+	err := f.keeper.SetConstantFee(f.ctx, constantFee)
+	assert.NilError(t, err)
 
 	sender := sdk.AccAddress([]byte("addr1_______________"))
 
-	s.authKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-	s.keeper.RegisterRoute("bank", "total-supply", func(sdk.Context) (string, bool) { return "", false })
+	f.authKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+	f.keeper.RegisterRoute("bank", "total-supply", func(sdk.Context) (string, bool) { return "", false })
 
 	testCases := []struct {
 		name      string
@@ -98,19 +103,22 @@ func (s *KeeperTestSuite) TestMsgVerifyInvariant() {
 
 	for _, tc := range testCases {
 		tc := tc
-		s.Run(tc.name, func() {
-			_, err = s.keeper.VerifyInvariant(s.ctx, tc.input)
+
+		t.Run(tc.name, func(t *testing.T) {
+			_, err = f.keeper.VerifyInvariant(f.ctx, tc.input)
 			if tc.expErr {
-				s.Require().Error(err)
-				s.Require().Contains(err.Error(), tc.expErrMsg)
+				assert.ErrorContains(t, err, tc.expErrMsg)
 			} else {
-				s.Require().NoError(err)
+				assert.NilError(t, err)
 			}
 		})
 	}
 }
 
-func (s *KeeperTestSuite) TestMsgUpdateParams() {
+func TestMsgUpdateParams(t *testing.T) {
+	t.Parallel()
+	f := initKeeperFixture(t)
+
 	// default params
 	constantFee := sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000))
 
@@ -132,7 +140,7 @@ func (s *KeeperTestSuite) TestMsgUpdateParams() {
 		{
 			name: "invalid constant fee",
 			input: &types.MsgUpdateParams{
-				Authority:   s.keeper.GetAuthority(),
+				Authority:   f.keeper.GetAuthority(),
 				ConstantFee: sdk.Coin{},
 			},
 			expErr: true,
@@ -140,7 +148,7 @@ func (s *KeeperTestSuite) TestMsgUpdateParams() {
 		{
 			name: "negative constant fee",
 			input: &types.MsgUpdateParams{
-				Authority:   s.keeper.GetAuthority(),
+				Authority:   f.keeper.GetAuthority(),
 				ConstantFee: sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewInt(-1000)},
 			},
 			expErr: true,
@@ -148,7 +156,7 @@ func (s *KeeperTestSuite) TestMsgUpdateParams() {
 		{
 			name: "all good",
 			input: &types.MsgUpdateParams{
-				Authority:   s.keeper.GetAuthority(),
+				Authority:   f.keeper.GetAuthority(),
 				ConstantFee: constantFee,
 			},
 			expErr: false,
@@ -157,19 +165,14 @@ func (s *KeeperTestSuite) TestMsgUpdateParams() {
 
 	for _, tc := range testCases {
 		tc := tc
-		s.Run(tc.name, func() {
-			_, err := s.keeper.UpdateParams(s.ctx, tc.input)
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := f.keeper.UpdateParams(f.ctx, tc.input)
 
 			if tc.expErr {
-				s.Require().Error(err)
-				s.Require().Contains(err.Error(), tc.expErrMsg)
+				assert.ErrorContains(t, err, tc.expErrMsg)
 			} else {
-				s.Require().NoError(err)
+				assert.NilError(t, err)
 			}
 		})
 	}
-}
-
-func TestKeeperTestSuite(t *testing.T) {
-	suite.Run(t, new(KeeperTestSuite))
 }

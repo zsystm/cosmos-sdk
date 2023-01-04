@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
 
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -24,7 +25,7 @@ func TestLogger(t *testing.T) {
 	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
 	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "")
 
-	require.Equal(t,
+	assert.Equal(t,
 		testCtx.Ctx.Logger().With("module", "x/"+types.ModuleName),
 		keeper.Logger(testCtx.Ctx))
 }
@@ -36,12 +37,12 @@ func TestInvariants(t *testing.T) {
 	key := sdk.NewKVStoreKey(types.StoreKey)
 	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
 	keeper := keeper.NewKeeper(encCfg.Codec, key, 5, supplyKeeper, "", "")
-	require.Equal(t, keeper.InvCheckPeriod(), uint(5))
+	assert.Equal(t, keeper.InvCheckPeriod(), uint(5))
 
 	orgInvRoutes := keeper.Routes()
 	keeper.RegisterRoute("testModule", "testRoute", func(sdk.Context) (string, bool) { return "", false })
 	invar := keeper.Invariants()
-	require.Equal(t, len(invar), len(orgInvRoutes)+1)
+	assert.Equal(t, len(invar), len(orgInvRoutes)+1)
 }
 
 func TestAssertInvariants(t *testing.T) {
