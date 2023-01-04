@@ -8,12 +8,18 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/tendermint/tendermint/libs/cli"
+	"google.golang.org/grpc"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/types/query"
 )
+
+type QueryClient interface {
+}
+
+type GetClient func(cc grpc.ClientConnInterface) QueryClient
 
 // ClientContextKey defines the context key used to retrieve a client.Context from
 // a command's Context.
@@ -334,31 +340,28 @@ func SetCmdClientContext(cmd *cobra.Command, clientCtx Context) error {
 	return nil
 }
 
-func GetQueryClientWithPagination(cmd *cobra.Command) (Context, error) {
+func GetQueryClientWithPagination(cmd *cobra.Command, gc GetClient) (Context, QueryClient, *query.PageRequest, error) {
 	clientCtx, err := GetClientQueryContext(cmd)
 	if err != nil {
-		return clientCtx, err
+		return clientCtx, nil, nil, err
 	}
 
-	queryClient := types.NewQueryClient(clientCtx)
+	queryClient := gc(clientCtx)
 	pageReq, err := ReadPageRequest(cmd.Flags())
 	if err != nil {
-		return queryClient, err
+		return clientCtx, nil, pageReq, err
 	}
 
-	return clientCtx, queryClient, pageReq
+	return clientCtx, queryClient, pageReq, nil
 }
 
-func GetQueryClient(cmd *cobra.Command) (Context, error) {
+func GetQueryClient(cmd *cobra.Command, gc GetClient) (Context, QueryClient, error) {
 	clientCtx, err := GetClientQueryContext(cmd)
 	if err != nil {
-		return clientCtx, err
+		return clientCtx, nil, err
 	}
 
-	queryClient, err := types.NewQueryClient(clientCtx)
-	if err != nil {
-		return queryClient, err
-	}
+	queryClient := gc(clientCtx)
 
-	return clientCtx, queryClient
+	return clientCtx, queryClient, nil
 }
