@@ -445,23 +445,37 @@ func (rs *Store) PruneStores(clearStorePruningHeihgts bool, pruningHeights []int
 		pruningHeights = append(pruningHeights, rs.pruneHeights...)
 	}
 
+	fmt.Println("***********************************")
+	fmt.Printf("clearStorePruningHeights: %t", clearStorePruningHeihgts)
+
 	if len(rs.pruneHeights) == 0 {
+		fmt.Println("pruningHeights len 0")
 		return
 	}
 
+	for i, ht := range pruningHeights {
+		fmt.Printf("Pruning height %d: %d", i, ht)
+	}
+
 	for key, store := range rs.stores {
+		fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+		fmt.Println("Iterate through stores")
 		if store.GetStoreType() == types.StoreTypeIAVL {
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
-
+			fmt.Printf("Store: %s", key.Name())
 			if err := store.(*iavl.Store).DeleteVersions(pruningHeights...); err != nil {
+				fmt.Printf("Error deleting versions: %s", err.Error())
+
 				if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
 					panic(err)
 				}
 			}
 		}
 	}
+
+	fmt.Println("***********************************")
 
 	if clearStorePruningHeihgts {
 		rs.pruneHeights = make([]int64, 0)
