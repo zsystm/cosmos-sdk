@@ -426,6 +426,9 @@ func (rs *Store) Commit() types.CommitID {
 
 	// batch prune if the current height is a pruning interval height
 	if rs.pruningOpts.Interval > 0 && version%int64(rs.pruningOpts.Interval) == 0 {
+		rs.logger.Info("***********************************")
+		rs.logger.Info("Pruning Store")
+
 		rs.PruneStores(true, nil)
 	}
 
@@ -451,11 +454,7 @@ func (rs *Store) PruneStores(clearStorePruningHeihgts bool, pruningHeights []int
 		rs.logger.Info("pruningHeights len 0")
 		return
 	}
-
-	for i, ht := range pruningHeights {
-		rs.logger.Info(fmt.Sprintf("Pruning height %d: %d", i, ht))
-	}
-
+	
 	for key, store := range rs.stores {
 		rs.logger.Info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 		rs.logger.Info("Iterate through stores")
@@ -468,6 +467,12 @@ func (rs *Store) PruneStores(clearStorePruningHeihgts bool, pruningHeights []int
 				rs.logger.Info(fmt.Sprintf("Error deleting versions: %s", err.Error()))
 
 				if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
+					rs.logger.Error("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+					rs.logger.Error(fmt.Sprintf("Store: %s", key.Name()))
+					rs.logger.Error(fmt.Sprintf("Error deleting versions: %s", err.Error()))
+					for i, ht := range pruningHeights {
+						rs.logger.Error(fmt.Sprintf("Pruning height %d: %d", i, ht))
+					}
 					panic(err)
 				}
 			}
