@@ -454,7 +454,7 @@ func (rs *Store) PruneStores(clearStorePruningHeihgts bool, pruningHeights []int
 		rs.logger.Info("pruningHeights len 0")
 		return
 	}
-	
+
 	for key, store := range rs.stores {
 		rs.logger.Info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 		rs.logger.Info("Iterate through stores")
