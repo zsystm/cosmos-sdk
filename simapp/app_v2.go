@@ -14,6 +14,11 @@ import (
 	"cosmossdk.io/client/v2/autocli"
 	"cosmossdk.io/depinject"
 
+	// Won't be needed if we have:
+	// https://github.com/cosmos/cosmos-sdk/issues/14647
+	_ "cosmossdk.io/api/cosmos/bank/v1beta1"
+	_ "cosmossdk.io/api/cosmos/crypto/secp256k1"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
