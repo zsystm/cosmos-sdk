@@ -23,7 +23,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.1
-	github.com/tendermint/tendermint v0.37.0-rc2
+	github.com/tendermint/tendermint v0.38.0-dev
 	google.golang.org/protobuf v1.28.1
 )
 
