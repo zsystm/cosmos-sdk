@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	dbm "github.com/cosmos/cosmos-db"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
 
@@ -708,8 +709,10 @@ func TestIteratorNested(t *testing.T) {
 	it := types.KVStorePrefixIterator(store, []byte(fmt.Sprintf("c%04d", owner1)))
 	defer it.Close()
 
+	var indexes []string
 	var records []string
 	for ; it.Valid(); it.Next() {
+		indexes = append(indexes, string(it.Key()))
 		contractID, err := strconv.ParseInt(string(it.Key()[5:]), 10, 32)
 		require.NoError(t, err)
 
@@ -721,10 +724,15 @@ func TestIteratorNested(t *testing.T) {
 		it2.Close()
 	}
 
-	require.Equal(t, []string{
+	assert.Equal(t, []string{
+		"c00010001",
+		"c00010002",
+	}, indexes, "indexes iterated")
+
+	assert.Equal(t, []string{
 		"contract1-record1",
 		"contract1-record2",
 		"contract2-record1",
 		"contract2-record2",
-	}, records)
+	}, records, "records iterated")
 }
