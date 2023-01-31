@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -43,6 +44,7 @@ func NewTxCmd() *cobra.Command {
 
 	stakingTxCmd.AddCommand(
 		NewCreateValidatorCmd(),
+		NewValidatorCmd(),
 		NewEditValidatorCmd(),
 		NewDelegateCmd(),
 		NewRedelegateCmd(),
@@ -51,6 +53,45 @@ func NewTxCmd() *cobra.Command {
 	)
 
 	return stakingTxCmd
+}
+
+func NewValidatorCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "create-val",
+		Short: "create new validator initialized with a self-delegation to it",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			txf := tx.NewFactoryCLI(clientCtx, cmd.Flags()).
+				WithTxConfig(clientCtx.TxConfig).WithAccountRetriever(clientCtx.AccountRetriever)
+			txf, msg, err := newBuildCreateValidatorMsg(clientCtx, txf, cmd.Flags())
+			if err != nil {
+				return err
+			}
+
+			return tx.GenerateOrBroadcastTxWithFactory(clientCtx, txf, msg)
+		},
+	}
+
+	cmd.Flags().AddFlagSet(FlagSetPublicKey())
+	cmd.Flags().AddFlagSet(FlagSetAmount())
+	cmd.Flags().AddFlagSet(flagSetDescriptionCreate())
+	cmd.Flags().AddFlagSet(FlagSetCommissionCreate())
+	cmd.Flags().AddFlagSet(FlagSetMinSelfDelegation())
+
+	cmd.Flags().String(FlagIP, "", fmt.Sprintf("The node's public IP. It takes effect only when used in combination with --%s", flags.FlagGenerateOnly))
+	cmd.Flags().String(FlagNodeID, "", "The node's ID")
+	flags.AddTxFlagsToCmd(cmd)
+
+	_ = cmd.MarkFlagRequired(flags.FlagFrom)
+	_ = cmd.MarkFlagRequired(FlagAmount)
+	_ = cmd.MarkFlagRequired(FlagPubKey)
+	_ = cmd.MarkFlagRequired(FlagMoniker)
+
+	return cmd
 }
 
 // NewCreateValidatorCmd returns a CLI command handler for creating a MsgCreateValidator transaction.
@@ -335,6 +376,45 @@ $ %s tx staking cancel-unbond %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 100stake
 	flags.AddTxFlagsToCmd(cmd)
 
 	return cmd
+}
+
+// Validator struct to define the fields of the validator
+type Validator struct {
+	Amount  string `json: "amount"`
+	From    string `json:"from"`
+	PubKey  string `json:"pubkey"`
+	Moniker string `json: "moniker"`
+}
+
+func DefaultVal() *Validator {
+	return &Validator{
+		Amount:  "",
+		From:    "",
+		PubKey:  "",
+		Moniker: "",
+	}
+}
+
+func newBuildValMsg(clientCtx client.Context, txf tx.Factory, fs *flag.FlagSet) (tx.Factory, *types.MsgCreateValidator, error) {
+	// Create a new file
+	folderPath := filepath.Join(clientCtx.HomeDir, "config")
+	filePath := filepath.Join(folderPath, "validator.json")
+	val := DefaultVal()
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
+			return txf, nil, fmt.Errorf("couldn't make client config: %v", err)
+		}
+	}
+
+	// file, err := os.Create("validator.json")
+	// if err != nil {
+	// 	// fmt.Println(err)
+	// 	return txf, nil, err
+	// }
+	defer file.Close()
+
+
 }
 
 func newBuildCreateValidatorMsg(clientCtx client.Context, txf tx.Factory, fs *flag.FlagSet) (tx.Factory, *types.MsgCreateValidator, error) {
