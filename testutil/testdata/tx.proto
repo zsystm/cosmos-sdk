@@ -2,7 +2,7 @@ syntax = "proto3";
 package testdata;
 
 import "gogoproto/gogo.proto";
-import "testdata.proto";
+import "testdata/testdata.proto";
 
 option go_package = "github.com/cosmos/cosmos-sdk/testutil/testdata";
 

@@ -9,6 +9,7 @@ import (
 	"cosmossdk.io/x/evidence"
 	"cosmossdk.io/x/upgrade"
 	dbm "github.com/cosmos/cosmos-db"
+	"github.com/cosmos/gogoproto/proto"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -268,4 +269,13 @@ func TestUpgradeStateOnGenesis(t *testing.T) {
 	}
 
 	require.NotNil(t, app.UpgradeKeeper.GetVersionSetter())
+}
+
+func TestMergedRegistry(t *testing.T) {
+	var err error
+	require.NotPanics(t, func() {
+		_, err = proto.MergedRegistry()
+
+	})
+	require.NoError(t, err)
 }

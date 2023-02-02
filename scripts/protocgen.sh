@@ -22,8 +22,8 @@ done
 
 cd ..
 
-# generate codec/testdata proto code
-(cd testutil/testdata; buf generate)
+# generate testdata proto code
+(cd testutil; buf generate)
 
 # generate baseapp test messages
 (cd baseapp/testutil; buf generate)
