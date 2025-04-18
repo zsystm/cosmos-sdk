@@ -67,61 +67,99 @@ func TestCacheMultiStore(t *testing.T) {
 	require.IsType(t, cachemulti.Store{}, cacheMulti)
 }
 
-// This test demonstrates a scenario where the parent store's in-memory state
-// remains shared with a previously created child CacheMultiStore even after
-// the parent calls Commit(). Thus, if the parent sets new data post-commit,
-// the child sees it right away (contrary to the typical assumption that they'd diverge).
-func TestCacheMultiStore_SharedEphemeralState(t *testing.T) {
-	// 1) Create parent MultiStore (in-memory DB for simplicity).
+func TestCacheMultiStore_SharedEphemeralState_GrandChild(t *testing.T) {
+	/*
+	   This test shows that:
+	     - The parent store, a first-level cache (childCMS), and a second-level cache (grandChildCMS)
+	       can all share the same in-memory (ephemeral) state, even after the parent commits.
+	     - Each "Write()" merges the lower-level cache's changes up one level:
+	         grandChildCMS → childCMS → parentStore.
+	     - Consequently, any direct parent writes can be observed immediately by both child and grandchild.
+	     - Similarly, the child sees the grandchild’s changes only after the grandchild calls Write(),
+	       and the parent sees them only after the child calls Write().
+	*/
+
+	// 1) Create the parent MultiStore (in memory) and mount a KVStore.
 	db := dbm.NewMemDB()
 	parentMS := NewStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
 	parentMS.SetPruning(pruningtypes.NewPruningOptions(pruningtypes.PruningNothing))
 
-	// Mount some example store keys. Adjust to match your real keys.
 	key1 := types.NewKVStoreKey("store1")
 	parentMS.MountStoreWithDB(key1, types.StoreTypeIAVL, nil)
+
+	// Load the latest version (should be empty or zero-height in a fresh DB).
 	require.NoError(t, parentMS.LoadLatestVersion())
 
+	// Create a KVStore reference from the parent.
 	parentStore := parentMS.GetKVStore(key1)
 
-	// 2) Set something in the parent before creating child.
-	parentStore.Set([]byte("initialKey"), []byte("initialValue"))
+	// Put some data in the parent before creating the child and grandchild caches.
+	parentStore.Set([]byte("initKey"), []byte("initVal"))
 
-	// 3) Create child CacheMultiStore BEFORE parent commits.
+	// Create the 1st-level child CacheMultiStore before committing the parent.
 	childCMS := parentMS.CacheMultiStore()
-	childStore := childCMS.GetKVStore(key1)
+	childKV := childCMS.GetKVStore(key1)
 
-	// The child sees "initialKey" right away (same ephemeral layer).
-	require.Equal(t, []byte("initialValue"), childStore.Get([]byte("initialKey")))
+	// Check that the child sees the parent's ephemeral data (initKey).
+	require.Equal(t, []byte("initVal"), childKV.Get([]byte("initKey")),
+		"child should see parent's in-memory data prior to commit")
 
-	// 4) Now parent commits. In many setups, this might reset ephemeral state,
-	//    but in YOUR environment, it does NOT fully reset/replace it.
-	commitID := parentMS.Commit()
-	require.Equal(t, int64(1), commitID.Version, "parent should be at version 1")
+	// Create a 2nd-level grandchild cache from the child.
+	grandChildCMS := childCMS.CacheMultiStore()
+	grandChildKV := grandChildCMS.GetKVStore(key1)
 
-	// 5) Parent sets NEW data AFTER commit.
-	//    In your scenario, the child STILL sees this due to shared ephemeral references.
+	// The grandchild also sees the initial parent data immediately.
+	require.Equal(t, []byte("initVal"), grandChildKV.Get([]byte("initKey")),
+		"grandchild should see parent's in-memory data prior to commit")
+
+	// 2) Now commit the parent. In many Cosmos SDK setups, this might reset in-memory state,
+	//    but here it remains shared. The child/grandchild references stay valid.
+	cid := parentMS.Commit()
+	require.Equal(t, int64(1), cid.Version, "parent is now at version 1")
+
+	// The parent sets new data after commit, but the child and grandchild still see it
+	// due to shared ephemeral references in your environment.
 	parentStore.Set([]byte("postCommitKey"), []byte("postCommitVal"))
+	require.Equal(t, []byte("postCommitVal"), childKV.Get([]byte("postCommitKey")),
+		"child sees parent's new data even after parent commit")
+	require.Equal(t, []byte("postCommitVal"), grandChildKV.Get([]byte("postCommitKey")),
+		"grandchild sees parent's new data even after parent commit")
 
-	// PROOF: The child now sees it immediately.
-	got := childStore.Get([]byte("postCommitKey"))
-	require.Equal(t, []byte("postCommitVal"), got,
-		"Child (created pre-commit) unexpectedly sees parent's new data after commit (shared ephemeral)")
+	// 3) Further direct writes to the parent store appear in both child and grandchild.
+	parentStore.Set([]byte("parentOnly"), []byte("parentVal"))
+	require.Equal(t, []byte("parentVal"), childKV.Get([]byte("parentOnly")),
+		"child should see parent's new data")
+	require.Equal(t, []byte("parentVal"), grandChildKV.Get([]byte("parentOnly")),
+		"grandchild also sees parent's new data")
 
-	// 6) Child sets its own data as well, which the parent can see immediately once childCMS.Write() is called.
-	childStore.Set([]byte("childKey"), []byte("childVal"))
-	require.Nil(t, parentStore.Get([]byte("childKey")),
-		"Parent does not see child's ephemeral data until childCMS.Write()")
+	// 4) Demonstrate how the child and grandchild caches exchange changes.
+	//    - The child sets "childKey" (immediately visible to the grandchild).
+	//    - The grandchild sets "grandChildKey", which won't be visible to the child until
+	//      grandChildCMS.Write() merges it up.
+	childKV.Set([]byte("childKey"), []byte("childVal"))
+	require.Equal(t, []byte("childVal"), grandChildKV.Get([]byte("childKey")),
+		"grandchild sees child's data immediately in this environment")
 
+	grandChildKV.Set([]byte("grandChildKey"), []byte("grandChildVal"))
+	require.Nil(t, childKV.Get([]byte("grandChildKey")),
+		"child doesn't see grandchild data until grandChildCMS.Write()")
+
+	// Once the grandchild calls Write(), the child's ephemeral state is updated.
+	grandChildCMS.Write()
+	require.Equal(t, []byte("grandChildVal"), childKV.Get([]byte("grandChildKey")),
+		"child sees grandchild data after grandchildCMS.Write()")
+	require.Nil(t, parentStore.Get([]byte("grandChildKey")),
+		"parent doesn't see it until childCMS.Write() merges it up another level")
+
+	// Now the child calls Write(), so the parent store sees the grandchild's changes as well.
 	childCMS.Write()
-	// Now the parent sees child's data.
-	require.Equal(t, []byte("childVal"), parentStore.Get([]byte("childKey")),
-		"Parent sees child's data after childCMS.Write()")
+	require.Equal(t, []byte("grandChildVal"), parentStore.Get([]byte("grandChildKey")),
+		"parent sees merged data after childCMS.Write()")
 
-	// 7) We can commit parent again if we want:
-	commitID2 := parentMS.Commit()
-	require.Equal(t, int64(2), commitID2.Version)
-	// And so on...
+	// 5) Finally, commit the parent again if desired.
+	cid2 := parentMS.Commit()
+	require.Equal(t, int64(2), cid2.Version, "parent at version 2")
+	// This final commit persists everything if the store type supports it (e.g., IAVL).
 }
 
 func TestCacheMultiStoreWithVersion(t *testing.T) {
