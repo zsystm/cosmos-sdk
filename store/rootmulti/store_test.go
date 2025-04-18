@@ -67,6 +67,63 @@ func TestCacheMultiStore(t *testing.T) {
 	require.IsType(t, cachemulti.Store{}, cacheMulti)
 }
 
+// This test demonstrates a scenario where the parent store's in-memory state
+// remains shared with a previously created child CacheMultiStore even after
+// the parent calls Commit(). Thus, if the parent sets new data post-commit,
+// the child sees it right away (contrary to the typical assumption that they'd diverge).
+func TestCacheMultiStore_SharedEphemeralState(t *testing.T) {
+	// 1) Create parent MultiStore (in-memory DB for simplicity).
+	db := dbm.NewMemDB()
+	parentMS := NewStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
+	parentMS.SetPruning(pruningtypes.NewPruningOptions(pruningtypes.PruningNothing))
+
+	// Mount some example store keys. Adjust to match your real keys.
+	key1 := types.NewKVStoreKey("store1")
+	parentMS.MountStoreWithDB(key1, types.StoreTypeIAVL, nil)
+	require.NoError(t, parentMS.LoadLatestVersion())
+
+	parentStore := parentMS.GetKVStore(key1)
+
+	// 2) Set something in the parent before creating child.
+	parentStore.Set([]byte("initialKey"), []byte("initialValue"))
+
+	// 3) Create child CacheMultiStore BEFORE parent commits.
+	childCMS := parentMS.CacheMultiStore()
+	childStore := childCMS.GetKVStore(key1)
+
+	// The child sees "initialKey" right away (same ephemeral layer).
+	require.Equal(t, []byte("initialValue"), childStore.Get([]byte("initialKey")))
+
+	// 4) Now parent commits. In many setups, this might reset ephemeral state,
+	//    but in YOUR environment, it does NOT fully reset/replace it.
+	commitID := parentMS.Commit()
+	require.Equal(t, int64(1), commitID.Version, "parent should be at version 1")
+
+	// 5) Parent sets NEW data AFTER commit.
+	//    In your scenario, the child STILL sees this due to shared ephemeral references.
+	parentStore.Set([]byte("postCommitKey"), []byte("postCommitVal"))
+
+	// PROOF: The child now sees it immediately.
+	got := childStore.Get([]byte("postCommitKey"))
+	require.Equal(t, []byte("postCommitVal"), got,
+		"Child (created pre-commit) unexpectedly sees parent's new data after commit (shared ephemeral)")
+
+	// 6) Child sets its own data as well, which the parent can see immediately once childCMS.Write() is called.
+	childStore.Set([]byte("childKey"), []byte("childVal"))
+	require.Nil(t, parentStore.Get([]byte("childKey")),
+		"Parent does not see child's ephemeral data until childCMS.Write()")
+
+	childCMS.Write()
+	// Now the parent sees child's data.
+	require.Equal(t, []byte("childVal"), parentStore.Get([]byte("childKey")),
+		"Parent sees child's data after childCMS.Write()")
+
+	// 7) We can commit parent again if we want:
+	commitID2 := parentMS.Commit()
+	require.Equal(t, int64(2), commitID2.Version)
+	// And so on...
+}
+
 func TestCacheMultiStoreWithVersion(t *testing.T) {
 	var db dbm.DB = dbm.NewMemDB()
 	ms := newMultiStoreWithMounts(db, pruningtypes.NewPruningOptions(pruningtypes.PruningNothing))
