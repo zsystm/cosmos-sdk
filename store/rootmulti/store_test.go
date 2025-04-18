@@ -67,6 +67,81 @@ func TestCacheMultiStore(t *testing.T) {
 	require.IsType(t, cachemulti.Store{}, cacheMulti)
 }
 
+func TestCacheMultiStore_Copy_IsIndependent(t *testing.T) {
+	/*
+	   In *some* Cosmos SDK store implementations or custom store setups, Copy() creates
+	   a fully isolated snapshot. Changes in the copy won't reflect in the original
+	   after copyCMS.Write().
+
+	   This test demonstrates that scenario:
+	     - Original sets some keys.
+	     - We Copy() the original into copyCMS.
+	     - Both the original and the copy set different keys.
+	     - copyCMS.Write() does *not* affect the original ephemeral store at all.
+	*/
+
+	// 1) Prepare a parent store (root multi-store) in memory.
+	db := dbm.NewMemDB()
+	parentStore := NewStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
+	parentStore.SetPruning(pruningtypes.NewPruningOptions(pruningtypes.PruningNothing))
+
+	// Mount one KVStore key for this example (adjust as needed).
+	storeKey := types.NewKVStoreKey("testKey")
+	parentStore.MountStoreWithDB(storeKey, types.StoreTypeIAVL, nil)
+
+	require.NoError(t, parentStore.LoadLatestVersion())
+	parentKV := parentStore.GetKVStore(storeKey)
+
+	// 2) Create the original CacheMultiStore from the parent.
+	originalCMS := parentStore.CacheMultiStore().(cachemulti.Store)
+	originalKV := originalCMS.GetKVStore(storeKey)
+
+	// 3) Put some data in the original store.
+	originalKV.Set([]byte("k1"), []byte("origValue1"))
+
+	// 4) Now create a copy of the original store.
+	copyCMS := originalCMS.Copy().(cachemulti.Store)
+	copyKV := copyCMS.GetKVStore(storeKey)
+
+	// 5) Modify the original store after the copy.
+	originalKV.Set([]byte("k2"), []byte("origValue2"))
+
+	// 6) Modify the copy store distinctly.
+	copyKV.Set([]byte("k3"), []byte("copyValue3"))
+
+	// Verify they don't see each other's changes:
+	require.Nil(t, copyKV.Get([]byte("k2")),
+		"Copy doesn't see original's new key 'k2'")
+	require.Nil(t, originalKV.Get([]byte("k3")),
+		"Original doesn't see copy's new key 'k3'")
+
+	// 7) Write the copy's changes back to *its own ephemeral state*.
+	//    In your environment, this does NOT affect the original's ephemeral store.
+	copyCMS.Write()
+	require.Equal(t, []byte("copyValue3"), parentKV.Get([]byte("k3")),
+		"Parent store sees 'k3' after copyCMS.Write()")
+
+	// Confirm the original store still does not see 'k3'.
+	val := originalKV.Get([]byte("k3"))
+	require.Nil(t, val,
+		"Original does *not* see 'k3' even after copyCMS.Write(), indicating independence")
+
+	// The original store retains 'k2'.
+	require.Equal(t, []byte("origValue2"), originalKV.Get([]byte("k2")),
+		"Original still has its own ephemeral 'k2'")
+
+	// 8) Optionally, write the original's changes to the parent store.
+	originalCMS.Write()
+	require.Equal(t, []byte("origValue2"), parentKV.Get([]byte("k2")),
+		"Parent store sees 'k2' after originalCMS.Write()")
+
+	// The parent's store sees 'k1' and 'k2', but no 'k3'.
+	require.Equal(t, []byte("origValue1"), parentKV.Get([]byte("k1")))
+
+	// This confirms that in your setup, Copy() is *fully isolated* from the original:
+	// neither ephemeral nor persistent state is shared after the moment of copying.
+}
+
 func TestCacheMultiStoreWithVersion(t *testing.T) {
 	var db dbm.DB = dbm.NewMemDB()
 	ms := newMultiStoreWithMounts(db, pruningtypes.NewPruningOptions(pruningtypes.PruningNothing))
